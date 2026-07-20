@@ -40,8 +40,15 @@ export default function Profil() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
-      <div className="h-64 md:h-96 relative w-full">
-        <img src={fotoProfil} alt="Asrama Merapi Singgalang" className="w-full h-full object-cover" />
+      
+      {/* Tambahan bg-slate-900 di sini akan membuat latar berwarna gelap saat foto belum dimuat */}
+      <div className="h-64 md:h-96 relative w-full bg-slate-900">
+        
+        {/* Gambar hanya akan dirender (ditampilkan) JIKA fotoProfil sudah berhasil diambil dari Firebase */}
+        {fotoProfil && (
+          <img src={fotoProfil} alt="Asrama Merapi Singgalang" className="w-full h-full object-cover animate-in fade-in duration-1000" />
+        )}
+        
         <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center">
           <h1 className="text-4xl md:text-5xl font-bold text-white font-serif tracking-wide">Profil Asrama</h1>
         </div>
