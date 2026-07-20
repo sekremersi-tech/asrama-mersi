@@ -132,7 +132,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <nav className="bg-slate-900 text-white shadow-md sticky top-0 z-50 p-4 px-8 flex justify-between items-center">
         <div className="font-serif font-bold text-xl flex items-center gap-2">
-          <img src="/mersi.png" alt="Logo" className="w-6 h-6 object-contain" /> Admin Mersi
+          <img src="/mersi.png" alt="Logo" className="w-15 h-15 object-contain" /> Admin Mersi
         </div>
         <button onClick={() => {signOut(auth); router.push("/admin/login")}} className="bg-red-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700">Logout</button>
       </nav>
