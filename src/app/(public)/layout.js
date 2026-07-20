@@ -36,7 +36,7 @@ export default function PublicLayout({ children }) {
             
             <Link href="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
-                <img src="/mersi.png" alt="Logo Mersi" className="w-6 h-6 object-contain" />
+                <img src="/mersi.png" alt="Logo Mersi" className="w-15 h-15 object-contain" />
               </div>
               <span className="font-serif font-bold text-xl text-slate-900">Merapi Singgalang</span>
             </Link>
@@ -75,7 +75,7 @@ export default function PublicLayout({ children }) {
           
           <div>
             <div className="flex items-center gap-3 mb-6">
-              <img src="/mersi.png" alt="Logo Mersi" className="w-8 h-8 object-contain opacity-90" />
+              <img src="/mersi.png" alt="Logo Mersi" className="w-17 h-17 object-contain opacity-90" />
               <span className="font-serif font-bold text-xl text-white">Merapi Singgalang</span>
             </div>
             <p className="text-sm leading-relaxed text-slate-400">
