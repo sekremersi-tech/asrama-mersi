@@ -1,4 +1,7 @@
+"use client";
+
 import { BookOpen, Download, Search } from "lucide-react";
+// ... (kode lainnya biarkan saja)
 
 export default function JaringanAlumni() {
   // Data statis skripsi (Tahap 5 akan diambil dari Firestore)
