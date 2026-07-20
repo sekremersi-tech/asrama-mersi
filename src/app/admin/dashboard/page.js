@@ -1,196 +1,223 @@
-// src/app/admin/dashboard/page.js
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { uploadToCloudinary } from "@/utils/uploadCloudinary";
-import { LogOut, FileText, UploadCloud } from "lucide-react";
+import { LogOut, BookOpen, UploadCloud, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("skripsi"); // 'skripsi' atau 'berita'
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Otentikasi Sederhana
-  useEffect(() => {
-    const isAuth = sessionStorage.getItem("adminMersiAuth");
-    if (!isAuth) {
-      router.push("/admin/login");
-    }
-  }, [router]);
+  
+  // State untuk form
+  const [nama, setNama] = useState("");
+  const [jurusan, setJurusan] = useState("");
+  const [judul, setJudul] = useState("");
+  const [tahun, setTahun] = useState("");
+  const [filePDF, setFilePDF] = useState(null);
+  
+  // State untuk indikator proses
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState({ type: "", message: "" });
 
   const handleLogout = () => {
-    sessionStorage.removeItem("adminMersiAuth");
-    router.push("/");
+    // Arahkan kembali ke halaman login
+    router.push("/admin/login");
   };
 
-  // State Formulir Skripsi
-  const [skripsiForm, setSkripsiForm] = useState({ nama: "", jurusan: "", judul: "", tahun: "", filePDF: null });
-
-  // State Formulir Berita
-  const [beritaForm, setBeritaForm] = useState({ judul: "", kategori: "", penulis: "", tanggal: "", ringkasan: "", isiLengkap: "", fileFoto: null });
-
-  const submitSkripsi = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!skripsiForm.filePDF) return alert("Pilih file PDF terlebih dahulu!");
-    setIsLoading(true);
+    setLoading(true);
+    setStatus({ type: "", message: "" });
+
     try {
-      const pdfUrl = await uploadToCloudinary(skripsiForm.filePDF);
+      let linkPDF = "#";
+
+      // 1. Proses Upload PDF ke Cloudinary
+      if (filePDF) {
+        const formData = new FormData();
+        formData.append("file", filePDF);
+        // Memanggil preset rahasia dari environment variables
+        formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); 
+        
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`,
+          { 
+            method: "POST", 
+            body: formData 
+          }
+        );
+        
+        const data = await res.json();
+        
+        if (data.secure_url) {
+          linkPDF = data.secure_url;
+        } else {
+          throw new Error("Gagal mengunggah dokumen PDF ke server.");
+        }
+      }
+
+      // 2. Proses Simpan Data Teks ke Firestore
       await addDoc(collection(db, "skripsi"), {
-        nama: skripsiForm.nama,
-        jurusan: skripsiForm.jurusan,
-        judul: skripsiForm.judul,
-        tahun: skripsiForm.tahun,
-        linkPDF: pdfUrl,
-        dibuatPada: serverTimestamp()
+        nama,
+        jurusan,
+        judul,
+        tahun,
+        linkPDF,
+        createdAt: serverTimestamp()
       });
-      alert("Skripsi berhasil ditambahkan ke Repositori!");
-      setSkripsiForm({ nama: "", jurusan: "", judul: "", tahun: "", filePDF: null });
-    } catch (error) {
-      alert("Terjadi kesalahan: " + error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const submitBerita = async (e) => {
-    e.preventDefault();
-    if (!beritaForm.fileFoto) return alert("Pilih foto berita terlebih dahulu!");
-    setIsLoading(true);
-    try {
-      const imgUrl = await uploadToCloudinary(beritaForm.fileFoto);
-      await addDoc(collection(db, "berita"), {
-        judul: beritaForm.judul,
-        kategori: beritaForm.kategori,
-        penulis: beritaForm.penulis,
-        tanggal: beritaForm.tanggal,
-        ringkasan: beritaForm.ringkasan,
-        isiLengkap: beritaForm.isiLengkap,
-        img: imgUrl,
-        dibuatPada: serverTimestamp()
-      });
-      alert("Kabar terbaru berhasil dipublikasikan!");
-      setBeritaForm({ judul: "", kategori: "", penulis: "", tanggal: "", ringkasan: "", isiLengkap: "", fileFoto: null });
+      // Jika sukses, tampilkan pesan dan kosongkan form
+      setStatus({ type: "success", message: "Data skripsi berhasil dipublikasikan ke halaman Alumni!" });
+      setNama("");
+      setJurusan("");
+      setJudul("");
+      setTahun("");
+      setFilePDF(null);
+      e.target.reset(); // Mengosongkan input file HTML
+
     } catch (error) {
-      alert("Terjadi kesalahan: " + error.message);
+      console.error(error);
+      setStatus({ type: "error", message: "Gagal menyimpan data: " + error.message });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      {/* SIDEBAR */}
-      <div className="w-full md:w-64 bg-slate-900 text-white flex flex-col">
-        <div className="p-6 bg-red-800 text-center font-serif font-bold text-xl tracking-wider">
-          MERAPI SINGGALANG
+    <div className="min-h-screen bg-slate-50">
+      {/* Navbar Admin */}
+      <nav className="bg-slate-900 text-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <div className="flex items-center gap-2 font-serif font-bold text-xl">
+              <BookOpen className="text-red-500" />
+              <span>Admin Mersi</span>
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-2 bg-red-800 hover:bg-red-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <LogOut size={16} /> Logout
+            </button>
+          </div>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
-          <button 
-            onClick={() => setActiveTab("skripsi")} 
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'skripsi' ? 'bg-slate-800 text-red-500' : 'hover:bg-slate-800'}`}
-          >
-            <FileText size={20} /> Repositori Skripsi
-          </button>
-          <button 
-            onClick={() => setActiveTab("berita")} 
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'berita' ? 'bg-slate-800 text-red-500' : 'hover:bg-slate-800'}`}
-          >
-            <UploadCloud size={20} /> Kabar Asrama
-          </button>
-        </nav>
-        <div className="p-4 border-t border-slate-800">
-          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-800 px-4 py-2 rounded-lg transition-colors">
-            <LogOut size={18} /> Keluar
-          </button>
-        </div>
-      </div>
+      </nav>
 
-      {/* AREA KONTEN UTAMA */}
-      <div className="flex-1 p-8 overflow-y-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8 font-serif">
-          {activeTab === 'skripsi' ? 'Unggah Skripsi Alumni' : 'Publikasi Kabar Asrama'}
-        </h1>
+      {/* Konten Utama */}
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+          <div className="bg-slate-100 p-6 border-b border-gray-200">
+            <h1 className="text-2xl font-bold text-slate-900">Unggah Data Skripsi</h1>
+            <p className="text-slate-500 text-sm mt-1">Tambahkan data skripsi atau tugas akhir alumni ke dalam repositori asrama.</p>
+          </div>
 
-        <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 max-w-3xl">
-          {/* FORM SKRIPSI */}
-          {activeTab === 'skripsi' && (
-            <form onSubmit={submitSkripsi} className="space-y-5">
-              <div className="grid grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                  <input type="text" required value={skripsiForm.nama} onChange={(e)=>setSkripsiForm({...skripsiForm, nama: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md text-slate-900" placeholder="Cth: Uda Mahasiswa" />
+          <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+            
+            {/* Notifikasi Status */}
+            {status.message && (
+              <div className={`p-4 rounded-md flex items-start gap-3 ${status.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                {status.type === 'success' ? <CheckCircle size={20} className="shrink-0 mt-0.5" /> : <AlertCircle size={20} className="shrink-0 mt-0.5" />}
+                <p className="text-sm font-medium">{status.message}</p>
+              </div>
+            )}
+
+            {/* Input Nama & Jurusan */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Nama Lengkap</label>
+                <input 
+                  type="text" 
+                  required
+                  value={nama}
+                  onChange={(e) => setNama(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-red-800 focus:border-red-800 outline-none transition-all"
+                  placeholder="Contoh: Uda Mahasiswa"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Jurusan & Universitas</label>
+                <input 
+                  type="text" 
+                  required
+                  value={jurusan}
+                  onChange={(e) => setJurusan(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-red-800 focus:border-red-800 outline-none transition-all"
+                  placeholder="Contoh: Teknik Elektro, UGM"
+                />
+              </div>
+            </div>
+
+            {/* Input Judul & Tahun */}
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_120px] gap-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Judul Skripsi</label>
+                <textarea 
+                  required
+                  rows="3"
+                  value={judul}
+                  onChange={(e) => setJudul(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-red-800 focus:border-red-800 outline-none transition-all resize-none"
+                  placeholder="Masukkan judul skripsi secara lengkap..."
+                ></textarea>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Tahun</label>
+                <input 
+                  type="number" 
+                  required
+                  value={tahun}
+                  onChange={(e) => setTahun(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-red-800 focus:border-red-800 outline-none transition-all"
+                  placeholder="2026"
+                />
+              </div>
+            </div>
+
+            {/* Upload File */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Unggah File PDF (Opsional)</label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-md hover:bg-slate-50 transition-colors">
+                <div className="space-y-1 text-center">
+                  <UploadCloud className="mx-auto h-12 w-12 text-slate-400" />
+                  <div className="flex text-sm text-slate-600 justify-center">
+                    <label className="relative cursor-pointer bg-white rounded-md font-medium text-red-800 hover:text-red-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-red-800 px-1">
+                      <span>Pilih file PDF</span>
+                      <input 
+                        type="file" 
+                        accept=".pdf" 
+                        className="sr-only" 
+                        onChange={(e) => setFilePDF(e.target.files[0])}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {filePDF ? `Terpilih: ${filePDF.name}` : "Maksimal 10MB"}
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tahun Kelulusan</label>
-                  <input type="number" required value={skripsiForm.tahun} onChange={(e)=>setSkripsiForm({...skripsiForm, tahun: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md text-slate-900" placeholder="2026" />
-                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jurusan & Universitas</label>
-                <input type="text" required value={skripsiForm.jurusan} onChange={(e)=>setSkripsiForm({...skripsiForm, jurusan: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md text-slate-900" placeholder="Pendidikan Teknik Mekatronika, UNY" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Judul Skripsi / Tugas Akhir</label>
-                <textarea required value={skripsiForm.judul} onChange={(e)=>setSkripsiForm({...skripsiForm, judul: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md h-24 text-slate-900"></textarea>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">File Dokumen (PDF)</label>
-                <input type="file" accept="application/pdf" required onChange={(e)=>setSkripsiForm({...skripsiForm, filePDF: e.target.files[0]})} className="w-full text-slate-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-800 hover:file:bg-red-100" />
-              </div>
-              <button type="submit" disabled={isLoading} className="w-full bg-slate-900 text-white py-3 rounded-md font-medium hover:bg-slate-800 disabled:opacity-50 transition-colors">
-                {isLoading ? "Mengunggah..." : "Simpan ke Repositori"}
+            </div>
+
+            {/* Tombol Submit */}
+            <div className="pt-4 border-t border-slate-100">
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full flex justify-center items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-md font-semibold transition-all disabled:bg-slate-400 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={20} /> Memproses Data...
+                  </>
+                ) : (
+                  "Simpan ke Database"
+                )}
               </button>
-            </form>
-          )}
+            </div>
 
-          {/* FORM BERITA */}
-          {activeTab === 'berita' && (
-            <form onSubmit={submitBerita} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Judul Berita</label>
-                <input type="text" required value={beritaForm.judul} onChange={(e)=>setBeritaForm({...beritaForm, judul: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md text-slate-900" />
-              </div>
-              <div className="grid grid-cols-3 gap-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                  <select required value={beritaForm.kategori} onChange={(e)=>setBeritaForm({...beritaForm, kategori: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md text-slate-900">
-                    <option value="">Pilih...</option>
-                    <option value="Prestasi">Prestasi</option>
-                    <option value="Kehidupan">Kehidupan</option>
-                    <option value="Kewirausahaan">Kewirausahaan</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Penulis</label>
-                  <input type="text" required value={beritaForm.penulis} onChange={(e)=>setBeritaForm({...beritaForm, penulis: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md text-slate-900" placeholder="Divisi/Nama" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
-                  <input type="text" required value={beritaForm.tanggal} onChange={(e)=>setBeritaForm({...beritaForm, tanggal: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md text-slate-900" placeholder="12 Mei 2026" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ringkasan (Tampil di Kartu Depan)</label>
-                <textarea required value={beritaForm.ringkasan} onChange={(e)=>setBeritaForm({...beritaForm, ringkasan: e.target.value})} maxLength={150} className="w-full p-2 border border-gray-300 rounded-md h-20 text-slate-900" placeholder="Maks 150 karakter..."></textarea>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Isi Berita Lengkap</label>
-                <textarea required value={beritaForm.isiLengkap} onChange={(e)=>setBeritaForm({...beritaForm, isiLengkap: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md h-40 text-slate-900"></textarea>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Foto Berita (JPG/PNG)</label>
-                <input type="file" accept="image/*" required onChange={(e)=>setBeritaForm({...beritaForm, fileFoto: e.target.files[0]})} className="w-full text-slate-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-800 hover:file:bg-red-100" />
-              </div>
-              <button type="submit" disabled={isLoading} className="w-full bg-slate-900 text-white py-3 rounded-md font-medium hover:bg-slate-800 disabled:opacity-50 transition-colors">
-                {isLoading ? "Mengunggah..." : "Publikasikan Kabar"}
-              </button>
-            </form>
-          )}
+          </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
