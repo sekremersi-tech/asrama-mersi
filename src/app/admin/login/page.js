@@ -12,7 +12,7 @@ export default function AdminLogin() {
   const router = useRouter();
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
+    setIsLoading(true); // 1. Nyalakan spinner
     setError("");
     const provider = new GoogleAuthProvider();
 
@@ -24,17 +24,23 @@ export default function AdminLogin() {
       const emailSekre = "sekremersi@gmail.com"; 
 
       if (user.email === emailSekre) {
+        // JIKA SUKSES: Perintahkan pindah halaman.
+        // CATATAN: Kita TIDAK mematikan setIsLoading di sini.
+        // Biarkan spinner terus berputar sampai halaman berganti sepenuhnya!
         router.push("/admin/dashboard");
       } else {
+        // JIKA EMAIL SALAH: Tolak akses dan matikan spinner
         await signOut(auth);
         setError("Akses ditolak! Anda harus menggunakan akun Google resmi Sekretariat Asrama.");
+        setIsLoading(false); 
       }
     } catch (err) {
+      // JIKA ERROR (Popup ditutup/diblokir): Matikan spinner
       setError("Gagal login dengan Google. Pastikan popup browser tidak diblokir.");
       console.error(err);
-    } finally {
       setIsLoading(false);
     }
+    // Blok 'finally' dihapus agar spinner tidak mati mendadak saat sedang transisi halaman
   };
 
   return (
@@ -70,7 +76,10 @@ export default function AdminLogin() {
           className="w-full bg-white hover:bg-gray-100 text-slate-900 font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isLoading ? (
-            <svg className="animate-spin h-5 w-5 text-slate-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <>
+              <svg className="animate-spin h-5 w-5 text-slate-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              Sedang memverifikasi...
+            </>
           ) : (
             <>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px">
