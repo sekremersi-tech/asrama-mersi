@@ -35,9 +35,11 @@ export default function PublicLayout({ children }) {
           <div className="flex justify-between h-20 items-center">
             
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
-                <img src="/mersi.png" alt="Logo Mersi" className="w-15 h-15 object-contain" />
-              </div>
+              <img 
+                src="/mersi.png" 
+                alt="Logo Mersi" 
+                className="w-10 h-10 object-contain group-hover:scale-105 transition-transform" 
+              />
               <span className="font-serif font-bold text-xl text-slate-900">Merapi Singgalang</span>
             </Link>
 
