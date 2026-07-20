@@ -128,14 +128,23 @@ export default function AdminDashboard() {
     if (confirm("Yakin ingin menghapus data ini secara permanen?")) { await deleteDoc(doc(db, koleksi, id)); fetchAllData(); }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <nav className="bg-slate-900 text-white shadow-md sticky top-0 z-50 p-4 px-8 flex justify-between items-center">
-        <div className="font-serif font-bold text-xl flex items-center gap-2">
-          <img src="/mersi.png" alt="Logo" className="w-15 h-15 object-contain" /> Admin Mersi
-        </div>
-        <button onClick={() => {signOut(auth); router.push("/admin/login")}} className="bg-red-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700">Logout</button>
-      </nav>
+ 
+
+  <div className="min-h-screen bg-slate-50 text-slate-900">
+  {/* bg-slate-900 dan text-white dihapus, diganti text-slate-900 agar terbaca */}
+    <nav className="text-slate-900 sticky top-0 z-50 p-4 px-8 flex justify-between items-center">
+      <div className="font-serif font-bold text-xl flex items-center gap-2">
+        {/* Ukuran disesuaikan menjadi w-12 h-12 karena w-25 tidak valid di Tailwind */}
+        <img src="/mersi.png" alt="Logo" className="w-22 h-22 object-contain" /> Admin Mersi
+      </div>
+      <button 
+        onClick={() => {signOut(auth); router.push("/admin/login")}} 
+        className="bg-red-800 px-4 py-2 rounded-md text-sm font-medium text-white hover:bg-red-700"
+      >
+        Logout
+      </button>
+    </nav>
+  </div>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex space-x-2 mb-8 bg-white p-2 rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
