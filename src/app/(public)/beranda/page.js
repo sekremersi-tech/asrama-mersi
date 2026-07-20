@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { BookOpen, Users, Award, ArrowRight } from "lucide-react";
+// ... (kode lainnya biarkan saja)
 
 export default function Beranda() {
   return (
