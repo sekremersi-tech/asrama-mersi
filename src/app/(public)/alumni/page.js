@@ -14,15 +14,12 @@ export default function JaringanAlumni() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Ambil Foto Header dari Admin
         const snapFoto = await getDoc(doc(db, "pengaturan", "tampilan"));
         if (snapFoto.exists() && snapFoto.data().alumni) setBgAlumni(snapFoto.data().alumni);
 
-        // Ambil Teks Jejak Alumni dari Admin
         const snapText = await getDoc(doc(db, "pengaturan", "profilText"));
         if (snapText.exists() && snapText.data().jejakAlumni) setJejakText(snapText.data().jejakAlumni);
 
-        // Ambil Data Skripsi
         const q = query(collection(db, "skripsi"), orderBy("tahun", "desc"));
         const querySnapshot = await getDocs(q);
         const data = querySnapshot.docs.map((doc) => ({
@@ -30,11 +27,7 @@ export default function JaringanAlumni() {
           ...doc.data()
         }));
         setDaftarSkripsi(data);
-      } catch (error) {
-        console.error("Gagal mengambil data:", error);
-      } finally {
-        setLoading(false);
-      }
+      } catch (error) { console.error("Gagal mengambil data:", error); } finally { setLoading(false); }
     };
     fetchData();
   }, []);
@@ -50,15 +43,19 @@ export default function JaringanAlumni() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       
-      {/* Header Dinamis dengan Efek Fade-in (Bebas Gambar Kedip) */}
+      {/* Header Dinamis dengan Fade-in Penuh */}
       <div className="relative py-16 md:py-24 w-full bg-slate-900 flex items-center justify-center overflow-hidden">
         <div 
-          className="absolute inset-0 bg-cover bg-center mix-blend-overlay transition-opacity duration-1000" 
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000" 
           style={{ 
             backgroundImage: bgAlumni ? `url('${bgAlumni}')` : 'none',
-            opacity: bgAlumni ? 0.3 : 0 
+            opacity: bgAlumni ? 1 : 0 
           }}
-        ></div>
+        >
+          {/* Lapisan tipis agar teks terbaca */}
+          <div className="absolute inset-0 bg-slate-900/50"></div>
+        </div>
+        
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 font-serif">Jaringan Alumni</h1>
           <p className="text-gray-300 text-lg">Jejak profesional dan repositori karya ilmiah warga asrama.</p>
@@ -66,8 +63,6 @@ export default function JaringanAlumni() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
-        
-        {/* Jejak Alumni Terhubung ke Admin */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8 mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-4 font-serif border-l-4 border-red-800 pl-4">Jejak Alumni</h2>
           <p className="text-gray-600 leading-relaxed text-lg text-justify whitespace-pre-line">
@@ -75,7 +70,6 @@ export default function JaringanAlumni() {
           </p>
         </div>
 
-        {/* Fitur Search & Tabel Skripsi Bawaan Anda */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
           <div className="p-6 md:p-8 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50">
             <div className="flex items-center gap-3">
