@@ -17,7 +17,6 @@ export default function AdminDashboard() {
   const [profilText, setProfilText] = useState({ sejarah: "", visi: "", misi: "", jejakAlumni: "", nilai1: "", nilai2: "", nilai3: "" });
   const [kontak, setKontak] = useState({ namaKetua: "", noTelpon: "" });
 
-  // State: Foto Profil Kontekstual (BARU)
   const [dataFotoProfil, setDataFotoProfil] = useState([]);
   const [konteksFoto, setKonteksFoto] = useState("");
   const [fileFotoProfil, setFileFotoProfil] = useState(null);
@@ -59,7 +58,7 @@ export default function AdminDashboard() {
     setDataFotoProfil(fotoProfSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "desc")));
     setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "desc"))); // Galeri Kegiatan
+    const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "desc"))); 
     setDataGaleri(galSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const kehSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
     setDataKehidupan(kehSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -67,18 +66,13 @@ export default function AdminDashboard() {
     setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
-const uploadToCloudinary = async (file, resourceType = "image") => {
+  const uploadToCloudinary = async (file, resourceType = "image") => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
     const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: "POST", body: formData });
     const data = await res.json();
-    
-    // Tangkap error jika Cloudinary menolak file
-    if (data.error) {
-      throw new Error(data.error.message);
-    }
-    
+    if (data.error) throw new Error(data.error.message);
     return data.secure_url;
   };
 
@@ -145,22 +139,24 @@ const uploadToCloudinary = async (file, resourceType = "image") => {
     } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
   };
 
-const handleSubmitSkripsi = async (e) => {
-    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
+  const handleSubmitSkripsi = async (e) => {
+    e.preventDefault(); setLoading(true);
     try {
       let linkPDF = "#";
-      
-      // PERBAIKAN: Gunakan "raw" agar PDF tidak dirusak menjadi gambar oleh Cloudinary
-      if (filePDF) linkPDF = await uploadToCloudinary(filePDF, "raw"); 
-      
+      if (filePDF) {
+        // PERBAIKAN PDF: Upload sebagai image agar diterima Cloudinary, 
+        // lalu tambahkan flag fl_attachment agar memaksa browser men-download PDF (bypass blokir Cloudinary)
+        let rawUrl = await uploadToCloudinary(filePDF, "image");
+        linkPDF = rawUrl.replace("/upload/", "/upload/fl_attachment/");
+      }
       await addDoc(collection(db, "skripsi"), { nama, jurusan, judul: judulSkripsi, tahun, linkPDF, createdAt: serverTimestamp() });
       setStatus({ type: "success", message: "Skripsi ditambahkan!" });
       setNama(""); setJurusan(""); setJudulSkripsi(""); setTahun(""); setFilePDF(null); e.target.reset(); fetchAllData();
-    } catch (error) { 
-      setStatus({ type: "error", message: `Gagal: ${error.message}` }); 
-    } finally { 
-      setLoading(false); 
-    }
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
+  };
+
+  const handleDelete = async (koleksi, id) => {
+    if (confirm("Yakin ingin menghapus data ini secara permanen?")) { await deleteDoc(doc(db, koleksi, id)); fetchAllData(); }
   };
 
   return (
