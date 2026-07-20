@@ -41,15 +41,20 @@ export default function Profil() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       
-      {/* Tambahan bg-slate-900 di sini akan membuat latar berwarna gelap saat foto belum dimuat */}
-      <div className="h-64 md:h-96 relative w-full bg-slate-900">
+      {/* Header Dinamis dengan Fade-in Penuh */}
+      <div className="h-64 md:h-96 relative w-full bg-slate-900 flex items-center justify-center overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000" 
+          style={{ 
+            backgroundImage: fotoProfil ? `url('${fotoProfil}')` : 'none',
+            opacity: fotoProfil ? 1 : 0 
+          }}
+        >
+          {/* Lapisan tipis agar teks tetap terbaca di atas foto yang terang */}
+          <div className="absolute inset-0 bg-slate-900/50"></div>
+        </div>
         
-        {/* Gambar hanya akan dirender (ditampilkan) JIKA fotoProfil sudah berhasil diambil dari Firebase */}
-        {fotoProfil && (
-          <img src={fotoProfil} alt="Asrama Merapi Singgalang" className="w-full h-full object-cover animate-in fade-in duration-1000" />
-        )}
-        
-        <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center">
+        <div className="relative z-10 text-center px-4">
           <h1 className="text-4xl md:text-5xl font-bold text-white font-serif tracking-wide">Profil Asrama</h1>
         </div>
       </div>
