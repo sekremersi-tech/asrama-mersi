@@ -143,7 +143,8 @@ export default function AdminDashboard() {
     e.preventDefault(); setLoading(true);
     try {
       let linkPDF = "#";
-      if (filePDF) linkPDF = await uploadToCloudinary(filePDF, "raw");
+      // PERBAIKAN: "raw" diubah menjadi "auto" agar PDF tidak corrupt di Cloudinary
+      if (filePDF) linkPDF = await uploadToCloudinary(filePDF, "auto"); 
       await addDoc(collection(db, "skripsi"), { nama, jurusan, judul: judulSkripsi, tahun, linkPDF, createdAt: serverTimestamp() });
       setStatus({ type: "success", message: "Skripsi ditambahkan!" });
       setNama(""); setJurusan(""); setJudulSkripsi(""); setTahun(""); setFilePDF(null); e.target.reset(); fetchAllData();
