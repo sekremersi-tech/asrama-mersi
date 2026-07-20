@@ -67,12 +67,18 @@ export default function AdminDashboard() {
     setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
-  const uploadToCloudinary = async (file, resourceType = "image") => {
+const uploadToCloudinary = async (file, resourceType = "image") => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
     const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: "POST", body: formData });
     const data = await res.json();
+    
+    // Tangkap error jika Cloudinary menolak file
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+    
     return data.secure_url;
   };
 
@@ -139,20 +145,22 @@ export default function AdminDashboard() {
     } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
   };
 
-  const handleSubmitSkripsi = async (e) => {
-    e.preventDefault(); setLoading(true);
+const handleSubmitSkripsi = async (e) => {
+    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
     try {
       let linkPDF = "#";
-      // PERBAIKAN: "raw" diubah menjadi "auto" agar PDF tidak corrupt di Cloudinary
-      if (filePDF) linkPDF = await uploadToCloudinary(filePDF, "auto"); 
+      
+      // PERBAIKAN: Gunakan "raw" agar PDF tidak dirusak menjadi gambar oleh Cloudinary
+      if (filePDF) linkPDF = await uploadToCloudinary(filePDF, "raw"); 
+      
       await addDoc(collection(db, "skripsi"), { nama, jurusan, judul: judulSkripsi, tahun, linkPDF, createdAt: serverTimestamp() });
       setStatus({ type: "success", message: "Skripsi ditambahkan!" });
       setNama(""); setJurusan(""); setJudulSkripsi(""); setTahun(""); setFilePDF(null); e.target.reset(); fetchAllData();
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
-  };
-
-  const handleDelete = async (koleksi, id) => {
-    if (confirm("Yakin ingin menghapus data ini secara permanen?")) { await deleteDoc(doc(db, koleksi, id)); fetchAllData(); }
+    } catch (error) { 
+      setStatus({ type: "error", message: `Gagal: ${error.message}` }); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   return (
