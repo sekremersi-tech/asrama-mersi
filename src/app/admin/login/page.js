@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/firebase";
 import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 
@@ -19,15 +20,12 @@ export default function AdminLogin() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // --- BAGIAN PALING PENTING: FILTER AKUN SEKRE ---
       // Ganti email di bawah ini dengan email asli milik Sekretariat Asrama!
       const emailSekre = "sekremersi@gmail.com"; 
 
       if (user.email === emailSekre) {
-        // Jika email cocok, izinkan masuk ke dashboard
         router.push("/admin/dashboard");
       } else {
-        // Jika ada warga atau orang luar mencoba login pakai email pribadinya
         await signOut(auth);
         setError("Akses ditolak! Anda harus menggunakan akun Google resmi Sekretariat Asrama.");
       }
@@ -40,19 +38,22 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1a1715] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md bg-[#24211f] rounded-2xl shadow-2xl border border-stone-800 p-8 text-center relative overflow-hidden">
-        
-        {/* Dekorasi Garis Atas */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-yellow-500"></div>
+    <div className="min-h-screen bg-[#1a1715] flex flex-col items-center justify-center p-4 relative">
+      
+      {/* Tombol Kembali ke Gateway */}
+      <Link href="/" className="absolute top-6 left-6 md:top-10 md:left-10 flex items-center gap-2 text-stone-400 hover:text-white transition-colors bg-[#24211f] px-4 py-2 rounded-lg border border-stone-800">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        <span className="text-sm font-medium">Kembali ke Pilihan Masuk</span>
+      </Link>
 
+      <div className="w-full max-w-md bg-[#24211f] rounded-2xl shadow-2xl border border-stone-800 p-8 text-center relative overflow-hidden mt-12 md:mt-0">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-yellow-500"></div>
         <div className="w-16 h-16 bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-red-500/20">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
         </div>
-
         <h1 className="text-2xl md:text-3xl font-serif text-white mb-2">Portal Admin</h1>
         <p className="text-stone-400 text-sm mb-8">Otorisasi khusus Pengurus Asrama Merapi Singgalang.</p>
 
@@ -69,13 +70,9 @@ export default function AdminLogin() {
           className="w-full bg-white hover:bg-gray-100 text-slate-900 font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isLoading ? (
-            <svg className="animate-spin h-5 w-5 text-slate-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+            <svg className="animate-spin h-5 w-5 text-slate-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
           ) : (
             <>
-              {/* Ikon Google SVG Murni */}
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px">
                 <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
                 <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
@@ -86,10 +83,6 @@ export default function AdminLogin() {
             </>
           )}
         </button>
-
-        <div className="mt-8 pt-6 border-t border-stone-800 text-stone-500 text-xs">
-          Hanya email yang telah didaftarkan dalam sistem yang dapat mengakses halaman ini.
-        </div>
       </div>
     </div>
   );
