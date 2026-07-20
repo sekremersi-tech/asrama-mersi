@@ -32,9 +32,16 @@ export default function KehidupanAsrama() {
       
       {/* Header Dinamis */}
       <div className="relative py-24 w-full bg-slate-900 flex items-center justify-center">
-        {bgKehidupan && (
-          <div className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay" style={{ backgroundImage: `url('${bgKehidupan}')` }}></div>
-        )}
+        
+        {/* Kode yang diperbarui agar background fade-in dengan mulus */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center mix-blend-overlay transition-opacity duration-1000" 
+          style={{ 
+            backgroundImage: bgKehidupan ? `url('${bgKehidupan}')` : 'none',
+            opacity: bgKehidupan ? 0.4 : 0 
+          }}
+        ></div>
+        
         <div className="relative z-10 max-w-7xl mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 font-serif">Kehidupan & Prestasi</h1>
           <p className="text-gray-300 text-lg">Rekam jejak, inovasi, dan potret keseharian warga Asrama Merapi Singgalang.</p>
