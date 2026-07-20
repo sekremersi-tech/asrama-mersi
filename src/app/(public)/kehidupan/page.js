@@ -2,26 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, getDoc, doc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
 
 export default function KehidupanAsrama() {
   const [dataKehidupan, setDataKehidupan] = useState([]);
-  const [tampilan, setTampilan] = useState({});
+  const [dataFasilitas, setDataFasilitas] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Fallback gambar bawaan agar website tidak kosong saat Anda belum upload
-  const defaultKamar = "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80";
-  const defaultRuang = "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80";
-  const defaultPerpus = "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=800&q=80";
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Ambil Foto Fasilitas dari Admin
-        const docSnap = await getDoc(doc(db, "pengaturan", "tampilan"));
-        if (docSnap.exists()) setTampilan(docSnap.data());
+        // Ambil Fasilitas Tak Terbatas dari Admin
+        const fasSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "asc")));
+        setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-        // Ambil Berita (bersih dari data fiktif)
+        // Ambil Berita
         const q = query(collection(db, "kehidupan"), orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
         setDataKehidupan(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -44,23 +39,30 @@ export default function KehidupanAsrama() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 mt-12">
-        {/* BAGIAN FASILITAS (Diatur dari Admin) */}
+        
+        {/* BAGIAN FASILITAS DINAMIS */}
         <h2 className="text-2xl font-bold text-slate-900 mb-6 font-serif border-l-4 border-red-800 pl-4">Fasilitas Asrama</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {[
-            { title: "Kamar Hunian Nyaman", img: tampilan.kamar || defaultKamar },
-            { title: "Ruang Diskusi & Belajar", img: tampilan.ruang || defaultRuang },
-            { title: "Perpustakaan Mini", img: tampilan.perpus || defaultPerpus }
-          ].map((fasilitas, idx) => (
-            <div key={idx} className="relative h-64 rounded-xl overflow-hidden group shadow-md border border-gray-100">
-              <img src={fasilitas.img} alt={fasilitas.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent"></div>
-              <h3 className="absolute bottom-6 left-6 text-white font-bold text-xl">{fasilitas.title}</h3>
-            </div>
-          ))}
-        </div>
+        {dataFasilitas.length === 0 && !loading ? (
+           <p className="text-slate-500 mb-16 italic">Belum ada foto fasilitas yang ditambahkan melalui Admin.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            {dataFasilitas.map((fasilitas) => (
+              <div key={fasilitas.id} className="relative h-64 rounded-xl overflow-hidden group shadow-md border border-gray-100">
+                <img src={fasilitas.linkGambar} alt={fasilitas.judul} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent pointer-events-none"></div>
+                {/* TEKS DENGAN WARNA KUSTOM DARI ADMIN */}
+                <h3 
+                  className="absolute bottom-6 left-6 font-bold text-xl drop-shadow-md" 
+                  style={{ color: fasilitas.warna || '#ffffff' }}
+                >
+                  {fasilitas.judul}
+                </h3>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* BAGIAN BERITA (Bersih 100%) */}
+        {/* BAGIAN BERITA */}
         <h2 className="text-2xl font-bold text-slate-900 mb-6 font-serif border-l-4 border-red-800 pl-4">Kabar Terbaru Warga</h2>
         {loading ? (
           <p className="text-center py-10 text-slate-500">Memuat data dari database...</p>
