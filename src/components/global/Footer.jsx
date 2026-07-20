@@ -1,6 +1,8 @@
+"use client";
+
 import Link from 'next/link';
 import { MapPin, Mail } from 'lucide-react';
-
+// ... (kode lainnya biarkan saja)
 export default function Footer() {
   return (
     <footer className="bg-slate-900 text-gray-300 border-t border-slate-800">
