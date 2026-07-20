@@ -7,7 +7,7 @@ import { collection, getDocs, query, orderBy, limit, getDoc, doc } from "firebas
 
 export default function Beranda() {
   const [kabarTerbaru, setKabarTerbaru] = useState([]);
-  const [bgHero, setBgHero] = useState("https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=1920&q=80"); // Fallback
+  const [bgHero, setBgHero] = useState(""); // Fallback
 
   useEffect(() => {
     const fetchData = async () => {
@@ -29,7 +29,7 @@ export default function Beranda() {
     <div className="min-h-screen bg-slate-50">
       {/* HERO SECTION DENGAN GAMBAR DARI ADMIN */}
       <section className="relative h-[80vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${bgHero}')` }}>
+        <div className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000" style={{ backgroundImage: bgHero ? `url('${bgHero}')` : 'none', opacity: bgHero ? 1 : 0 }}>
           <div className="absolute inset-0 bg-slate-900/75 mix-blend-multiply"></div>
         </div>
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-16">
