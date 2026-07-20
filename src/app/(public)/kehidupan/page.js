@@ -44,7 +44,7 @@ export default function KehidupanAsrama() {
         </div>
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 font-serif">Kehidupan & Prestasi</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 font-serif">Media dan Publikasi</h1>
           <p className="text-gray-300 text-lg">Rekam jejak, inovasi, dan potret keseharian warga Asrama Merapi Singgalang.</p>
         </div>
       </div>
