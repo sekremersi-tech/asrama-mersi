@@ -21,7 +21,7 @@ export default function AdminLogin() {
 
       // --- BAGIAN PALING PENTING: FILTER AKUN SEKRE ---
       // Ganti email di bawah ini dengan email asli milik Sekretariat Asrama!
-      const emailSekre = "kontak@merapisinggalang.com"; 
+      const emailSekre = "sekremersi@gmail.com"; 
 
       if (user.email === emailSekre) {
         // Jika email cocok, izinkan masuk ke dashboard
