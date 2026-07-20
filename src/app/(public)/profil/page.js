@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 
 export default function Profil() {
   const [fotoProfil, setFotoProfil] = useState("");
   const [profilText, setProfilText] = useState({ sejarah: "Memuat...", visi: "Memuat...", misi: "Memuat...", nilai1: "Memuat...", nilai2: "Memuat...", nilai3: "Memuat..." });
+  const [dataFasilitas, setDataFasilitas] = useState([]); // State untuk Fasilitas Asrama
   
   useEffect(() => {
     const fetchData = async () => {
@@ -22,6 +23,10 @@ export default function Profil() {
             nilai1: data.nilai1 || "Belum diatur.", nilai2: data.nilai2 || "Belum diatur.", nilai3: data.nilai3 || "Belum diatur."
           });
         }
+
+        // Fetch Data Fasilitas
+        const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "asc")));
+        setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (error) { console.error(error); }
     };
     fetchData();
@@ -44,7 +49,6 @@ export default function Profil() {
         </div>
       </div>
 
-      {/* CONTAINER UTAMA - Diberi gap-10 agar jarak antar elemen absolut */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10 w-full flex flex-col gap-10">
         
         {/* SEJARAH */}
@@ -59,10 +63,9 @@ export default function Profil() {
           <p className="text-stone-600 leading-relaxed text-lg whitespace-pre-line text-left w-full m-0">{profilText.sejarah}</p>
         </div>
 
-        {/* VISI, MISI & NILAI - Diubah menjadi Grid Layout Kaku */}
+        {/* VISI, MISI & NILAI */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10 w-full">
           <div className="flex flex-col gap-8 w-full">
-            
             <div className="bg-white rounded-2xl shadow-sm p-8 border border-stone-100 hover:border-amber-200 transition-colors w-full text-left flex flex-col">
               <h3 className="text-2xl font-bold text-stone-900 font-serif mb-5 flex flex-row items-center justify-start gap-3 w-full m-0">
                 <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span> Visi
@@ -80,7 +83,6 @@ export default function Profil() {
                 <p className="text-stone-700 leading-relaxed text-left whitespace-pre-line m-0">{profilText.misi}</p>
               </div>
             </div>
-
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-8 md:p-10 border border-stone-100 w-full h-full text-left flex flex-col">
@@ -111,11 +113,40 @@ export default function Profil() {
           </div>
         </div>
 
-        {/* --- LOKASI & MAPS - Diubah menjadi Grid System --- */}
+        {/* --- BAGIAN BARU: FASILITAS ASRAMA --- */}
+        <div className="w-full text-left mt-6 mb-2">
+          <div className="flex flex-row items-center justify-start gap-4 mb-8 w-full">
+            <div className="w-12 h-12 bg-amber-50 rounded-xl flex shrink-0 items-center justify-center text-amber-600 border border-amber-100">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </div>
+            <h2 className="text-3xl font-bold text-stone-900 font-serif m-0">Fasilitas Asrama</h2>
+          </div>
+
+          {dataFasilitas.length === 0 ? (
+            <div className="bg-white p-8 rounded-2xl border border-stone-200 text-stone-500 text-center shadow-sm w-full">
+              Belum ada data fasilitas yang diunggah.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+              {dataFasilitas.map(item => (
+                <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden group flex flex-col">
+                  <div className="h-48 overflow-hidden relative">
+                    <img src={item.linkGambar} alt={item.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-6 flex flex-col flex-grow">
+                    <h3 className="font-bold text-stone-900 text-xl mb-2">{item.nama}</h3>
+                    <p className="text-stone-600 text-sm leading-relaxed flex-grow">{item.deskripsi}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* --- LOKASI & MAPS --- */}
         <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-8 md:p-12 relative overflow-hidden w-full text-left">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-center w-full">
             
-            {/* Kolom Kiri: Teks (Memakan 5 dari 12 bagian) */}
             <div className="md:col-span-5 flex flex-col items-start justify-start w-full relative z-10 text-left">
               <div className="flex flex-row items-center justify-start gap-4 mb-6 w-full">
                 <div className="relative flex shrink-0 items-center justify-center w-14 h-14">
@@ -142,7 +173,6 @@ export default function Profil() {
               </div>
             </div>
 
-            {/* Kolom Kanan: Google Maps (Memakan 7 dari 12 bagian) */}
             <div className="md:col-span-7 w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden relative group shadow-sm border border-stone-200 bg-stone-100 cursor-crosshair">
               <div className="absolute inset-0 bg-stone-900/10 mix-blend-overlay group-hover:opacity-0 transition-opacity duration-700 z-10 pointer-events-none"></div>
               
