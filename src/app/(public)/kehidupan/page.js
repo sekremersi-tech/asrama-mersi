@@ -30,17 +30,18 @@ export default function KehidupanAsrama() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       
-      {/* Header Dinamis */}
-      <div className="relative py-24 w-full bg-slate-900 flex items-center justify-center">
-        
-        {/* Kode yang diperbarui agar background fade-in dengan mulus */}
+      {/* Header Dinamis dengan Fade-in Penuh */}
+      <div className="relative py-24 w-full bg-slate-900 flex items-center justify-center overflow-hidden">
         <div 
-          className="absolute inset-0 bg-cover bg-center mix-blend-overlay transition-opacity duration-1000" 
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000" 
           style={{ 
             backgroundImage: bgKehidupan ? `url('${bgKehidupan}')` : 'none',
-            opacity: bgKehidupan ? 0.4 : 0 
+            opacity: bgKehidupan ? 1 : 0 
           }}
-        ></div>
+        >
+          {/* Lapisan tipis agar teks terbaca */}
+          <div className="absolute inset-0 bg-slate-900/50"></div>
+        </div>
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 font-serif">Kehidupan & Prestasi</h1>
