@@ -1,116 +1,92 @@
 "use client";
 
-import { useState } from "react";
-import { X, Calendar, User, ArrowRight, Trophy } from "lucide-react";
+import { useState, useEffect } from "react";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, orderBy, getDoc, doc } from "firebase/firestore";
 
-export default function KehidupanPrestasi() {
-  const [selectedNews, setSelectedNews] = useState(null);
+export default function KehidupanAsrama() {
+  const [dataKehidupan, setDataKehidupan] = useState([]);
+  const [tampilan, setTampilan] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  // Data statis sementara (akan diganti dari Firestore di Tahap 5)
-  const daftarBerita = [
-    {
-      id: 1,
-      kategori: "Prestasi",
-      judul: "Tim PKM-KC Asrama Ciptakan Inovasi Reaktor Eco-Enzyme (ENZYRA)",
-      tanggal: "12 Mei 2026",
-      penulis: "Pengurus Asrama",
-      ringkasan: "Kolaborasi inovatif oleh sanak asrama dalam merancang reaktor otomatis dengan pemantauan pH dan pengaduk motor...",
-      isiLengkap: "Kolaborasi inovatif oleh sanak asrama dalam merancang reaktor otomatis (ENZYRA) dengan pemantauan pH dan pengaduk motor berhasil mempercepat waktu fermentasi. Prestasi ini membuktikan bahwa lingkungan asrama sangat mendukung terciptanya diskursus teknologi tepat guna di kalangan mahasiswa teknik. Keberhasilan menembus pendanaan PKM-KC ini diharapkan memotivasi warga asrama lainnya.",
-      img: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: 2,
-      kategori: "Kewirausahaan",
-      judul: "Gelar Wirausaha Mahasiswa: Mengembangkan Usaha Kuliner Gabin Isi Fla",
-      tanggal: "03 April 2026",
-      penulis: "Divisi Kewirausahaan",
-      ringkasan: "Inisiatif kemandirian ekonomi warga melalui produksi dan pemasaran jajanan pasar inovatif di lingkungan kampus...",
-      isiLengkap: "Selain unggul di bidang akademik, warga asrama juga didorong untuk mandiri secara ekonomi. Salah satu sanak kita berhasil mengembangkan usaha kecil menengah berbasis kuliner, yakni produksi Gabin isi fla. Melalui perhitungan margin laba yang cermat dan strategi pemasaran yang baik di kawasan kampus, inisiatif ini menjadi contoh nyata dari semangat kemandirian (entrepreneurship) perantau Minang.",
-      img: "https://images.unsplash.com/photo-1556910103-1c02745a872f?auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: 3,
-      kategori: "Kehidupan",
-      judul: "Rapat Pleno Pengurus dan Evaluasi Asrama Merapi Singgalang",
-      tanggal: "20 Januari 2026",
-      penulis: "Sekretariat",
-      ringkasan: "Evaluasi rutin dan penyusunan strategi kepengasuhan bersama Uda, Uni, dan seluruh penghuni asrama...",
-      isiLengkap: "Dalam rangka menjaga keharmonisan dan kualitas kepengasuhan, rapat pleno dan evaluasi warga telah sukses digelar. Diskusi berjalan hangat, menegaskan kembali pentingnya nilai saling menghargai antar angkatan. Kegiatan ini juga membahas rencana perbaikan fasilitas belajar bersama untuk menunjang aktivitas perkuliahan.",
-      img: "https://images.unsplash.com/photo-1577415124269-b9140d402422?auto=format&fit=crop&w=800&q=80"
-    }
-  ];
+  // Fallback gambar bawaan agar website tidak kosong saat Anda belum upload
+  const defaultKamar = "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80";
+  const defaultRuang = "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80";
+  const defaultPerpus = "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=800&q=80";
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Ambil Foto Fasilitas dari Admin
+        const docSnap = await getDoc(doc(db, "pengaturan", "tampilan"));
+        if (docSnap.exists()) setTampilan(docSnap.data());
+
+        // Ambil Berita (bersih dari data fiktif)
+        const q = query(collection(db, "kehidupan"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        setDataKehidupan(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (error) {
+        console.error("Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 relative">
-      {/* HEADER PAGE */}
+    <div className="min-h-screen bg-slate-50 pb-20">
       <div className="bg-slate-900 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 font-serif flex items-center gap-3">
-            <Trophy className="text-red-500" size={36} /> Kehidupan & Prestasi
-          </h1>
-          <p className="text-gray-400">Rekam jejak, inovasi, dan keseharian warga Asrama Merapi Singgalang.</p>
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-2 font-serif">Kehidupan & Prestasi</h1>
+          <p className="text-gray-400 text-lg">Rekam jejak, inovasi, dan fasilitas Asrama Merapi Singgalang.</p>
         </div>
       </div>
 
-      {/* GRID BERITA */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {daftarBerita.map((berita) => (
-            <div key={berita.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group flex flex-col">
-              <div className="h-52 overflow-hidden relative">
-                <img src={berita.img} alt={berita.judul} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute top-4 left-4 bg-red-800 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
-                  {berita.kategori}
-                </div>
-              </div>
-              <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">{berita.judul}</h3>
-                <p className="text-gray-600 text-sm mb-6 flex-grow">{berita.ringkasan}</p>
-                <div className="flex items-center justify-between mt-auto">
-                  <div className="flex items-center text-xs text-gray-500 gap-2">
-                    <Calendar size={14} /> {berita.tanggal}
-                  </div>
-                  <button 
-                    onClick={() => setSelectedNews(berita)}
-                    className="text-red-800 font-medium text-sm hover:text-red-900 flex items-center gap-1"
-                  >
-                    Baca <ArrowRight size={16} />
-                  </button>
-                </div>
-              </div>
+      <div className="max-w-7xl mx-auto px-4 mt-12">
+        {/* BAGIAN FASILITAS (Diatur dari Admin) */}
+        <h2 className="text-2xl font-bold text-slate-900 mb-6 font-serif border-l-4 border-red-800 pl-4">Fasilitas Asrama</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          {[
+            { title: "Kamar Hunian Nyaman", img: tampilan.kamar || defaultKamar },
+            { title: "Ruang Diskusi & Belajar", img: tampilan.ruang || defaultRuang },
+            { title: "Perpustakaan Mini", img: tampilan.perpus || defaultPerpus }
+          ].map((fasilitas, idx) => (
+            <div key={idx} className="relative h-64 rounded-xl overflow-hidden group shadow-md border border-gray-100">
+              <img src={fasilitas.img} alt={fasilitas.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent"></div>
+              <h3 className="absolute bottom-6 left-6 text-white font-bold text-xl">{fasilitas.title}</h3>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* MODAL DETIL BERITA */}
-      {selectedNews && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedNews(null)}></div>
-          <div className="relative bg-white w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-slate-50">
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span className="bg-red-100 text-red-800 font-bold px-3 py-1 rounded-full uppercase tracking-wider text-xs">{selectedNews.kategori}</span>
-                <span className="flex items-center gap-1"><Calendar size={14} /> {selectedNews.tanggal}</span>
-                <span className="flex items-center gap-1 hidden sm:flex"><User size={14} /> {selectedNews.penulis}</span>
-              </div>
-              <button onClick={() => setSelectedNews(null)} className="text-gray-400 hover:text-gray-900 hover:bg-gray-200 p-2 rounded-full transition-colors">
-                <X size={24} />
-              </button>
-            </div>
-            
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 font-serif leading-tight">{selectedNews.judul}</h2>
-              <img src={selectedNews.img} alt={selectedNews.judul} className="w-full h-64 md:h-80 object-cover rounded-xl mb-6" />
-              <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed">
-                <p>{selectedNews.isiLengkap}</p>
-              </div>
-            </div>
+        {/* BAGIAN BERITA (Bersih 100%) */}
+        <h2 className="text-2xl font-bold text-slate-900 mb-6 font-serif border-l-4 border-red-800 pl-4">Kabar Terbaru Warga</h2>
+        {loading ? (
+          <p className="text-center py-10 text-slate-500">Memuat data dari database...</p>
+        ) : dataKehidupan.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-1">Belum Ada Publikasi</h3>
+            <p className="text-slate-500">Kabar kehidupan dan prestasi asrama akan muncul di sini setelah ditambahkan melalui mode Admin.</p>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {dataKehidupan.map((item) => (
+              <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                <div className="relative h-48 bg-slate-100">
+                  <span className="absolute top-4 left-4 z-10 bg-red-800 text-white text-xs font-bold px-3 py-1 rounded-md">{item.kategori}</span>
+                  <img src={item.linkGambar} alt={item.judul} className="w-full h-full object-cover" />
+                </div>
+                <div className="p-6 flex flex-col flex-grow">
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">{item.judul}</h3>
+                  <p className="text-slate-600 text-sm mb-4 flex-grow line-clamp-3">{item.deskripsi}</p>
+                  <div className="text-xs text-slate-400 font-medium pt-4 border-t">{item.tanggal}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
