@@ -49,7 +49,7 @@ export default function Gateway() {
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center">
         <div className="mb-12 text-center">
           <div className="w-20 h-20 bg-slate-800/90 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl backdrop-blur-md border border-slate-700">
-            <img src="/mersi.png" alt="Logo Mersi" className="w-12 h-12 object-contain" />
+            <img src="/mersi.png" alt="Logo Mersi" className="w-24 h-24 object-contain" />
           </div>
           <h2 className="text-yellow-600 font-bold tracking-[0.2em] text-sm mb-3 uppercase">Asrama Mahasiswa</h2>
           <h1 className="text-4xl md:text-6xl font-serif text-white italic">Merapi Singgalang</h1>
