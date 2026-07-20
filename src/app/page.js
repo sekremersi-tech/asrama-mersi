@@ -8,17 +8,27 @@ import { doc, getDoc } from "firebase/firestore";
 export default function Gateway() {
   const [bgImages, setBgImages] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isInitialLoading, setIsInitialLoading] = useState(true); // Tambahan state loading
 
   useEffect(() => {
     const fetchBg = async () => {
-      const snap = await getDoc(doc(db, "pengaturan", "tampilan"));
-      if (snap.exists()) {
-        const data = snap.data();
-        const images = [];
-        if (data.gateway1) images.push(data.gateway1);
-        if (data.gateway2) images.push(data.gateway2);
-        if (data.gateway3) images.push(data.gateway3);
-        setBgImages(images);
+      try {
+        const snap = await getDoc(doc(db, "pengaturan", "tampilan"));
+        if (snap.exists()) {
+          const data = snap.data();
+          const images = [];
+          if (data.gateway1) images.push(data.gateway1);
+          if (data.gateway2) images.push(data.gateway2);
+          if (data.gateway3) images.push(data.gateway3);
+          setBgImages(images);
+        }
+      } catch (error) {
+        console.error("Gagal memuat latar:", error);
+      } finally {
+        // Beri jeda 800ms agar animasi loading terlihat sebelum masuk ke menu utama
+        setTimeout(() => {
+          setIsInitialLoading(false);
+        }, 800);
       }
     };
     fetchBg();
@@ -33,6 +43,30 @@ export default function Gateway() {
     }
   }, [bgImages]);
 
+  // --- TAMPILAN SPLASH SCREEN (LOADING) ---
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-[#171412] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        <div className="flex flex-col items-center gap-6">
+          {/* Logo dengan animasi berdenyut (Pulse) */}
+          <div className="w-24 h-24 bg-slate-800/90 rounded-2xl flex items-center justify-center shadow-2xl border border-slate-700 animate-pulse">
+            <img src="/mersi.png" alt="Logo Mersi" className="w-16 h-16 object-contain" />
+          </div>
+          
+          <div className="flex flex-col items-center gap-4">
+            {/* Spinner berputar */}
+            <svg className="animate-spin h-8 w-8 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span className="text-stone-400 text-sm font-medium tracking-widest animate-pulse">MEMUAT PORTAL...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- TAMPILAN UTAMA GATEWAY ---
   return (
     <div className="min-h-screen bg-[#171412] flex flex-col items-center justify-center p-4 relative overflow-hidden">
       
@@ -49,7 +83,7 @@ export default function Gateway() {
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center">
         <div className="mb-12 text-center">
           <div className="w-20 h-20 bg-slate-800/90 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl backdrop-blur-md border border-slate-700">
-            <img src="/mersi.png" alt="Logo Mersi" className="w-24 h-24 object-contain" />
+            <img src="/mersi.png" alt="Logo Mersi" className="w-12 h-12 object-contain" />
           </div>
           <h2 className="text-yellow-600 font-bold tracking-[0.2em] text-sm mb-3 uppercase">Asrama Mahasiswa</h2>
           <h1 className="text-4xl md:text-6xl font-serif text-white italic">Merapi Singgalang</h1>
