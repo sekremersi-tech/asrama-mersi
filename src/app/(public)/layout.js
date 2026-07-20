@@ -101,12 +101,27 @@ export default function PublicLayout({ children }) {
 
           <div>
             <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-sm">Sosial Media</h3>
-            <a href="#" className="flex items-center gap-3 text-sm text-stone-400 hover:text-white transition-colors">
-              <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center border border-stone-700">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-              </div>
-              @asramamerapisinggalang
-            </a>
+            <div className="flex flex-col gap-4">
+              
+              {/* Instagram */}
+              <a href="https://www.instagram.com/asramamerapisinggalang" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-stone-400 hover:text-white transition-colors group w-fit">
+                <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center border border-stone-700 group-hover:border-amber-500 transition-colors">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                </div>
+                @asramamerapisinggalang
+              </a>
+
+              {/* TikTok */}
+              <a href="https://www.tiktok.com/@asrama.mersi" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-stone-400 hover:text-white transition-colors group w-fit">
+                <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center border border-stone-700 group-hover:border-amber-500 transition-colors">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
+                  </svg>
+                </div>
+                @asrama.mersi
+              </a>
+              
+            </div>
           </div>
         </div>
       </footer>
