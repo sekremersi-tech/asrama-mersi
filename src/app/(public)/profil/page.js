@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function Profil() {
-  const [fotoProfil, setFotoProfil] = useState("https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1920&q=80");
+  const [fotoProfil, setFotoProfil] = useState("");
   const [profilText, setProfilText] = useState({
     sejarah: "Memuat sejarah asrama...",
     visi: "Memuat visi...",
