@@ -8,9 +8,20 @@ import { doc, getDoc } from "firebase/firestore";
 export default function Gateway() {
   const [bgImages, setBgImages] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isInitialLoading, setIsInitialLoading] = useState(true); // Tambahan state loading
+  
+  // State untuk Loading Screen Klasik
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
+    // Simulasi pergerakan Progress Bar
+    const progressInterval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 90) return prev; // Tahan di 90% sampai data dari Firebase benar-benar selesai
+        return prev + Math.random() * 15; 
+      });
+    }, 150);
+
     const fetchBg = async () => {
       try {
         const snap = await getDoc(doc(db, "pengaturan", "tampilan"));
@@ -25,42 +36,71 @@ export default function Gateway() {
       } catch (error) {
         console.error("Gagal memuat latar:", error);
       } finally {
-        // Beri jeda 800ms agar animasi loading terlihat sebelum masuk ke menu utama
+        // Data selesai dimuat, dorong bar ke 100%
+        setLoadingProgress(100); 
+        
+        // Beri waktu 1 detik agar pengunjung bisa melihat bar-nya penuh sebelum layar terbuka
         setTimeout(() => {
           setIsInitialLoading(false);
-        }, 800);
+          clearInterval(progressInterval);
+        }, 1000); 
       }
     };
     fetchBg();
+
+    return () => clearInterval(progressInterval);
   }, []);
 
   useEffect(() => {
-    if (bgImages.length > 1) {
+    if (bgImages.length > 1 && !isInitialLoading) {
       const interval = setInterval(() => {
         setCurrentIndex((prev) => (prev + 1) % bgImages.length);
       }, 5000); // Ganti foto setiap 5 detik
       return () => clearInterval(interval);
     }
-  }, [bgImages]);
+  }, [bgImages, isInitialLoading]);
 
-  // --- TAMPILAN SPLASH SCREEN (LOADING) ---
+  // --- TAMPILAN SPLASH SCREEN (LOADING PREMIUM) ---
   if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-[#171412] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <div className="flex flex-col items-center gap-6">
-          {/* Logo dengan animasi berdenyut (Pulse) */}
-          <div className="w-24 h-24 bg-slate-800/90 rounded-2xl flex items-center justify-center shadow-2xl border border-slate-700 animate-pulse">
-            <img src="/mersi.png" alt="Logo Mersi" className="w-16 h-16 object-contain" />
+        
+        {/* Efek Spotlight Terang di Tengah (Seperti di referensi gambar) */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <div className="flex flex-col items-center z-10 w-full max-w-3xl relative">
+          
+          {/* Box Logo Mersi */}
+          <div className="w-24 h-24 bg-[#24211f] rounded-3xl flex items-center justify-center shadow-2xl border border-stone-700/40 mb-8 backdrop-blur-sm relative z-10">
+            <img src="/mersi.png" alt="Logo Mersi" className="w-12 h-12 object-contain" />
           </div>
           
-          <div className="flex flex-col items-center gap-4">
-            {/* Spinner berputar */}
-            <svg className="animate-spin h-8 w-8 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span className="text-stone-400 text-sm font-medium tracking-widest animate-pulse">MEMUAT PORTAL...</span>
+          {/* Garis Horizontal Halus */}
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-stone-700/60 to-transparent mb-6"></div>
+          
+          {/* Teks Judul */}
+          <div className="text-center mb-10">
+            <h2 className="text-yellow-600 font-semibold tracking-[0.25em] text-xs mb-3 uppercase">Asrama Mahasiswa</h2>
+            <h1 className="text-3xl md:text-4xl font-serif text-white italic tracking-wide">Merapi Singgalang</h1>
           </div>
+
+          {/* Progress Bar & Keterangan */}
+          <div className="flex flex-col items-center gap-5 w-full max-w-[260px]">
+            {/* Trek Bar */}
+            <div className="w-full h-1 bg-stone-800 rounded-full overflow-hidden relative">
+              {/* Isi Bar Kuning (Berjalan Otomatis) */}
+              <div 
+                className="h-full bg-yellow-600 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${loadingProgress}%` }}
+              ></div>
+            </div>
+            
+            {/* Teks Pemuatan */}
+            <span className="text-stone-400/80 text-[11px] font-medium tracking-wide">
+              Memuat rumah perantau Minangkabau...
+            </span>
+          </div>
+
         </div>
       </div>
     );
