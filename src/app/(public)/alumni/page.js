@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BookOpen, Download, Search, Loader2 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 
@@ -10,11 +9,9 @@ export default function JaringanAlumni() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Mengambil data dari Firebase saat halaman dimuat
   useEffect(() => {
     const fetchSkripsi = async () => {
       try {
-        // Mengambil dari koleksi bernama 'skripsi' diurutkan dari tahun terbaru
         const q = query(collection(db, "skripsi"), orderBy("tahun", "desc"));
         const querySnapshot = await getDocs(q);
         
@@ -34,7 +31,6 @@ export default function JaringanAlumni() {
     fetchSkripsi();
   }, []);
 
-  // Logika untuk fitur pencarian
   const filteredSkripsi = daftarSkripsi.filter((skripsi) => {
     const term = searchTerm.toLowerCase();
     return (
@@ -63,11 +59,19 @@ export default function JaringanAlumni() {
         <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
           <div className="p-6 md:p-8 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50">
             <div className="flex items-center gap-3">
-              <BookOpen className="text-red-800" size={28} />
+              {/* Ikon BookOpen SVG */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-800">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+              </svg>
               <h2 className="text-2xl font-bold text-gray-900 font-serif">Repositori Skripsi Warga</h2>
             </div>
             <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              {/* Ikon Search SVG */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+              </svg>
               <input 
                 type="text" 
                 placeholder="Cari judul atau nama..." 
@@ -92,7 +96,10 @@ export default function JaringanAlumni() {
                 {loading ? (
                   <tr>
                     <td colSpan="4" className="p-12 text-center">
-                      <Loader2 className="w-8 h-8 text-red-800 animate-spin mx-auto mb-4" />
+                      {/* Ikon Loader2 SVG */}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-red-800 animate-spin mx-auto mb-4">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                      </svg>
                       <p className="text-gray-500">Memuat data repositori...</p>
                     </td>
                   </tr>
@@ -116,7 +123,13 @@ export default function JaringanAlumni() {
                       <td className="p-6 text-center align-middle">
                         {skripsi.linkPDF && skripsi.linkPDF !== "#" ? (
                           <a href={skripsi.linkPDF} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-red-800 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap">
-                            <Download size={16} /> PDF
+                            {/* Ikon Download SVG */}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                              <polyline points="7 10 12 15 17 10"></polyline>
+                              <line x1="12" x2="12" y1="15" y2="3"></line>
+                            </svg>
+                            PDF
                           </a>
                         ) : (
                           <span className="inline-flex items-center justify-center gap-2 bg-gray-200 text-gray-500 px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap cursor-not-allowed">
