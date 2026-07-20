@@ -38,7 +38,7 @@ export default function PublicLayout({ children }) {
               <img 
                 src="/mersi.png" 
                 alt="Logo Mersi" 
-                className="w-10 h-10 object-contain group-hover:scale-105 transition-transform" 
+                className="w-20 h-20 object-contain group-hover:scale-105 transition-transform" 
               />
               <span className="font-serif font-bold text-xl text-slate-900">Merapi Singgalang</span>
             </Link>
@@ -77,7 +77,7 @@ export default function PublicLayout({ children }) {
           
           <div>
             <div className="flex items-center gap-3 mb-6">
-              <img src="/mersi.png" alt="Logo Mersi" className="w-17 h-17 object-contain opacity-90" />
+              <img src="/mersi.png" alt="Logo Mersi" className="w-20 h-20 object-contain opacity-90" />
               <span className="font-serif font-bold text-xl text-white">Merapi Singgalang</span>
             </div>
             <p className="text-sm leading-relaxed text-slate-400">
