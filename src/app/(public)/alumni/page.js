@@ -7,19 +7,11 @@ import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimesta
 const HeroSlider = ({ images, title }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
   const [idx, setIdx] = useState(0);
-
-  useEffect(() => {
-    if (imgArray.length <= 1) return;
-    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000);
-    return () => clearInterval(timer);
-  }, [imgArray.length]);
-
+  useEffect(() => { if (imgArray.length <= 1) return; const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000); return () => clearInterval(timer); }, [imgArray.length]);
   return (
     <div className="relative py-28 md:py-36 w-full bg-[#171412] flex flex-col items-center justify-center overflow-hidden">
       <div className="absolute inset-0 w-full h-full bg-[#171412]">
-        {imgArray.map((bg, i) => (
-          <div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-70' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>
-        ))}
+        {imgArray.map((bg, i) => (<div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-70' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>))}
         <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/80 to-[#171412]/40 backdrop-blur-[1px]"></div>
       </div>
       <div className="relative z-10 max-w-4xl mx-auto px-4 text-center reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
@@ -57,32 +49,25 @@ export default function JaringanAlumni() {
     fetchData();
   }, []);
 
+  // UPDATE PENCARIAN: Sekarang mendukung pencarian TAHUN
   const filteredSkripsi = daftarSkripsi.filter((skripsi) => {
     const term = searchTerm.toLowerCase();
-    return ((skripsi.judul && skripsi.judul.toLowerCase().includes(term)) || (skripsi.nama && skripsi.nama.toLowerCase().includes(term)));
+    return (
+      (skripsi.judul && skripsi.judul.toLowerCase().includes(term)) || 
+      (skripsi.nama && skripsi.nama.toLowerCase().includes(term)) ||
+      (skripsi.tahun && String(skripsi.tahun).toLowerCase().includes(term))
+    );
   });
 
-  const handleBukaPDF = (skripsi) => {
-    setSelectedSkripsi(skripsi);
-    setShowModal(true);
-  };
+  const handleBukaPDF = (skripsi) => { setSelectedSkripsi(skripsi); setShowModal(true); };
 
   const handleSubmitForm = async (e) => {
     e.preventDefault();
-    // VALIDASI KETAT NO HP SEBELUM SUBMIT
-    if (!formData.noHp.startsWith("08")) {
-      return alert("Nomor HP harus diawali dengan angka 08");
-    }
-    if (formData.noHp.length < 11) {
-      return alert("Nomor HP tidak valid. Minimal harus 11 angka.");
-    }
-
+    if (!formData.noHp.startsWith("08")) return alert("Nomor HP harus diawali dengan angka 08");
+    if (formData.noHp.length < 11) return alert("Nomor HP tidak valid. Minimal harus 11 angka.");
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, "log_unduh_skripsi"), {
-        namaPengunduh: formData.nama, noHpPengunduh: formData.noHp, emailPengunduh: formData.email,
-        judulSkripsi: selectedSkripsi.judul, penulisSkripsi: selectedSkripsi.nama, waktuAkses: serverTimestamp()
-      });
+      await addDoc(collection(db, "log_unduh_skripsi"), { namaPengunduh: formData.nama, noHpPengunduh: formData.noHp, emailPengunduh: formData.email, judulSkripsi: selectedSkripsi.judul, penulisSkripsi: selectedSkripsi.nama, waktuAkses: serverTimestamp() });
       window.open(selectedSkripsi.linkPDF, "_blank");
       setShowModal(false); setFormData({ nama: "", noHp: "", email: "" });
     } catch (error) { alert("Terjadi kesalahan sistem. Silakan coba lagi."); } finally { setIsSubmitting(false); }
@@ -101,26 +86,11 @@ export default function JaringanAlumni() {
             <form onSubmit={handleSubmitForm} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nama Lengkap</label>
-                <input 
-                  type="text" required 
-                  value={formData.nama} 
-                  // VALIDASI: Hanya membolehkan huruf dan spasi
-                  onChange={(e) => setFormData({...formData, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} 
-                  className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" 
-                  placeholder="Masukkan nama..." 
-                />
+                <input type="text" required value={formData.nama} onChange={(e) => setFormData({...formData, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" placeholder="Masukkan nama..." />
               </div>
               <div>
                 <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nomor HP/WhatsApp</label>
-                <input 
-                  type="tel" required 
-                  value={formData.noHp} 
-                  // VALIDASI: Hanya membolehkan angka
-                  onChange={(e) => setFormData({...formData, noHp: e.target.value.replace(/\D/g, '')})} 
-                  className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" 
-                  placeholder="Awali dengan 08..." 
-                  maxLength={14}
-                />
+                <input type="tel" required value={formData.noHp} onChange={(e) => setFormData({...formData, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" placeholder="Awali dengan 08..." maxLength={14}/>
               </div>
               <div>
                 <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Email Aktif</label>
@@ -149,7 +119,8 @@ export default function JaringanAlumni() {
             </div>
             <div className="relative w-full md:w-80 font-sans">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"><circle cx="11" cy="11" r="8"></circle><line x1="21" x2="16.65" y1="21" y2="16.65"></line></svg>
-              <input type="text" placeholder="Cari judul atau nama..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-stone-50 text-stone-900" />
+              {/* PLACEHOLDER DIPERBARUI */}
+              <input type="text" placeholder="Cari judul, nama, atau tahun..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-stone-50 text-stone-900" />
             </div>
           </div>
 
