@@ -6,7 +6,7 @@ import { collection, getDocs, query, orderBy, doc, getDoc } from "firebase/fires
 
 export default function Profil() {
   const [fotoProfil, setFotoProfil] = useState("");
-  const [profilText, setProfilText] = useState({ sejarah: "Memuat...", visi: "Memuat...", misi: "Memuat...", nilai1: "Memuat...", nilai2: "Memuat...", nilai3: "Memuat..." });
+  const [profilText, setProfilText] = useState({ sejarah: "Memuat...", visi: "Memuat...", misi: "Memuat..." });
   const [dataFotoKonteks, setDataFotoKonteks] = useState([]); 
   const [dataTimeline, setDataTimeline] = useState([]);
   
@@ -24,8 +24,7 @@ export default function Profil() {
         if (snapText.exists()) {
           const data = snapText.data();
           setProfilText({
-            sejarah: data.sejarah || "Sejarah belum diatur.", visi: data.visi || "Visi belum diatur.", misi: data.misi || "Misi belum diatur.",
-            nilai1: data.nilai1 || "Belum diatur.", nilai2: data.nilai2 || "Belum diatur.", nilai3: data.nilai3 || "Belum diatur."
+            sejarah: data.sejarah || "Sejarah belum diatur.", visi: data.visi || "Visi belum diatur.", misi: data.misi || "Misi belum diatur."
           });
           // Memecah teks sejarah per paragraf untuk efek kertas tua
           setSejarahPages(data.sejarah.split(/\n+/).filter(text => text.trim().length > 0));
@@ -60,8 +59,7 @@ export default function Profil() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10 w-full flex flex-col gap-14">
         
-        {/* ANIMASI KERTAS TUA (SEJARAH) - DIPERBAIKI */}
-        {/* Menambahkan tinggi mutlak h-[550px] agar isinya tidak meluber */}
+        {/* ANIMASI KERTAS TUA (SEJARAH) */}
         <div className="relative w-full h-[580px] md:h-[450px] mb-8">
           {sejarahPages.map((teks, index) => {
             let zIndex = sejarahPages.length - index;
@@ -74,18 +72,15 @@ export default function Profil() {
                   ${isCurrent ? 'opacity-100 translate-x-0 rotate-0' : isPast ? 'opacity-0 -translate-x-full -rotate-12' : `opacity-100 translate-x-2 translate-y-2 ${index % 2 === 0 ? 'rotate-1' : '-rotate-1'}`}`}
                 style={{ zIndex: isCurrent ? 50 : isPast ? 0 : zIndex }}
               >
-                {/* Header Kertas */}
                 <div className="flex items-center gap-3 mb-6 border-b border-stone-200 pb-4 shrink-0">
                   <span className="text-amber-600 font-playfair italic text-xl">Bagian {index + 1}</span>
                   <h2 className="text-3xl font-bold text-stone-900 font-playfair ml-auto">Catatan Sejarah</h2>
                 </div>
                 
-                {/* Teks Ber-scroll (Agar teks panjang tidak menabrak tombol bawah) */}
                 <div className="flex-grow overflow-y-auto pr-4 mb-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#d6d3d1 transparent' }}>
                   <p className="text-stone-700 leading-loose text-lg font-lora text-justify">{teks}</p>
                 </div>
                 
-                {/* Navigasi Kertas */}
                 <div className="flex justify-between items-center pt-4 border-t border-stone-200 shrink-0">
                   <button onClick={prevPage} disabled={currentPage === 0} className={`font-playfair font-bold text-sm tracking-widest uppercase transition-colors ${currentPage === 0 ? 'text-stone-300' : 'text-stone-800 hover:text-amber-600'}`}>&larr; Balik Lembar</button>
                   <span className="text-xs text-stone-400 font-serif">{index + 1} / {sejarahPages.length}</span>
@@ -96,27 +91,9 @@ export default function Profil() {
           })}
         </div>
 
-        {/* TIMELINE SEJARAH */}
-        {dataTimeline.length > 0 && (
-          <div className="w-full pl-4 md:pl-8">
-            <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-8 flex items-center gap-3">
-              <div className="w-8 h-0.5 bg-red-800"></div> Garis Waktu
-            </h3>
-            <div className="relative border-l-2 border-[#e8e4db] pl-8 space-y-10 ml-3">
-              {dataTimeline.map((item) => (
-                <div key={item.id} className="relative group">
-                  <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-[#f9f8f6] border-4 border-amber-500 group-hover:border-red-800 transition-colors mt-1.5"></div>
-                  <span className="inline-block py-1 px-3 bg-stone-800 text-amber-500 text-xs font-bold tracking-widest uppercase rounded mb-3">{item.tahun}</span>
-                  <h4 className="text-xl font-bold text-stone-900 font-playfair mb-2 group-hover:text-red-800 transition-colors">{item.judul}</h4>
-                  <p className="text-stone-600 leading-relaxed text-sm">{item.deskripsi}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* VISI, MISI & NILAI */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-10">
+        {/* VISI, MISI & TIMELINE SEJARAH (MENGGANTIKAN NILAI KEPENGASUHAN) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-2">
+          {/* Kolom Kiri: Visi Misi */}
           <div className="flex flex-col gap-8 w-full">
             <div className="bg-[#fcfbf9] rounded-sm p-8 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full text-left">
               <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-5 flex items-center gap-3"><span className="w-2 h-2 bg-amber-500 rotate-45"></span> Visi</h3>
@@ -127,37 +104,35 @@ export default function Profil() {
               <p className="text-stone-700 leading-relaxed text-left whitespace-pre-line border-l-4 border-red-800 pl-4 py-2">{profilText.misi}</p>
             </div>
           </div>
-          <div className="bg-[#fcfbf9] rounded-sm p-8 md:p-10 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full h-full text-left">
-            <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-8 border-b border-[#e8e4db] pb-4">Nilai Kepengasuhan</h3>
-            <ul className="flex flex-col gap-8 w-full">
-              <li className="flex gap-4">
-                <span className="font-playfair text-3xl text-amber-500 font-bold opacity-80">01</span>
-                <div>
-                  <h4 className="font-bold text-stone-900 mb-1 text-lg font-playfair">Sistem Silang</h4>
-                  <p className="text-stone-600 text-sm leading-relaxed">{profilText.nilai1}</p>
+
+          {/* Kolom Kanan: Timeline Sejarah (Diapit scrollbar agar rapi) */}
+          <div className="bg-[#fcfbf9] rounded-sm p-8 md:p-10 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full h-full text-left flex flex-col">
+            <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-8 border-b border-[#e8e4db] pb-4 flex items-center gap-3 shrink-0">
+              <div className="w-8 h-0.5 bg-red-800"></div> Garis Waktu
+            </h3>
+
+            <div className="flex-grow overflow-y-auto pr-4 max-h-[500px]" style={{ scrollbarWidth: 'thin', scrollbarColor: '#d6d3d1 transparent' }}>
+              {dataTimeline.length > 0 ? (
+                <div className="relative border-l-2 border-[#e8e4db] pl-8 space-y-10 ml-3">
+                  {dataTimeline.map((item) => (
+                    <div key={item.id} className="relative group">
+                      <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-[#f9f8f6] border-4 border-amber-500 group-hover:border-red-800 transition-colors mt-1.5"></div>
+                      <span className="inline-block py-1 px-3 bg-stone-800 text-amber-500 text-xs font-bold tracking-widest uppercase rounded mb-3">{item.tahun}</span>
+                      <h4 className="text-xl font-bold text-stone-900 font-playfair mb-2 group-hover:text-red-800 transition-colors">{item.judul}</h4>
+                      <p className="text-stone-600 leading-relaxed text-sm">{item.deskripsi}</p>
+                    </div>
+                  ))}
                 </div>
-              </li>
-              <li className="flex gap-4">
-                <span className="font-playfair text-3xl text-red-800 font-bold opacity-80">02</span>
-                <div>
-                  <h4 className="font-bold text-stone-900 mb-1 text-lg font-playfair">Intelektualitas</h4>
-                  <p className="text-stone-600 text-sm leading-relaxed">{profilText.nilai2}</p>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <span className="font-playfair text-3xl text-stone-400 font-bold opacity-80">03</span>
-                <div>
-                  <h4 className="font-bold text-stone-900 mb-1 text-lg font-playfair">Kemandirian</h4>
-                  <p className="text-stone-600 text-sm leading-relaxed">{profilText.nilai3}</p>
-                </div>
-              </li>
-            </ul>
+              ) : (
+                <p className="text-stone-500 italic text-sm">Belum ada catatan garis waktu sejarah.</p>
+              )}
+            </div>
           </div>
         </div>
 
         {/* FOTO SISIPAN (Museum Style) */}
         {dataFotoKonteks.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-6">
             {dataFotoKonteks.map(item => (
               <div key={item.id} className="bg-white p-4 border border-[#e8e4db] shadow-md transform hover:-rotate-1 transition-transform">
                 <img src={item.linkGambar} className="w-full h-64 object-cover mb-4 grayscale-[20%] hover:grayscale-0 transition-all duration-500" />
@@ -167,8 +142,8 @@ export default function Profil() {
           </div>
         )}
 
-        {/* LOKASI & MAPS (DIKEMBALIKAN) */}
-        <div className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] p-8 md:p-12 relative overflow-hidden w-full text-left mt-10">
+        {/* LOKASI & MAPS */}
+        <div className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] p-8 md:p-12 relative overflow-hidden w-full text-left mt-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-center w-full">
             <div className="md:col-span-5 flex flex-col items-start justify-start w-full relative z-10 text-left">
               <div className="flex flex-row items-center justify-start gap-4 mb-6 w-full">
