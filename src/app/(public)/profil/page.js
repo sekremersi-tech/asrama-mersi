@@ -45,7 +45,7 @@ export default function Profil() {
         <div className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000" style={{ backgroundImage: fotoProfil ? `url('${fotoProfil}')` : 'none', opacity: fotoProfil ? 0.8 : 0 }}>
           <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/80 to-[#171412]/40 backdrop-blur-[1px]"></div>
         </div>
-        <div className="relative z-10 text-center px-4 w-full flex flex-col items-center">
+        <div className="relative z-10 text-center px-4 w-full flex flex-col items-center reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
           <h1 className="text-5xl md:text-7xl font-bold text-white font-playfair tracking-wide mb-6 drop-shadow-lg">Profil Asrama</h1>
           <div className="w-16 h-1.5 bg-amber-500 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
         </div>
@@ -53,8 +53,8 @@ export default function Profil() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10 w-full flex flex-col gap-14">
         
-        {/* TITIK JANGKAR 1: SEJARAH */}
-        <div id="sejarah" className="relative w-full h-[580px] md:h-[450px] mb-8 scroll-mt-28">
+        {/* TITIK JANGKAR 1: SEJARAH (DENGAN ANIMASI REVEAL) */}
+        <div id="sejarah" className="relative w-full h-[580px] md:h-[450px] mb-8 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
           {sejarahPages.map((teks, index) => {
             let zIndex = sejarahPages.length - index;
             let isCurrent = index === currentPage;
@@ -79,20 +79,20 @@ export default function Profil() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-2">
-          {/* TITIK JANGKAR 2: VISI MISI */}
-          <div id="visimisi" className="flex flex-col gap-8 w-full scroll-mt-28">
-            <div className="bg-[#fcfbf9] rounded-sm p-8 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full text-left">
+          {/* TITIK JANGKAR 2: VISI MISI (ANIMASI REVEAL) */}
+          <div id="visimisi" className="flex flex-col gap-8 w-full scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+            <div className="bg-[#fcfbf9] rounded-sm p-8 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full text-left hover:-translate-y-1 transition-transform">
               <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-5 flex items-center gap-3"><span className="w-2 h-2 bg-amber-500 rotate-45"></span> Visi</h3>
               <p className="text-stone-700 italic leading-relaxed text-left whitespace-pre-line border-l-4 border-amber-500 pl-4 py-2">"{profilText.visi}"</p>
             </div>
-            <div className="bg-[#fcfbf9] rounded-sm p-8 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full text-left">
+            <div className="bg-[#fcfbf9] rounded-sm p-8 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full text-left hover:-translate-y-1 transition-transform">
               <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-5 flex items-center gap-3"><span className="w-2 h-2 bg-red-800 rotate-45"></span> Misi</h3>
               <p className="text-stone-700 leading-relaxed text-left whitespace-pre-line border-l-4 border-red-800 pl-4 py-2">{profilText.misi}</p>
             </div>
           </div>
 
-          {/* TITIK JANGKAR 3: GARIS WAKTU / TIMELINE */}
-          <div id="timeline" className="bg-[#fcfbf9] rounded-sm p-8 md:p-10 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full h-full text-left flex flex-col scroll-mt-28">
+          {/* TITIK JANGKAR 3: GARIS WAKTU / TIMELINE (ANIMASI REVEAL DENGAN DELAY) */}
+          <div id="timeline" className="bg-[#fcfbf9] rounded-sm p-8 md:p-10 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full h-full text-left flex flex-col scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out delay-200 hover:-translate-y-1 transition-transform">
             <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-8 border-b border-[#e8e4db] pb-4 flex items-center gap-3 shrink-0">
               <div className="w-8 h-0.5 bg-red-800"></div> Garis Waktu
             </h3>
@@ -115,8 +115,9 @@ export default function Profil() {
           </div>
         </div>
 
+        {/* FOTO SISIPAN (ANIMASI REVEAL) */}
         {dataFotoKonteks.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-6 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
             {dataFotoKonteks.map(item => (
               <div key={item.id} className="bg-white p-4 border border-[#e8e4db] shadow-md transform hover:-rotate-1 transition-transform">
                 <img src={item.linkGambar} className="w-full h-64 object-cover mb-4 grayscale-[20%] hover:grayscale-0 transition-all duration-500" />
@@ -126,8 +127,8 @@ export default function Profil() {
           </div>
         )}
 
-        {/* TITIK JANGKAR 4: TITIK TEMU / MAPS */}
-        <div id="lokasi" className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] p-8 md:p-12 relative overflow-hidden w-full text-left mt-6 scroll-mt-28">
+        {/* TITIK JANGKAR 4: TITIK TEMU / MAPS (ANIMASI REVEAL) */}
+        <div id="lokasi" className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] p-8 md:p-12 relative overflow-hidden w-full text-left mt-6 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-center w-full">
             <div className="md:col-span-5 flex flex-col items-start justify-start w-full relative z-10 text-left">
               <div className="flex flex-row items-center justify-start gap-4 mb-6 w-full">
