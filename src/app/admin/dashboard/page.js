@@ -18,8 +18,6 @@ export default function AdminDashboard() {
   const [kontak, setKontak] = useState({ namaKetua: "", noTelpon: "" });
 
   const [statusAsrama, setStatusAsrama] = useState({ kamar: "", penghuni: "", ketersediaan: "Tersedia" });
-  
-  // DITAMBAHKAN: State untuk Brosur Pendaftaran Asrama
   const [brosurUrl, setBrosurUrl] = useState("");
   const [fileBrosur, setFileBrosur] = useState(null);
 
@@ -59,9 +57,10 @@ export default function AdminDashboard() {
 
   const [dataLogUnduh, setDataLogUnduh] = useState([]);
   const [dataPendaftarLomba, setDataPendaftarLomba] = useState([]);
-  
-  // DITAMBAHKAN: Data Pendaftar Asrama
   const [dataPendaftarAsrama, setDataPendaftarAsrama] = useState([]);
+  
+  // DITAMBAHKAN: Data Komentar
+  const [dataKomentar, setDataKomentar] = useState([]);
 
   useEffect(() => { fetchAllData(); }, []);
 
@@ -75,8 +74,6 @@ export default function AdminDashboard() {
 
     const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
     if (docStatus.exists()) setStatusAsrama(docStatus.data());
-    
-    // Fetch Brosur Asrama
     const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
     if (docBrosur.exists()) setBrosurUrl(docBrosur.data().link);
 
@@ -96,71 +93,19 @@ export default function AdminDashboard() {
     setDataLogUnduh(logSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const lombaSnap = await getDocs(query(collection(db, "pendaftaran_lomba"), orderBy("waktuDaftar", "desc")));
     setDataPendaftarLomba(lombaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    
-    // Fetch Data Calon Warga (Pendaftar Asrama)
     const asramaSnap = await getDocs(query(collection(db, "pendaftaran_asrama"), orderBy("waktuDaftar", "desc")));
     setDataPendaftarAsrama(asramaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    
+    // FETCH KOMENTAR
+    const komenSnap = await getDocs(query(collection(db, "komentar_publikasi"), orderBy("waktu", "desc")));
+    setDataKomentar(komenSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
-  const uploadToCloudinary = async (file, resourceType = "image") => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: "POST", body: formData });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    return data.secure_url;
-  };
-
-  const handleSaveTampilan = async (e) => {
-    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
-    try {
-      let newUrls = { ...tampilanUrls };
-      const keys = ["hero", "profil", "fasilitas", "kehidupan", "alumni", "gateway"];
-      for (let key of keys) {
-        if (tampilanFiles[key] && tampilanFiles[key].length > 0) {
-          let urls = [];
-          for (const file of tampilanFiles[key]) { urls.push(await uploadToCloudinary(file, "image")); }
-          newUrls[key] = urls;
-        }
-      }
-      if (tampilanFiles.gateway && tampilanFiles.gateway.length > 0) { delete newUrls.gateway1; delete newUrls.gateway2; delete newUrls.gateway3; }
-      await setDoc(doc(db, "pengaturan", "tampilan"), newUrls, { merge: true });
-      setTampilanUrls(newUrls); setTampilanFiles({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
-      setStatus({ type: "success", message: "Semua foto latar berhasil diperbarui!" });
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
-  };
-
-  const handleSaveProfilText = async (e) => {
-    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
-    try {
-      await setDoc(doc(db, "pengaturan", "profilText"), profilText);
-      await setDoc(doc(db, "pengaturan", "kontak"), kontak);
-      setStatus({ type: "success", message: "Teks profil & Kontak berhasil diperbarui!" });
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
-  };
-
-  const handleSaveStatusAsrama = async (e) => {
-    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
-    try {
-      await setDoc(doc(db, "pengaturan", "statusAsrama"), statusAsrama);
-      setStatus({ type: "success", message: "Status Asrama berhasil diperbarui!" });
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
-  };
-
-  // DITAMBAHKAN: Fungsi Simpan Foto Brosur
-  const handleSaveBrosur = async (e) => {
-    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
-    try {
-      if (fileBrosur) {
-        const url = await uploadToCloudinary(fileBrosur, "image");
-        await setDoc(doc(db, "pengaturan", "brosur"), { link: url });
-        setBrosurUrl(url); setFileBrosur(null);
-        setStatus({ type: "success", message: "Brosur Pendaftaran berhasil diperbarui!" });
-      }
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
-  };
-
+  const uploadToCloudinary = async (file, resourceType = "image") => { /* ... kode sama ... */ const formData = new FormData(); formData.append("file", file); formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: "POST", body: formData }); const data = await res.json(); if (data.error) throw new Error(data.error.message); return data.secure_url; };
+  const handleSaveTampilan = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newUrls = { ...tampilanUrls }; const keys = ["hero", "profil", "fasilitas", "kehidupan", "alumni", "gateway"]; for (let key of keys) { if (tampilanFiles[key] && tampilanFiles[key].length > 0) { let urls = []; for (const file of tampilanFiles[key]) { urls.push(await uploadToCloudinary(file, "image")); } newUrls[key] = urls; } } if (tampilanFiles.gateway && tampilanFiles.gateway.length > 0) { delete newUrls.gateway1; delete newUrls.gateway2; delete newUrls.gateway3; } await setDoc(doc(db, "pengaturan", "tampilan"), newUrls, { merge: true }); setTampilanUrls(newUrls); setTampilanFiles({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] }); setStatus({ type: "success", message: "Semua foto latar berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
+  const handleSaveProfilText = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "profilText"), profilText); await setDoc(doc(db, "pengaturan", "kontak"), kontak); setStatus({ type: "success", message: "Teks profil & Kontak berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
+  const handleSaveStatusAsrama = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "statusAsrama"), statusAsrama); setStatus({ type: "success", message: "Status Asrama berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
+  const handleSaveBrosur = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { if (fileBrosur) { const url = await uploadToCloudinary(fileBrosur, "image"); await setDoc(doc(db, "pengaturan", "brosur"), { link: url }); setBrosurUrl(url); setFileBrosur(null); setStatus({ type: "success", message: "Brosur Pendaftaran berhasil diperbarui!" }); } } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSubmitFotoProfil = async (e) => { e.preventDefault(); setLoading(true); try { let urls = []; for (const file of filesFotoProfil) { urls.push(await uploadToCloudinary(file, "image")); } await addDoc(collection(db, "profil_galeri"), { konteks: konteksFoto, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Foto Profil Kontekstual ditambahkan!" }); setKonteksFoto(""); setFilesFotoProfil([]); e.target.reset(); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSubmitTimeline = async (e) => { e.preventDefault(); setLoading(true); try { await addDoc(collection(db, "timeline_sejarah"), { tahun: tahunTimeline, judul: judulTimeline, deskripsi: deskripsiTimeline, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Timeline berhasil ditambahkan!" }); setTahunTimeline(""); setJudulTimeline(""); setDeskripsiTimeline(""); e.target.reset(); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSubmitFasilitas = async (e) => { e.preventDefault(); setLoading(true); try { let urls = []; for (const file of filesFasilitas) { urls.push(await uploadToCloudinary(file, "image")); } await addDoc(collection(db, "daftar_fasilitas"), { nama: namaFasilitas, deskripsi: deskripsiFasilitas, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Fasilitas berhasil ditambahkan!" }); setNamaFasilitas(""); setDeskripsiFasilitas(""); setFilesFasilitas([]); e.target.reset(); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
@@ -191,45 +136,9 @@ export default function AdminDashboard() {
 
         {status.message && <div className={`p-4 rounded-lg mb-6 text-sm font-medium border ${status.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200'}`}>{status.message}</div>}
 
-        {/* TAB 1: PENGATURAN TEKS & FOTO */}
+        {/* TAB 1-8: SAMA PERSIS SEPERTI SEBELUMNYA */}
         {activeTab === "tampilan" && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"><h2 className="text-lg font-bold mb-4 border-b pb-2">Edit Teks Website Asrama</h2> <form onSubmit={handleSaveProfilText} className="space-y-6"> <div className="space-y-4"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Kontak Asrama (Footer)</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> <div><label className="text-sm block mb-1">Nama Ketua</label><input required type="text" value={kontak.namaKetua} onChange={(e) => setKontak({...kontak, namaKetua: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div><label className="text-sm block mb-1">Nomor WA</label><input required type="text" value={kontak.noTelpon} onChange={(e) => setKontak({...kontak, noTelpon: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> </div> </div> <div className="space-y-4 pt-4 border-t"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Profil</h3> <div><label className="text-sm block mb-1">Sejarah Asrama</label><textarea required rows="4" value={profilText.sejarah} onChange={(e) => setProfilText({...profilText, sejarah: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> <div><label className="text-sm block mb-1">Visi</label><textarea required rows="3" value={profilText.visi} onChange={(e) => setProfilText({...profilText, visi: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> <div><label className="text-sm block mb-1">Misi</label><textarea required rows="3" value={profilText.misi} onChange={(e) => setProfilText({...profilText, misi: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> </div> </div> <div className="space-y-4 pt-4 border-t"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Jaringan Alumni</h3> <div><label className="text-sm block mb-1">Teks Jejak Alumni</label><textarea required rows="2" value={profilText.jejakAlumni} onChange={(e) => setProfilText({...profilText, jejakAlumni: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> </div> <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2 rounded-md font-semibold">Simpan Teks</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Ubah Foto Latar Belakang (Multi-Upload)</h2> <form onSubmit={handleSaveTampilan} className="space-y-6"> <div className="space-y-4"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Slideshow Gateway (Halaman Beranda Utama)</h3> <div className="bg-slate-50 p-4 border rounded-lg"> <label className="font-semibold block mb-2">Pilih Beberapa Foto Gateway Sekaligus</label> <input type="file" multiple accept="image/*" onChange={(e) => setTampilanFiles({...tampilanFiles, gateway: Array.from(e.target.files)})} className="w-full text-sm cursor-pointer bg-white p-2 border rounded" /> </div> </div> <div className="space-y-4 pt-4 border-t"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Latar Belakang Tiap Halaman (Slideshow)</h3> {[{ id: 'hero', title: 'Beranda (Hero)' }, { id: 'profil', title: 'Profil' }, { id: 'fasilitas', title: 'Fasilitas' }, { id: 'kehidupan', title: 'Media' }, { id: 'alumni', title: 'Alumni' }].map((item) => ( <div key={item.id} className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 items-center bg-slate-50 p-4 border rounded-lg"> <label className="font-semibold text-sm">Latar {item.title}</label> <input type="file" multiple accept="image/*" onChange={(e) => setTampilanFiles({...tampilanFiles, [item.id]: Array.from(e.target.files)})} className="w-full text-sm cursor-pointer bg-white p-2 border rounded" /> </div> ))} </div> <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2 rounded-md font-semibold">Simpan Slideshow Latar</button> </form> </div> </div> )}
-
-        {/* TAB 2: STATUS & BROSUR PENDAFTARAN (DIPERBARUI) */}
-        {activeTab === "status" && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Status Asrama</h2>
-              <form onSubmit={handleSaveStatusAsrama} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div><label className="text-sm font-semibold mb-1 block">Jumlah Kamar</label><input type="number" required value={statusAsrama.kamar} onChange={(e) => setStatusAsrama({...statusAsrama, kamar: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div>
-                  <div><label className="text-sm font-semibold mb-1 block">Jumlah Penghuni</label><input type="number" required value={statusAsrama.penghuni} onChange={(e) => setStatusAsrama({...statusAsrama, penghuni: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div>
-                  <div>
-                    <label className="text-sm font-semibold mb-1 block">Ketersediaan</label>
-                    <select value={statusAsrama.ketersediaan} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaan: e.target.value})} className="w-full px-4 py-2 border rounded-md">
-                      <option value="Tersedia">🟢 Tersedia</option>
-                      <option value="Penuh">🔴 Penuh</option>
-                    </select>
-                  </div>
-                </div>
-                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Perbarui Status</button>
-              </form>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Foto Brosur Penerimaan Warga Asrama</h2>
-              <p className="text-sm text-slate-500 mb-4">Gambar ini akan muncul ketika pengunjung mengeklik tombol pendaftaran asrama.</p>
-              <form onSubmit={handleSaveBrosur} className="space-y-4">
-                <div className="bg-slate-50 p-4 border rounded-lg flex items-center justify-between">
-                  <input type="file" accept="image/*" onChange={(e) => setFileBrosur(e.target.files[0])} className="w-full text-sm cursor-pointer" />
-                  {brosurUrl && <a href={brosurUrl} target="_blank" className="text-xs text-amber-600 font-bold ml-4 whitespace-nowrap">Lihat Brosur Saat Ini</a>}
-                </div>
-                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Unggah Brosur Baru</button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3-8: SAMA PERSIS SEPERTI SEBELUMNYA */}
+        {activeTab === "status" && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Status Asrama</h2> <form onSubmit={handleSaveStatusAsrama} className="space-y-4"> <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> <div><label className="text-sm font-semibold mb-1 block">Jumlah Kamar</label><input type="number" required value={statusAsrama.kamar} onChange={(e) => setStatusAsrama({...statusAsrama, kamar: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div><label className="text-sm font-semibold mb-1 block">Jumlah Penghuni</label><input type="number" required value={statusAsrama.penghuni} onChange={(e) => setStatusAsrama({...statusAsrama, penghuni: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div> <label className="text-sm font-semibold mb-1 block">Ketersediaan</label> <select value={statusAsrama.ketersediaan} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaan: e.target.value})} className="w-full px-4 py-2 border rounded-md"> <option value="Tersedia">🟢 Tersedia</option> <option value="Penuh">🔴 Penuh</option> </select> </div> </div> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Perbarui Status</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Foto Brosur Penerimaan Warga Asrama</h2> <form onSubmit={handleSaveBrosur} className="space-y-4"> <div className="bg-slate-50 p-4 border rounded-lg flex items-center justify-between"> <input type="file" accept="image/*" onChange={(e) => setFileBrosur(e.target.files[0])} className="w-full text-sm cursor-pointer" /> {brosurUrl && <a href={brosurUrl} target="_blank" className="text-xs text-amber-600 font-bold ml-4 whitespace-nowrap">Lihat Brosur Saat Ini</a>} </div> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Unggah Brosur Baru</button> </form> </div> </div> )}
         {activeTab === "timeline" && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Timeline</h2> <form onSubmit={handleSubmitTimeline} className="space-y-4"> <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4"> <input type="text" required value={tahunTimeline} onChange={(e) => setTahunTimeline(e.target.value)} placeholder="Tahun" className="w-full px-4 py-2 border rounded-md" /> <input type="text" required value={judulTimeline} onChange={(e) => setJudulTimeline(e.target.value)} placeholder="Peristiwa" className="w-full px-4 py-2 border rounded-md" /> </div> <textarea required rows="2" value={deskripsiTimeline} onChange={(e) => setDeskripsiTimeline(e.target.value)} placeholder="Deskripsi..." className="w-full px-4 py-2 border rounded-md"></textarea> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Tambahkan</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Timeline</h3> <div className="space-y-4"> {dataTimeline.map(item => ( <div key={item.id} className="bg-slate-50 border rounded-lg p-4 flex justify-between"> <div> <span className="px-2 py-1 bg-amber-500 text-white text-xs rounded mb-2">{item.tahun}</span> <h4 className="font-bold">{item.judul}</h4> <p className="text-sm text-slate-600">{item.deskripsi}</p> </div> <button onClick={() => handleDelete("timeline_sejarah", item.id)} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded">Hapus</button> </div> ))} </div> </div> </div> )}
         {activeTab === "fotoprofil" && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Foto Profil</h2> <form onSubmit={handleSubmitFotoProfil} className="space-y-4"> <textarea required rows="2" value={konteksFoto} onChange={(e) => setKonteksFoto(e.target.value)} placeholder="Konteks..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="file" multiple required accept="image/*" onChange={(e) => setFilesFotoProfil(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-slate-50" /> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Tambahkan</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Foto Profil</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {dataFotoProfil.map(item => { const imgUtama = Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar; return ( <div key={item.id} className="bg-slate-50 border rounded-lg flex gap-4 p-3"> <img src={imgUtama} className="w-24 h-24 object-cover rounded-md shrink-0" /> <div className="flex flex-col justify-between w-full"> <p className="text-xs text-slate-600">{item.konteks}</p> <button onClick={() => handleDelete("profil_galeri", item.id)} className="text-red-600 text-xs">Hapus</button> </div> </div> ); })} </div> </div> </div> )}
         {activeTab === "fasilitas" && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Fasilitas</h2> <form onSubmit={handleSubmitFasilitas} className="space-y-4"> <input type="text" required value={namaFasilitas} onChange={(e) => setNamaFasilitas(e.target.value)} placeholder="Nama..." className="w-full px-4 py-2 border rounded-md" /> <textarea required rows="2" value={deskripsiFasilitas} onChange={(e) => setDeskripsiFasilitas(e.target.value)} placeholder="Deskripsi..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="file" multiple required accept="image/*" onChange={(e) => setFilesFasilitas(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-slate-50" /> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Tambahkan</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Fasilitas</h3> <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> {dataFasilitas.map(item => { const imgUtama = Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar; return ( <div key={item.id} className="bg-slate-50 border rounded-lg flex flex-col"> <img src={imgUtama} className="w-full h-32 object-cover" /> <div className="p-4 flex flex-col flex-grow"> <h4 className="font-bold">{item.nama}</h4> <p className="text-xs flex-grow">{item.deskripsi}</p> <button onClick={() => handleDelete("daftar_fasilitas", item.id)} className="bg-red-600 text-white text-xs px-3 py-1.5 mt-2 rounded">Hapus</button> </div> </div> ); })} </div> </div> </div> )}
@@ -237,7 +146,7 @@ export default function AdminDashboard() {
         {activeTab === "kehidupan" && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Publikasi Baru</h2> <form onSubmit={handleSubmitKehidupan} className="space-y-4"> <input type="text" required value={judulKonten} onChange={(e) => setJudulKonten(e.target.value)} placeholder="Judul Berita/Lomba..." className="w-full px-4 py-2 border rounded-md" /> <select value={kategori} onChange={(e) => setKategori(e.target.value)} className="w-full px-4 py-2 border rounded-md font-bold text-stone-800"> <option value="PRESTASI">Prestasi</option> <option value="MERSI X BK">MERSI X BK</option> <option value="LOMBA TERBUKA">Lomba Terbuka</option> <option value="LAINNYA">Lainnya... (Isi Manual)</option> </select> {kategori === "LAINNYA" && ( <input type="text" required value={customKategori} onChange={(e) => setCustomKategori(e.target.value)} placeholder="Tuliskan nama kategori di sini..." className="w-full px-4 py-2 border border-amber-500 bg-amber-50 rounded-md focus:outline-none" /> )} <textarea required rows="4" value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)} placeholder="Isi Berita/Keterangan..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="file" multiple required accept="image/*" onChange={(e) => setFilesGambar(Array.from(e.target.files))} className="w-full text-sm cursor-pointer border p-2 rounded bg-slate-50" /> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Publikasikan Berita</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Publikasi</h3> <div className="space-y-3"> {dataKehidupan.map(item => ( <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 border rounded-lg"> <div> <div className="font-semibold text-sm">{item.judul} <span className="text-red-600 text-xs">({item.kategori})</span></div> <div className="text-xs text-slate-500">{Array.isArray(item.linkGambar) ? `${item.linkGambar.length} Foto` : '1 Foto'}</div> </div> <button onClick={() => handleDelete("kehidupan", item.id)} className="text-red-500 text-xs font-semibold">Hapus</button> </div> ))} </div> </div> </div> )}
         {activeTab === "skripsi" && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Skripsi</h2> <form onSubmit={handleSubmitSkripsi} className="space-y-4"> <input type="text" required value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama Penulis..." className="w-full px-4 py-2 border rounded-md" /> <input type="text" required value={jurusan} onChange={(e) => setJurusan(e.target.value)} placeholder="Jurusan..." className="w-full px-4 py-2 border rounded-md" /> <textarea required rows="1" value={judulSkripsi} onChange={(e) => setJudulSkripsi(e.target.value)} placeholder="Judul Skripsi..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="number" required value={tahun} onChange={(e) => setTahun(e.target.value)} placeholder="Tahun..." className="w-full px-4 py-2 border rounded-md" /> <input type="file" accept=".pdf" onChange={(e) => setFilePDF(e.target.files[0])} className="w-full text-sm" /> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Simpan Skripsi</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Kelola Skripsi</h3> <div className="space-y-3"> {dataSkripsi.map(item => ( <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 border rounded-lg"> <div><div className="font-semibold text-sm">{item.nama} - {item.tahun}</div><div className="text-xs line-clamp-1">{item.judul}</div></div> <button onClick={() => handleDelete("skripsi", item.id)} className="text-red-500 text-xs font-semibold">Hapus</button> </div> ))} </div> </div> </div> )}
 
-        {/* TAB 9: LOG DATA (DITAMBAHKAN TABEL PENDAFTAR ASRAMA) */}
+        {/* TAB 9: LOG DATA & KOMENTAR */}
         {activeTab === "log" && (
           <div className="space-y-6">
             
@@ -306,6 +215,38 @@ export default function AdminDashboard() {
                 </table>
               </div>
             </div>
+            
+            {/* DITAMBAHKAN: TABEL PENGAWASAN KOMENTAR PUBLIKASI */}
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6 border-l-4 border-l-amber-500">
+              <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2">
+                <h2 className="text-lg font-bold text-slate-900">Log Komentar Pengunjung</h2>
+                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataKomentar.length} Komentar</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-y text-slate-600">
+                      <th className="p-3">Waktu</th>
+                      <th className="p-3">Pengirim</th>
+                      <th className="p-3">Komentar</th>
+                      <th className="p-3 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {dataKomentar.length === 0 ? <tr><td colSpan="4" className="p-8 text-center text-slate-500">Belum ada komentar.</td></tr> : (
+                      dataKomentar.map(item => (
+                        <tr key={item.id} className="hover:bg-slate-50">
+                          <td className="p-3 text-xs">{item.waktu ? new Date(item.waktu.toDate()).toLocaleString('id-ID') : '-'}</td>
+                          <td className="p-3 font-bold">{item.nama}</td>
+                          <td className="p-3 text-xs text-stone-600 line-clamp-2">{item.isi}</td>
+                          <td className="p-3 text-center"><button onClick={() => handleDelete("komentar_publikasi", item.id)} className="text-red-500 text-xs font-semibold">Hapus</button></td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
               <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2">
@@ -337,6 +278,7 @@ export default function AdminDashboard() {
                 </table>
               </div>
             </div>
+            
           </div>
         )}
 
