@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp } from "firebase/firestore";
 
-// KOMPONEN: Slideshow Latar Belakang (Hero)
 const HeroSlider = ({ images, title }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
   const [idx, setIdx] = useState(0);
@@ -70,6 +69,14 @@ export default function JaringanAlumni() {
 
   const handleSubmitForm = async (e) => {
     e.preventDefault();
+    // VALIDASI KETAT NO HP SEBELUM SUBMIT
+    if (!formData.noHp.startsWith("08")) {
+      return alert("Nomor HP harus diawali dengan angka 08");
+    }
+    if (formData.noHp.length < 11) {
+      return alert("Nomor HP tidak valid. Minimal harus 11 angka.");
+    }
+
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, "log_unduh_skripsi"), {
@@ -83,8 +90,6 @@ export default function JaringanAlumni() {
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora">
-      
-      {/* POPUP MODAL PENGAMAN */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 transition-opacity">
           <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-stone-200 animate-[fadeIn_0.3s_ease-out]">
@@ -94,14 +99,28 @@ export default function JaringanAlumni() {
             </div>
             <p className="text-sm text-stone-600 mb-6 leading-relaxed">Untuk menjaga keamanan karya intelektual, mohon isi identitas Anda sebelum membaca dokumen ini.</p>
             <form onSubmit={handleSubmitForm} className="space-y-4">
-              {/* PENAMBAHAN 'text-stone-900' AGAR TEKS INPUT BERWARNA HITAM */}
               <div>
                 <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nama Lengkap</label>
-                <input type="text" required value={formData.nama} onChange={(e) => setFormData({...formData, nama: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" placeholder="Masukkan nama..." />
+                <input 
+                  type="text" required 
+                  value={formData.nama} 
+                  // VALIDASI: Hanya membolehkan huruf dan spasi
+                  onChange={(e) => setFormData({...formData, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} 
+                  className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" 
+                  placeholder="Masukkan nama..." 
+                />
               </div>
               <div>
                 <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nomor HP/WhatsApp</label>
-                <input type="tel" required value={formData.noHp} onChange={(e) => setFormData({...formData, noHp: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" placeholder="0812xxxxxx" />
+                <input 
+                  type="tel" required 
+                  value={formData.noHp} 
+                  // VALIDASI: Hanya membolehkan angka
+                  onChange={(e) => setFormData({...formData, noHp: e.target.value.replace(/\D/g, '')})} 
+                  className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" 
+                  placeholder="Awali dengan 08..." 
+                  maxLength={14}
+                />
               </div>
               <div>
                 <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Email Aktif</label>
@@ -113,7 +132,6 @@ export default function JaringanAlumni() {
         </div>
       )}
 
-      {/* SUNTIKAN HERO SLIDER MULTI FOTO */}
       <HeroSlider images={bgAlumni} title="Jaringan Alumni" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10">
