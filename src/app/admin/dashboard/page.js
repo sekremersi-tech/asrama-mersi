@@ -21,6 +21,12 @@ export default function AdminDashboard() {
   const [konteksFoto, setKonteksFoto] = useState("");
   const [fileFotoProfil, setFileFotoProfil] = useState(null);
 
+  // State: Timeline Sejarah (BARU)
+  const [dataTimeline, setDataTimeline] = useState([]);
+  const [tahunTimeline, setTahunTimeline] = useState("");
+  const [judulTimeline, setJudulTimeline] = useState("");
+  const [deskripsiTimeline, setDeskripsiTimeline] = useState("");
+
   const [dataFasilitas, setDataFasilitas] = useState([]);
   const [namaFasilitas, setNamaFasilitas] = useState("");
   const [deskripsiFasilitas, setDeskripsiFasilitas] = useState("");
@@ -44,6 +50,9 @@ export default function AdminDashboard() {
   const [tahun, setTahun] = useState("");
   const [filePDF, setFilePDF] = useState(null);
 
+  // State: Log Pengunduh Skripsi (BARU)
+  const [dataLogUnduh, setDataLogUnduh] = useState([]);
+
   useEffect(() => { fetchAllData(); }, []);
 
   const fetchAllData = async () => {
@@ -56,14 +65,26 @@ export default function AdminDashboard() {
 
     const fotoProfSnap = await getDocs(query(collection(db, "profil_galeri"), orderBy("createdAt", "desc")));
     setDataFotoProfil(fotoProfSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    
+    // Fetch Timeline Sejarah
+    const timeSnap = await getDocs(query(collection(db, "timeline_sejarah"), orderBy("tahun", "asc")));
+    setDataTimeline(timeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
     const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "desc")));
     setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    
     const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "desc"))); 
     setDataGaleri(galSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    
     const kehSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
     setDataKehidupan(kehSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    
     const skrSnap = await getDocs(query(collection(db, "skripsi"), orderBy("tahun", "desc")));
     setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+    // Fetch Log Unduhan
+    const logSnap = await getDocs(query(collection(db, "log_unduh_skripsi"), orderBy("waktuAkses", "desc")));
+    setDataLogUnduh(logSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
   const uploadToCloudinary = async (file, resourceType = "image") => {
@@ -109,6 +130,16 @@ export default function AdminDashboard() {
     } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
   };
 
+  // Submit Timeline Sejarah (BARU)
+  const handleSubmitTimeline = async (e) => {
+    e.preventDefault(); setLoading(true);
+    try {
+      await addDoc(collection(db, "timeline_sejarah"), { tahun: tahunTimeline, judul: judulTimeline, deskripsi: deskripsiTimeline, createdAt: serverTimestamp() });
+      setStatus({ type: "success", message: "Timeline berhasil ditambahkan!" });
+      setTahunTimeline(""); setJudulTimeline(""); setDeskripsiTimeline(""); e.target.reset(); fetchAllData();
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
+  };
+
   const handleSubmitFasilitas = async (e) => {
     e.preventDefault(); setLoading(true);
     try {
@@ -144,8 +175,6 @@ export default function AdminDashboard() {
     try {
       let linkPDF = "#";
       if (filePDF) {
-        // PERBAIKAN PDF: Upload sebagai image agar diterima Cloudinary, 
-        // lalu tambahkan flag fl_attachment agar memaksa browser men-download PDF (bypass blokir Cloudinary)
         let rawUrl = await uploadToCloudinary(filePDF, "image");
         linkPDF = rawUrl.replace("/upload/", "/upload/fl_attachment/");
       }
@@ -168,14 +197,16 @@ export default function AdminDashboard() {
         <button onClick={() => {signOut(auth); router.push("/admin/login")}} className="bg-red-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700">Logout</button>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex space-x-2 mb-8 bg-white p-2 rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
           <button onClick={() => { setActiveTab("tampilan"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "tampilan" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Pengaturan Teks & Foto</button>
+          <button onClick={() => { setActiveTab("timeline"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "timeline" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Timeline Sejarah</button>
           <button onClick={() => { setActiveTab("fotoprofil"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "fotoprofil" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Foto Profil</button>
           <button onClick={() => { setActiveTab("fasilitas"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "fasilitas" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Fasilitas Asrama</button>
           <button onClick={() => { setActiveTab("galeri"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "galeri" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Galeri Kegiatan</button>
           <button onClick={() => { setActiveTab("kehidupan"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "kehidupan" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Media & Publikasi</button>
           <button onClick={() => { setActiveTab("skripsi"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "skripsi" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Repositori Skripsi</button>
+          <button onClick={() => { setActiveTab("log"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "log" ? "bg-red-800 text-white" : "bg-stone-800 text-white hover:bg-stone-700"}`}>Log Pengunduh</button>
         </div>
 
         {status.message && <div className={`p-4 rounded-lg mb-6 text-sm font-medium border ${status.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200'}`}>{status.message}</div>}
@@ -202,7 +233,7 @@ export default function AdminDashboard() {
                 <div className="space-y-4 pt-4 border-t">
                   <h3 className="font-semibold text-red-800 border-l-2 border-red-800 pl-2">Halaman Profil</h3>
                   <div>
-                    <label className="font-semibold text-slate-800 text-sm block mb-1">Sejarah Asrama</label>
+                    <label className="font-semibold text-slate-800 text-sm block mb-1">Sejarah Asrama (Gunakan Enter/Baris Baru untuk memisah Kertas)</label>
                     <textarea required rows="4" value={profilText.sejarah} onChange={(e) => setProfilText({...profilText, sejarah: e.target.value})} className="w-full px-4 py-2 border border-slate-300 rounded-md"></textarea>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -259,7 +290,39 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB FOTO PROFIL (BARU) */}
+        {/* TAB TIMELINE SEJARAH (BARU) */}
+        {activeTab === "timeline" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+              <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Tambah Titik Waktu (Timeline) Sejarah</h2>
+              <form onSubmit={handleSubmitTimeline} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4">
+                  <input type="text" required value={tahunTimeline} onChange={(e) => setTahunTimeline(e.target.value)} placeholder="Tahun (Cth: 1962)" className="w-full px-4 py-2 border border-slate-300 rounded-md" />
+                  <input type="text" required value={judulTimeline} onChange={(e) => setJudulTimeline(e.target.value)} placeholder="Peristiwa (Cth: Pendirian Asrama)" className="w-full px-4 py-2 border border-slate-300 rounded-md" />
+                </div>
+                <textarea required rows="2" value={deskripsiTimeline} onChange={(e) => setDeskripsiTimeline(e.target.value)} placeholder="Deskripsi singkat peristiwa..." className="w-full px-4 py-2 border border-slate-300 rounded-md"></textarea>
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">{loading ? "Menyimpan..." : "Tambahkan ke Timeline"}</button>
+              </form>
+            </div>
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+              <h3 className="font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Garis Waktu Terdaftar</h3>
+              <div className="space-y-4">
+                {dataTimeline.map(item => (
+                  <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex justify-between items-start gap-4">
+                    <div>
+                      <span className="inline-block px-2 py-1 bg-amber-500 text-white text-xs font-bold rounded mb-2">{item.tahun}</span>
+                      <h4 className="font-bold text-slate-900 mb-1">{item.judul}</h4>
+                      <p className="text-sm text-slate-600">{item.deskripsi}</p>
+                    </div>
+                    <button onClick={() => handleDelete("timeline_sejarah", item.id)} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded shrink-0 hover:bg-red-700">Hapus</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB FOTO PROFIL */}
         {activeTab === "fotoprofil" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
@@ -380,9 +443,9 @@ export default function AdminDashboard() {
              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
                <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Tambah Skripsi</h2>
                <form onSubmit={handleSubmitSkripsi} className="space-y-4">
-                 <input type="text" required value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama..." className="w-full px-4 py-2 border rounded-md" />
+                 <input type="text" required value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama Penulis..." className="w-full px-4 py-2 border rounded-md" />
                  <input type="text" required value={jurusan} onChange={(e) => setJurusan(e.target.value)} placeholder="Jurusan..." className="w-full px-4 py-2 border rounded-md" />
-                 <textarea required rows="1" value={judulSkripsi} onChange={(e) => setJudulSkripsi(e.target.value)} placeholder="Judul..." className="w-full px-4 py-2 border rounded-md"></textarea>
+                 <textarea required rows="1" value={judulSkripsi} onChange={(e) => setJudulSkripsi(e.target.value)} placeholder="Judul Skripsi..." className="w-full px-4 py-2 border rounded-md"></textarea>
                  <input type="number" required value={tahun} onChange={(e) => setTahun(e.target.value)} placeholder="Tahun..." className="w-full px-4 py-2 border rounded-md" />
                  <input type="file" accept=".pdf" onChange={(e) => setFilePDF(e.target.files[0])} className="w-full text-sm cursor-pointer" />
                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Simpan Skripsi</button>
@@ -397,6 +460,54 @@ export default function AdminDashboard() {
                      <button onClick={() => handleDelete("skripsi", item.id)} className="text-red-500 text-xs font-semibold">Hapus</button>
                    </div>
                  ))}
+               </div>
+             </div>
+           </div>
+        )}
+
+        {/* TAB LOG PENGUNDUH SKRIPSI (BONUS TAB) */}
+        {activeTab === "log" && (
+           <div className="space-y-6">
+             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+               <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2">
+                 <h2 className="text-lg font-bold text-slate-900">Log Pengunjung (Pengunduh Skripsi)</h2>
+                 <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataLogUnduh.length} Data</span>
+               </div>
+               <p className="text-sm text-slate-600 mb-6">Data ini adalah identitas pengunjung web yang mengisi formulir keamanan sebelum mengunduh dan membaca skripsi alumni.</p>
+               
+               <div className="overflow-x-auto">
+                 <table className="w-full text-left border-collapse text-sm">
+                   <thead>
+                     <tr className="bg-slate-50 border-y border-slate-200 text-slate-600">
+                       <th className="p-3 font-semibold">Waktu Akses</th>
+                       <th className="p-3 font-semibold">Identitas Pengunduh</th>
+                       <th className="p-3 font-semibold">Skripsi yang Dibaca</th>
+                       <th className="p-3 font-semibold text-center">Aksi</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-slate-100">
+                     {dataLogUnduh.length === 0 ? (
+                       <tr><td colSpan="4" className="p-8 text-center text-slate-500">Belum ada riwayat pengunduh.</td></tr>
+                     ) : (
+                       dataLogUnduh.map(item => (
+                         <tr key={item.id} className="hover:bg-slate-50">
+                           <td className="p-3 text-xs text-slate-500">{item.waktuAkses ? new Date(item.waktuAkses.toDate()).toLocaleString('id-ID') : 'Baru saja'}</td>
+                           <td className="p-3">
+                             <div className="font-bold text-slate-900">{item.namaPengunduh}</div>
+                             <div className="text-xs text-slate-600">📱 {item.noHpPengunduh} | ✉️ {item.emailPengunduh}</div>
+                           </td>
+                           <td className="p-3">
+                             <div className="font-semibold text-slate-800 text-xs">Penulis: {item.penulisSkripsi}</div>
+                             <div className="text-xs text-slate-500 line-clamp-1">{item.judulSkripsi}</div>
+                           </td>
+                           <td className="p-3 text-center">
+                             <button onClick={() => handleDelete("log_unduh_skripsi", item.id)} className="text-red-500 hover:text-red-700 font-semibold text-xs">Hapus</button>
+                           </td>
+                         </tr>
+                       ))
+                     )}
+                   </tbody>
+                 </table>
                </div>
              </div>
            </div>
