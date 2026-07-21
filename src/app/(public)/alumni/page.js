@@ -4,9 +4,36 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp } from "firebase/firestore";
 
+// KOMPONEN: Slideshow Latar Belakang (Hero)
+const HeroSlider = ({ images, title }) => {
+  const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (imgArray.length <= 1) return;
+    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000);
+    return () => clearInterval(timer);
+  }, [imgArray.length]);
+
+  return (
+    <div className="relative py-28 md:py-36 w-full bg-[#171412] flex flex-col items-center justify-center overflow-hidden">
+      <div className="absolute inset-0 w-full h-full bg-[#171412]">
+        {imgArray.map((bg, i) => (
+          <div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-70' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/80 to-[#171412]/40 backdrop-blur-[1px]"></div>
+      </div>
+      <div className="relative z-10 max-w-4xl mx-auto px-4 text-center reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 font-playfair drop-shadow-lg">{title}</h1>
+        <div className="w-16 h-1.5 bg-amber-500 mx-auto rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
+      </div>
+    </div>
+  );
+};
+
 export default function JaringanAlumni() {
   const [daftarSkripsi, setDaftarSkripsi] = useState([]);
-  const [bgAlumni, setBgAlumni] = useState("");
+  const [bgAlumni, setBgAlumni] = useState([]); // Diubah menjadi Array
   const [jejakText, setJejakText] = useState("Memuat jejak alumni...");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,15 +84,13 @@ export default function JaringanAlumni() {
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora">
       
-      {/* POPUP MODAL */}
+      {/* POPUP MODAL PENGAMAN */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 transition-opacity">
           <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-stone-200 animate-[fadeIn_0.3s_ease-out]">
             <div className="flex justify-between items-center mb-6 border-b border-stone-100 pb-4">
               <h3 className="font-playfair font-bold text-2xl text-stone-900">Verifikasi Akses</h3>
-              <button onClick={() => setShowModal(false)} className="text-stone-400 hover:text-red-600 transition-colors">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
+              <button onClick={() => setShowModal(false)} className="text-stone-400 hover:text-red-600 transition-colors"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </div>
             <p className="text-sm text-stone-600 mb-6 leading-relaxed">Untuk menjaga keamanan karya intelektual, mohon isi identitas Anda sebelum membaca dokumen ini.</p>
             <form onSubmit={handleSubmitForm} className="space-y-4">
@@ -78,27 +103,16 @@ export default function JaringanAlumni() {
         </div>
       )}
 
-      {/* HEADER HERO */}
-      <div className="relative py-28 md:py-36 w-full bg-[#171412] flex flex-col items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000" style={{ backgroundImage: bgAlumni ? `url('${bgAlumni}')` : 'none', opacity: bgAlumni ? 0.8 : 0 }}>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/80 to-[#171412]/40 backdrop-blur-[1px]"></div>
-        </div>
-        <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 font-playfair drop-shadow-lg">Jaringan Alumni</h1>
-          <div className="w-16 h-1.5 bg-amber-500 mx-auto rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
-        </div>
-      </div>
+      {/* SUNTIKAN HERO SLIDER MULTI FOTO */}
+      <HeroSlider images={bgAlumni} title="Jaringan Alumni" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10">
-        
-        {/* TITIK JANGKAR 1: JEJAK ALUMNI (DENGAN KELAS REVEAL ANIMASI) */}
         <div id="jejak" className="bg-[#fcfbf9] rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] p-8 md:p-12 mb-16 relative overflow-hidden scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
           <div className="absolute top-0 left-0 w-1 h-full bg-red-800"></div>
           <h2 className="text-3xl font-bold text-stone-900 mb-5 font-playfair">Jejak Alumni</h2>
           <p className="text-stone-600 leading-relaxed text-lg text-justify whitespace-pre-line">{jejakText}</p>
         </div>
 
-        {/* TITIK JANGKAR 2: REPOSITORI SKRIPSI (DENGAN KELAS REVEAL ANIMASI) */}
         <div id="repositori" className="bg-[#fcfbf9] rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out delay-200">
           <div className="p-6 md:p-8 border-b border-[#e8e4db] flex flex-col md:flex-row justify-between items-center gap-4 bg-white">
             <div className="flex items-center gap-4">
@@ -130,19 +144,12 @@ export default function JaringanAlumni() {
                   filteredSkripsi.map((skripsi) => (
                     <tr key={skripsi.id} className="hover:bg-amber-50/30 transition-colors">
                       <td className="p-6 text-stone-900 font-bold text-lg font-playfair">{skripsi.tahun}</td>
-                      <td className="p-6">
-                        <div className="font-bold text-stone-900 mb-1">{skripsi.nama}</div>
-                        <div className="text-sm text-stone-500">{skripsi.jurusan}</div>
-                      </td>
+                      <td className="p-6"><div className="font-bold text-stone-900 mb-1">{skripsi.nama}</div><div className="text-sm text-stone-500">{skripsi.jurusan}</div></td>
                       <td className="p-6 text-stone-700 leading-relaxed text-sm font-lora">{skripsi.judul}</td>
                       <td className="p-6 text-center align-middle">
                         {skripsi.linkPDF && skripsi.linkPDF !== "#" ? (
-                          <button onClick={() => handleBukaPDF(skripsi)} className="inline-flex items-center justify-center gap-2 bg-[#171412] hover:bg-amber-600 text-white px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wide transition-all shadow-md w-max">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg> Buka PDF
-                          </button>
-                        ) : (
-                          <span className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold uppercase tracking-wide text-stone-400 bg-stone-100 rounded cursor-not-allowed">Tidak Ada File</span>
-                        )}
+                          <button onClick={() => handleBukaPDF(skripsi)} className="inline-flex items-center justify-center gap-2 bg-[#171412] hover:bg-amber-600 text-white px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wide transition-all shadow-md w-max"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg> Buka PDF</button>
+                        ) : <span className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold uppercase tracking-wide text-stone-400 bg-stone-100 rounded cursor-not-allowed">Tidak Ada File</span>}
                       </td>
                     </tr>
                   ))
