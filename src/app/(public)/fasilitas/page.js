@@ -68,10 +68,8 @@ export default function FasilitasAsrama() {
 
         const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "asc")));
         setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
         const sewaSnap = await getDocs(query(collection(db, "daftar_penyewaan"), orderBy("createdAt", "desc")));
         setDataPenyewaan(sewaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
       } catch (error) { console.error(error); } finally { setLoading(false); }
     };
     fetchData();
@@ -82,11 +80,10 @@ export default function FasilitasAsrama() {
 
   const openModal = async (item, type) => { 
     setSelectedItem(item); setModalImageIdx(0); setModalType(type); document.body.style.overflow = "hidden"; 
-    setKomentarList([]); setFormKomen({ nama: "", isi: "" }); // FIX: Bersihkan ketikan
-
+    setKomentarList([]); setFormKomen({ nama: "", isi: "" }); 
     if (type === "sewa") {
       try {
-        const targetId = String(item.id); // FIX: Pastikan ID string
+        const targetId = String(item.id);
         const q = query(collection(db, "komentar_publikasi"), where("postId", "==", targetId));
         const snap = await getDocs(q);
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -96,12 +93,7 @@ export default function FasilitasAsrama() {
     }
   };
 
-  const closeModal = () => { 
-    setSelectedItem(null); setKomentarList([]); 
-    setFormKomen({ nama: "", isi: "" }); // FIX: Bersihkan ketikan
-    document.body.style.overflow = "auto"; 
-  };
-  
+  const closeModal = () => { setSelectedItem(null); setKomentarList([]); setFormKomen({ nama: "", isi: "" }); document.body.style.overflow = "auto"; };
   const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
   const nextModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev + 1) % modalImages.length); };
   const prevModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev - 1 + modalImages.length) % modalImages.length); };
@@ -111,17 +103,12 @@ export default function FasilitasAsrama() {
     if (!formKomen.isi.trim()) return;
     setIsSubmittingKomen(true);
     try {
-      const targetId = String(selectedItem.id); // FIX: Pastikan ID string
+      const targetId = String(selectedItem.id); 
       const newKomen = { postId: targetId, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
       setKomentarList([...komentarList, {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }]);
       setFormKomen({nama: "", isi: ""});
-    } catch (err) { 
-      console.error(err);
-      alert("Gagal mengirim! (Pastikan Aturan Firebase Anda belum kedaluwarsa). Error: " + err.message); 
-    } finally {
-      setIsSubmittingKomen(false);
-    }
+    } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
 
   const handleSubmitDaftar = async (e) => {
@@ -158,9 +145,7 @@ export default function FasilitasAsrama() {
             <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col bg-[#fcfbf9] overflow-y-auto max-h-[50vh] md:max-h-[80vh]">
               <div className="flex flex-col h-full">
                 <h2 className="text-2xl md:text-3xl font-bold font-playfair text-stone-900 mb-2 leading-snug">Pendaftaran Warga</h2>
-                <div className="mb-6 pb-4 border-b border-[#e8e4db]">
-                  <p className="text-stone-600 text-sm mb-2">Pastikan Anda membaca syarat dan ketentuan pendaftaran warga baru yang tertera pada brosur sebelum mengisi formulir di bawah ini.</p>
-                </div>
+                <div className="mb-6 pb-4 border-b border-[#e8e4db]"><p className="text-stone-600 text-sm mb-2">Pastikan Anda membaca syarat dan ketentuan pendaftaran warga baru yang tertera pada brosur sebelum mengisi formulir di bawah ini.</p></div>
                 <form onSubmit={handleSubmitDaftar} className="space-y-4 font-sans">
                   <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nama Lengkap</label><input type="text" required value={formDaftar.nama} onChange={(e) => setFormDaftar({...formDaftar, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Hanya huruf..." /></div>
                   <div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Daerah Asal</label><input type="text" required value={formDaftar.asal} onChange={(e) => setFormDaftar({...formDaftar, asal: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Cth: Padang..." /></div><div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Suku</label><input type="text" required value={formDaftar.suku} onChange={(e) => setFormDaftar({...formDaftar, suku: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Cth: Minang..." /></div></div>
@@ -202,17 +187,13 @@ export default function FasilitasAsrama() {
                   <a href={formatWhatsAppLink(selectedItem.noHpSewa, selectedItem.nama)} target="_blank" rel="noopener noreferrer" className="w-full mt-6 bg-[#171412] hover:bg-amber-500 text-white text-center py-3.5 rounded-sm text-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 font-sans shadow-md">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> Reservasi via WhatsApp
                   </a>
-                  
                   <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
                     <h3 className="font-playfair font-bold text-xl text-stone-900 mb-4">Tanya / Komentar ({komentarList.length})</h3>
                     <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
                       {komentarList.length === 0 ? <p className="text-sm text-stone-500 italic">Belum ada diskusi. Ada pertanyaan?</p> : (
                         komentarList.map(k => (
                           <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="font-bold text-sm text-stone-900">{k.nama}</span>
-                              <span className="text-[10px] text-stone-400">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span>
-                            </div>
+                            <div className="flex justify-between items-center mb-1"><span className="font-bold text-sm text-stone-900">{k.nama}</span><span className="text-[10px] text-stone-400">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span></div>
                             <p className="text-sm text-stone-600">{k.isi}</p>
                           </div>
                         ))
@@ -248,7 +229,7 @@ export default function FasilitasAsrama() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 mt-28 mb-20 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+      <div id="pendaftaran" className="max-w-3xl mx-auto px-4 mt-28 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-12"><h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Informasi Pendaftaran</h4><h2 className="text-4xl font-bold text-stone-900 font-playfair mb-4">Penerimaan Warga Baru</h2><p className="text-stone-600 max-w-2xl mx-auto">Kami membuka kesempatan bagi mahasiswa perantau untuk bergabung dan menjadi bagian dari keluarga besar Asrama Mahasiswa Merapi Singgalang.</p></div>
         <div className="bg-white border border-[#e8e4db] p-8 md:p-12 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] text-center flex flex-col items-center">
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-800 border border-red-100 mb-6"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5c-1.3 0-2 .7-2 2v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></div>
@@ -258,7 +239,7 @@ export default function FasilitasAsrama() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 mt-20 w-full text-left reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+      <div id="fasilitas" className="max-w-7xl mx-auto px-4 mt-20 w-full text-left scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="flex items-center gap-4 mb-10 border-t border-[#e8e4db] pt-16">
           <div className="w-14 h-14 bg-[#171412] rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div>
           <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Fasilitas Asrama</h2><p className="text-stone-500 text-sm mt-1">Area penunjang keseharian warga asrama.</p></div>
@@ -267,11 +248,11 @@ export default function FasilitasAsrama() {
         {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat data...</p> : dataFasilitas.length === 0 ? <div className="bg-white p-12 rounded-sm border border-[#e8e4db] text-stone-500 text-center shadow-sm w-full">Belum ada fasilitas yang ditambahkan.</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
             {dataFasilitas.map(item => (
-              <div key={item.id} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col transition-all duration-300 w-full text-left">
-                <AutoSliderCard images={item.linkGambar} className="w-full h-64 bg-stone-100" onClick={() => openModal(item, "fasilitas")} />
+              <div key={item.id} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col transition-all duration-300 w-full text-left cursor-pointer group hover:-translate-y-1" onClick={() => openModal(item, "fasilitas")}>
+                <AutoSliderCard images={item.linkGambar} className="w-full h-64 bg-stone-100 shrink-0" />
                 <div className="p-8 flex flex-col flex-grow relative w-full text-left items-start justify-start">
-                  <div className="w-10 h-1 bg-red-800 rounded-full mb-4"></div>
-                  <h3 className="font-bold text-stone-900 text-2xl mb-3 font-playfair m-0">{item.nama}</h3>
+                  <div className="w-10 h-1 bg-red-800 rounded-full mb-4 group-hover:w-16 transition-all duration-300"></div>
+                  <h3 className="font-bold text-stone-900 text-2xl mb-3 font-playfair m-0 group-hover:text-red-800 transition-colors">{item.nama}</h3>
                   <p className="text-stone-600 text-base leading-relaxed flex-grow m-0 text-left line-clamp-3">{item.deskripsi}</p>
                 </div>
               </div>
@@ -280,7 +261,7 @@ export default function FasilitasAsrama() {
         )}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 mt-28 mb-20 w-full text-left reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+      <div id="penyewaan" className="max-w-7xl mx-auto px-4 mt-28 mb-20 w-full text-left scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="flex items-center gap-4 mb-10 border-t border-amber-200 pt-16">
           <div className="w-14 h-14 bg-amber-50 rounded-sm border border-amber-200 flex items-center justify-center text-amber-600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg></div>
           <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Layanan & Penyewaan</h2><p className="text-stone-500 text-sm mt-1">Talenta seni budaya dan sarana yang disewakan untuk publik.</p></div>
@@ -291,11 +272,10 @@ export default function FasilitasAsrama() {
             {dataPenyewaan.map(item => (
               <div key={item.id} onClick={() => openModal(item, "sewa")} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(245,158,11,0.1)] border border-amber-200 overflow-hidden group flex flex-col transition-all duration-300 w-full text-left relative cursor-pointer hover:-translate-y-1">
                 <div className="absolute top-4 left-4 z-10 bg-amber-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-sm uppercase tracking-wider shadow-md font-sans">{item.kategori}</div>
-                <AutoSliderCard images={item.linkGambar} className="w-full h-64 bg-stone-100" />
+                <AutoSliderCard images={item.linkGambar} className="w-full h-64 bg-stone-100 shrink-0" />
                 <div className="p-8 flex flex-col flex-grow relative w-full text-left items-start justify-start">
                   <h3 className="font-bold text-stone-900 text-2xl mb-3 font-playfair m-0 group-hover:text-amber-600 transition-colors">{item.nama}</h3>
-                  <p className="text-stone-600 text-sm leading-relaxed flex-grow m-0 text-left mb-6 line-clamp-3">{item.deskripsi}</p>
-                  
+                  <p className="text-stone-600 text-base leading-relaxed flex-grow m-0 text-left mb-6 line-clamp-3">{item.deskripsi}</p>
                   <div className="w-full pt-4 border-t border-amber-100 flex justify-between items-center font-sans mt-auto">
                     <span className="font-bold text-base text-amber-600">{item.harga}</span>
                     <span className="text-xs font-bold text-stone-400 group-hover:text-stone-900 transition-colors uppercase tracking-widest flex items-center gap-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Detail</span>
