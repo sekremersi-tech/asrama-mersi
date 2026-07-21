@@ -19,9 +19,19 @@ export default function PublicLayout({ children }) {
     fetchKontak();
   }, []);
 
+  // DATA MENU NAVBAR DIPERBARUI DENGAN SUB-BAB
   const navLinks = [
     { name: "Beranda", path: "/beranda" },
-    { name: "Profil", path: "/profil" },
+    { 
+      name: "Profil", 
+      path: "/profil",
+      subLinks: [
+        { name: "Catatan Sejarah", path: "/profil#sejarah" },
+        { name: "Visi & Misi", path: "/profil#visimisi" },
+        { name: "Garis Waktu", path: "/profil#timeline" },
+        { name: "Titik Temu", path: "/profil#lokasi" },
+      ]
+    },
     { name: "Fasilitas", path: "/fasilitas" },
     { name: "Media & Publikasi", path: "/kehidupan" },
     { name: "Jaringan Alumni", path: "/alumni" },
@@ -29,11 +39,11 @@ export default function PublicLayout({ children }) {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f9f8f6] font-lora">
-      {/* SUNTIKAN FONT PREMIUM GOOGLE */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&display=swap');
         .font-playfair { font-family: 'Playfair Display', serif; }
         .font-lora { font-family: 'Lora', serif; }
+        html { scroll-behavior: smooth; } /* Efek scroll halus saat klik menu dropdown */
       `}</style>
 
       <nav className="bg-[#fcfbf9]/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-[#e8e4db]">
@@ -45,24 +55,62 @@ export default function PublicLayout({ children }) {
               </div>
               <span className="font-playfair font-bold text-2xl text-stone-900 tracking-wide">Merapi Singgalang</span>
             </Link>
-            <div className="hidden lg:flex space-x-6">
+            
+            {/* MENU NAVBAR DESKTOP */}
+            <div className="hidden lg:flex space-x-8 h-full">
               {navLinks.map((link) => (
-                <Link key={link.name} href={link.path} className={`text-sm font-semibold transition-all py-2 border-b-2 ${pathname === link.path ? "border-red-800 text-red-800" : "border-transparent text-stone-500 hover:text-amber-600"}`}>
-                  {link.name}
-                </Link>
+                <div key={link.name} className="relative group h-full flex items-center">
+                  <Link href={link.path} className={`text-sm font-semibold transition-all py-2 border-b-2 ${pathname === link.path ? "border-red-800 text-red-800" : "border-transparent text-stone-600 hover:text-amber-600"}`}>
+                    {link.name}
+                  </Link>
+
+                  {/* POP-UP DROPDOWN KETIKA DI-HOVER */}
+                  {link.subLinks && (
+                    <div className="absolute top-[65px] left-1/2 -translate-x-1/2 w-48 pt-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-50">
+                      <div className="bg-[#fcfbf9] border border-[#e8e4db] rounded-sm shadow-[4px_4px_15px_rgba(0,0,0,0.05)] relative">
+                        {/* Panah Atas */}
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#fcfbf9] border-l border-t border-[#e8e4db] rotate-45"></div>
+                        <ul className="relative z-10 flex flex-col py-2">
+                          {link.subLinks.map((sub, idx) => (
+                            <li key={idx}>
+                              <Link href={sub.path} className="block px-5 py-2.5 text-sm font-lora font-medium text-stone-600 hover:text-red-800 hover:bg-[#f4f2ec] border-l-2 border-transparent hover:border-red-800 transition-colors text-center">
+                                {sub.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
+
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="lg:hidden p-2 text-stone-500 hover:text-amber-600">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
             </button>
           </div>
         </div>
+
+        {/* MENU NAVBAR MOBILE (HP) */}
         {isMenuOpen && (
-          <div className="lg:hidden bg-white border-t border-stone-100 px-4 py-4 space-y-2 shadow-lg">
+          <div className="lg:hidden bg-white border-t border-stone-100 px-4 py-4 space-y-2 shadow-lg max-h-[80vh] overflow-y-auto">
             {navLinks.map((link) => (
-              <Link key={link.name} href={link.path} onClick={() => setIsMenuOpen(false)} className={`block px-4 py-3 rounded-lg font-medium text-sm transition-colors ${pathname === link.path ? "bg-red-50 text-red-800 border-l-4 border-red-800" : "text-stone-600 hover:bg-stone-50"}`}>
-                {link.name}
-              </Link>
+              <div key={link.name}>
+                <Link href={link.path} onClick={() => setIsMenuOpen(false)} className={`block px-4 py-3 rounded-lg font-medium text-sm transition-colors ${pathname === link.path ? "bg-red-50 text-red-800 border-l-4 border-red-800" : "text-stone-600 hover:bg-stone-50"}`}>
+                  {link.name}
+                </Link>
+                {/* Tampilkan sub-menu di versi HP */}
+                {link.subLinks && (
+                  <div className="pl-6 flex flex-col space-y-1 mt-1 border-l-2 border-stone-100 ml-6">
+                    {link.subLinks.map((sub, idx) => (
+                      <Link key={idx} href={sub.path} onClick={() => setIsMenuOpen(false)} className="text-sm font-lora text-stone-500 hover:text-red-800 py-2">
+                        • {sub.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
