@@ -29,10 +29,7 @@ export default function PublicLayout({ children }) {
     const mutationObserver = new MutationObserver(observeElements);
     mutationObserver.observe(document.body, { childList: true, subtree: true });
 
-    return () => {
-      observer.disconnect();
-      mutationObserver.disconnect();
-    };
+    return () => { observer.disconnect(); mutationObserver.disconnect(); };
   }, [pathname]);
 
   useEffect(() => {
@@ -46,9 +43,7 @@ export default function PublicLayout({ children }) {
   const formatWhatsAppLink = (nomor) => {
     if (!nomor || nomor === "-") return "#";
     let bersihkanNomor = nomor.replace(/\D/g, '');
-    if (bersihkanNomor.startsWith('0')) {
-      bersihkanNomor = '62' + bersihkanNomor.substring(1);
-    }
+    if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
     return `https://wa.me/${bersihkanNomor}`;
   };
 
@@ -61,11 +56,19 @@ export default function PublicLayout({ children }) {
         { name: "Catatan Sejarah", path: "/profil#sejarah" },
         { name: "Visi & Misi", path: "/profil#visimisi" },
         { name: "Garis Waktu", path: "/profil#timeline" },
+        { name: "Struktur Kepengurusan", path: "/profil#kepengurusan" }, // BARU
         { name: "Titik Temu", path: "/profil#lokasi" }
       ]
     },
-    // DIPERBARUI: Nama menu diubah
-    { name: "Fasilitas & Penyewaan", path: "/fasilitas" },
+    { 
+      name: "Fasilitas & Penyewaan", 
+      path: "/fasilitas",
+      subLinks: [
+        { name: "Informasi Pendaftaran", path: "/fasilitas#pendaftaran" }, // BARU
+        { name: "Fasilitas Asrama", path: "/fasilitas#fasilitas" }, // BARU
+        { name: "Layanan Penyewaan", path: "/fasilitas#penyewaan" } // BARU
+      ]
+    },
     { 
       name: "Media & Publikasi", 
       path: "/kehidupan",
