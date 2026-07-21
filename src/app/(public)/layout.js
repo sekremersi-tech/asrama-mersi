@@ -43,12 +43,9 @@ export default function PublicLayout({ children }) {
     fetchKontak();
   }, []);
 
-  // FUNGSI BARU: Mengubah nomor HP menjadi format link WhatsApp internasional yang valid
   const formatWhatsAppLink = (nomor) => {
     if (!nomor || nomor === "-") return "#";
-    // Hapus semua karakter yang bukan angka (seperti spasi, strip, tanda plus)
     let bersihkanNomor = nomor.replace(/\D/g, '');
-    // Jika dimulai dengan '0', ubah menjadi '62' (kode negara Indonesia)
     if (bersihkanNomor.startsWith('0')) {
       bersihkanNomor = '62' + bersihkanNomor.substring(1);
     }
@@ -67,7 +64,8 @@ export default function PublicLayout({ children }) {
         { name: "Titik Temu", path: "/profil#lokasi" }
       ]
     },
-    { name: "Fasilitas", path: "/fasilitas" },
+    // DIPERBARUI: Nama menu diubah
+    { name: "Fasilitas & Penyewaan", path: "/fasilitas" },
     { 
       name: "Media & Publikasi", 
       path: "/kehidupan",
@@ -187,33 +185,27 @@ export default function PublicLayout({ children }) {
             <ul className="space-y-3 text-sm text-stone-400 font-lora">
               <li><Link href="/beranda" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Beranda</Link></li>
               <li><Link href="/profil" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Profil Asrama</Link></li>
-              <li><Link href="/fasilitas" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Fasilitas</Link></li>
+              <li><Link href="/fasilitas" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Fasilitas & Penyewaan</Link></li>
               <li><Link href="/kehidupan" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Media & Publikasi</Link></li>
               <li><Link href="/alumni" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Jaringan Alumni</Link></li>
             </ul>
           </div>
 
-          {/* HUBUNGI KAMI (DIPERBARUI MENJADI LINK INTERAKTIF) */}
           <div>
             <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-sm font-sans">Hubungi Kami</h3>
             <ul className="space-y-4 text-sm text-stone-400 font-lora">
-              
-              {/* Link Google Maps */}
               <li>
                 <a href="https://www.google.com/maps/search/?api=1&query=Asrama+Mahasiswa+Merapi+Singgalang+Yogyakarta" target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 group hover:text-white transition-colors">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 mt-0.5 group-hover:text-amber-500 transition-colors"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                   <span className="leading-relaxed">Jl. Marga Agung, Karangwaru, Kec. Tegalrejo, Kota Yogyakarta 55241</span>
                 </a>
               </li>
-
-              {/* Link WhatsApp */}
               <li>
                 <a href={formatWhatsAppLink(kontak.noTelpon)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 group hover:text-white transition-colors">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 group-hover:text-amber-500 transition-colors"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                   <span>Ketua: {kontak.namaKetua} ({kontak.noTelpon})</span>
                 </a>
               </li>
-
             </ul>
           </div>
 
