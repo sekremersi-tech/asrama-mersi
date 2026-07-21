@@ -38,6 +38,7 @@ export default function FasilitasAsrama() {
   const [bgFasilitas, setBgFasilitas] = useState([]);
   const [dataFasilitas, setDataFasilitas] = useState([]);
   const [dataPenyewaan, setDataPenyewaan] = useState([]); 
+  const [kontak, setKontak] = useState({ noTelpon: "-" });
   const [loading, setLoading] = useState(true);
   const [statusAsrama, setStatusAsrama] = useState({ kamar: "0", penghuni: "0", ketersediaan: "Penuh" });
   const [brosurUrl, setBrosurUrl] = useState("");
@@ -58,14 +59,19 @@ export default function FasilitasAsrama() {
       try {
         const snapFoto = await getDoc(doc(db, "pengaturan", "tampilan"));
         if (snapFoto.exists() && snapFoto.data().fasilitas) setBgFasilitas(snapFoto.data().fasilitas);
+        const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
+        if (docKontak.exists()) setKontak(docKontak.data());
         const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
         if (docStatus.exists()) setStatusAsrama(docStatus.data());
         const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
         if (docBrosur.exists()) setBrosurUrl(docBrosur.data().link);
+
         const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "asc")));
         setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
         const sewaSnap = await getDocs(query(collection(db, "daftar_penyewaan"), orderBy("createdAt", "desc")));
         setDataPenyewaan(sewaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
       } catch (error) { console.error(error); } finally { setLoading(false); }
     };
     fetchData();
@@ -75,10 +81,13 @@ export default function FasilitasAsrama() {
   const closeDaftarModal = () => { setShowDaftarModal(false); document.body.style.overflow = "auto"; };
 
   const openModal = async (item, type) => { 
-    setSelectedItem(item); setModalImageIdx(0); setModalType(type); document.body.style.overflow = "hidden"; setKomentarList([]);
+    setSelectedItem(item); setModalImageIdx(0); setModalType(type); document.body.style.overflow = "hidden"; 
+    setKomentarList([]); setFormKomen({ nama: "", isi: "" }); // FIX: Bersihkan ketikan
+
     if (type === "sewa") {
       try {
-        const q = query(collection(db, "komentar_publikasi"), where("postId", "==", item.id));
+        const targetId = String(item.id); // FIX: Pastikan ID string
+        const q = query(collection(db, "komentar_publikasi"), where("postId", "==", targetId));
         const snap = await getDocs(q);
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
         comments.sort((a, b) => (a.waktu?.toMillis() || 0) - (b.waktu?.toMillis() || 0));
@@ -87,7 +96,12 @@ export default function FasilitasAsrama() {
     }
   };
 
-  const closeModal = () => { setSelectedItem(null); setKomentarList([]); document.body.style.overflow = "auto"; };
+  const closeModal = () => { 
+    setSelectedItem(null); setKomentarList([]); 
+    setFormKomen({ nama: "", isi: "" }); // FIX: Bersihkan ketikan
+    document.body.style.overflow = "auto"; 
+  };
+  
   const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
   const nextModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev + 1) % modalImages.length); };
   const prevModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev - 1 + modalImages.length) % modalImages.length); };
@@ -97,12 +111,17 @@ export default function FasilitasAsrama() {
     if (!formKomen.isi.trim()) return;
     setIsSubmittingKomen(true);
     try {
-      const newKomen = { postId: selectedItem.id, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), waktu: serverTimestamp() };
+      const targetId = String(selectedItem.id); // FIX: Pastikan ID string
+      const newKomen = { postId: targetId, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
       setKomentarList([...komentarList, {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }]);
       setFormKomen({nama: "", isi: ""});
-    } catch (err) { alert("Gagal mengirim komentar"); }
-    setIsSubmittingKomen(false);
+    } catch (err) { 
+      console.error(err);
+      alert("Gagal mengirim! (Pastikan Aturan Firebase Anda belum kedaluwarsa). Error: " + err.message); 
+    } finally {
+      setIsSubmittingKomen(false);
+    }
   };
 
   const handleSubmitDaftar = async (e) => {
@@ -112,13 +131,12 @@ export default function FasilitasAsrama() {
     setIsSubmittingDaftar(true);
     try {
       await addDoc(collection(db, "pendaftaran_asrama"), { ...formDaftar, waktuDaftar: serverTimestamp() });
-      alert("Pendaftaran Berhasil! Data Anda telah masuk.");
+      alert("Pendaftaran Berhasil! Data Anda telah masuk. Silakan tunggu informasi dari pengurus asrama melalui kontak yang diberikan.");
       closeDaftarModal();
       setFormDaftar({ nama: "", asal: "", kuliah: "", jurusan: "", email: "", noHp: "", suku: "" });
     } catch (error) { alert("Pendaftaran Gagal."); } finally { setIsSubmittingDaftar(false); }
   };
 
-  // MENGGUNAKAN NOMOR SPESIFIK ITEM SEWA
   const formatWhatsAppLink = (nomor, namaSewa) => {
     if (!nomor || nomor === "-") return "#";
     let bersihkanNomor = nomor.replace(/\D/g, '');
@@ -181,12 +199,10 @@ export default function FasilitasAsrama() {
                   <p className="text-amber-600 font-bold font-sans tracking-wide mb-6 text-xl">{selectedItem.harga}</p>
                   <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
                   <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
-                  
-                  {/* MENGGUNAKAN NOMOR SPESIFIK ITEM SEWA */}
                   <a href={formatWhatsAppLink(selectedItem.noHpSewa, selectedItem.nama)} target="_blank" rel="noopener noreferrer" className="w-full mt-6 bg-[#171412] hover:bg-amber-500 text-white text-center py-3.5 rounded-sm text-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 font-sans shadow-md">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> Reservasi via WhatsApp
                   </a>
-
+                  
                   <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
                     <h3 className="font-playfair font-bold text-xl text-stone-900 mb-4">Tanya / Komentar ({komentarList.length})</h3>
                     <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
@@ -273,12 +289,17 @@ export default function FasilitasAsrama() {
         {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat data...</p> : dataPenyewaan.length === 0 ? <div className="bg-white p-12 rounded-sm border border-amber-200 text-stone-500 text-center shadow-sm w-full">Belum ada layanan yang ditambahkan.</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
             {dataPenyewaan.map(item => (
-              <div key={item.id} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(245,158,11,0.1)] border border-amber-200 overflow-hidden group flex flex-col transition-all duration-300 w-full text-left relative">
+              <div key={item.id} onClick={() => openModal(item, "sewa")} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(245,158,11,0.1)] border border-amber-200 overflow-hidden group flex flex-col transition-all duration-300 w-full text-left relative cursor-pointer hover:-translate-y-1">
                 <div className="absolute top-4 left-4 z-10 bg-amber-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-sm uppercase tracking-wider shadow-md font-sans">{item.kategori}</div>
-                <AutoSliderCard images={item.linkGambar} className="w-full h-64 bg-stone-100" onClick={() => openModal(item, "sewa")} />
+                <AutoSliderCard images={item.linkGambar} className="w-full h-64 bg-stone-100" />
                 <div className="p-8 flex flex-col flex-grow relative w-full text-left items-start justify-start">
-                  <h3 className="font-bold text-stone-900 text-2xl mb-3 font-playfair m-0">{item.nama}</h3>
-                  <p className="text-stone-600 text-base leading-relaxed flex-grow m-0 text-left mb-6 line-clamp-3">{item.deskripsi}</p>
+                  <h3 className="font-bold text-stone-900 text-2xl mb-3 font-playfair m-0 group-hover:text-amber-600 transition-colors">{item.nama}</h3>
+                  <p className="text-stone-600 text-sm leading-relaxed flex-grow m-0 text-left mb-6 line-clamp-3">{item.deskripsi}</p>
+                  
+                  <div className="w-full pt-4 border-t border-amber-100 flex justify-between items-center font-sans mt-auto">
+                    <span className="font-bold text-base text-amber-600">{item.harga}</span>
+                    <span className="text-xs font-bold text-stone-400 group-hover:text-stone-900 transition-colors uppercase tracking-widest flex items-center gap-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Detail</span>
+                  </div>
                 </div>
               </div>
             ))}
