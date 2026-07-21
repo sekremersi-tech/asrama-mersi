@@ -11,7 +11,6 @@ export default function PublicLayout({ children }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [kontak, setKontak] = useState({ namaKetua: "Admin", noTelpon: "-" });
 
-  // 1. MESIN ANIMASI SCROLL (Mendeteksi elemen baru yang muncul di layar)
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -27,8 +26,6 @@ export default function PublicLayout({ children }) {
     };
 
     observeElements();
-    
-    // MutationObserver memastikan data dari Firebase yang telat loading tetap teranimasi
     const mutationObserver = new MutationObserver(observeElements);
     mutationObserver.observe(document.body, { childList: true, subtree: true });
 
@@ -46,7 +43,6 @@ export default function PublicLayout({ children }) {
     fetchKontak();
   }, []);
 
-  // 2. DATA MENU DENGAN SUB-BAB POPUP DROPDOWN
   const navLinks = [
     { name: "Beranda", path: "/beranda" },
     { 
@@ -79,15 +75,19 @@ export default function PublicLayout({ children }) {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f9f8f6] font-lora">
+    <div className="flex flex-col min-h-screen bg-[#f9f8f6] font-lora relative">
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&display=swap');
         .font-playfair { font-family: 'Playfair Display', serif; }
         .font-lora { font-family: 'Lora', serif; }
-        html { scroll-behavior: smooth; } /* Penting untuk gulir halus ke sub-bab */
+        html { scroll-behavior: smooth; }
+        /* KUNCI GEMBOK UNTUK MENGHILANGKAN SCROLL KIRI-KANAN */
+        html, body {
+          max-width: 100vw;
+          overflow-x: hidden;
+        }
       `}</style>
 
-      {/* NAVBAR */}
       <nav className="bg-[#fcfbf9]/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-[#e8e4db]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
@@ -100,17 +100,18 @@ export default function PublicLayout({ children }) {
             </Link>
 
             <div className="hidden lg:flex space-x-6 h-full">
-              {navLinks.map((link) => (
+              {navLinks.map((link, index) => (
                 <div key={link.name} className="relative group h-full flex items-center cursor-pointer">
                   <Link href={link.path} className={`text-sm font-semibold transition-all py-2 border-b-2 ${pathname === link.path ? "border-red-800 text-red-800" : "border-transparent text-stone-600 hover:text-amber-600"}`}>
                     {link.name}
                   </Link>
 
-                  {/* POP-UP DROPDOWN (Disempurnakan agar kursor tidak lepas) */}
+                  {/* POP-UP DROPDOWN (Posisinya disesuaikan agar tidak menabrak batas kanan layar) */}
                   {link.subLinks && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-60 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                    <div className={`absolute top-full pt-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 ${index >= 3 ? 'right-0' : 'left-1/2 -translate-x-1/2'}`}>
                       <div className="bg-[#fcfbf9] border border-[#e8e4db] rounded-sm shadow-2xl relative">
-                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#fcfbf9] border-l border-t border-[#e8e4db] rotate-45"></div>
+                        {/* Posisi panah atas juga ikut digeser */}
+                        <div className={`absolute -top-2 w-4 h-4 bg-[#fcfbf9] border-l border-t border-[#e8e4db] rotate-45 ${index >= 3 ? 'right-8' : 'left-1/2 -translate-x-1/2'}`}></div>
                         <ul className="relative z-10 flex flex-col py-2">
                           {link.subLinks.map((sub, idx) => (
                             <li key={idx}>
@@ -133,7 +134,6 @@ export default function PublicLayout({ children }) {
           </div>
         </div>
 
-        {/* MENU MOBILE (HP) */}
         {isMenuOpen && (
           <div className="lg:hidden bg-white border-t border-stone-100 px-4 py-4 space-y-2 shadow-lg max-h-[80vh] overflow-y-auto">
             {navLinks.map((link) => (
@@ -156,9 +156,9 @@ export default function PublicLayout({ children }) {
         )}
       </nav>
 
-      <main className="flex-grow">{children}</main>
+      {/* Tambahan overflow-x-hidden pada kontainer utama */}
+      <main className="flex-grow w-full overflow-x-hidden">{children}</main>
 
-      {/* FOOTER */}
       <footer className="bg-[#171412] text-stone-300 py-14 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-800 via-amber-500 to-red-800"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-10 relative z-10">
