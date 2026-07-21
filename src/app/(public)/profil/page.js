@@ -4,8 +4,62 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 
+// KOMPONEN: Slideshow Latar Belakang (Hero)
+const HeroSlider = ({ images, title }) => {
+  const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (imgArray.length <= 1) return;
+    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000);
+    return () => clearInterval(timer);
+  }, [imgArray.length]);
+
+  return (
+    <div className="relative py-28 md:py-36 w-full bg-[#171412] flex flex-col items-center justify-center overflow-hidden">
+      <div className="absolute inset-0 w-full h-full bg-[#171412]">
+        {imgArray.map((bg, i) => (
+          <div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-70' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/70 to-[#171412]/30 backdrop-blur-[1px]"></div>
+      </div>
+      <div className="relative z-10 text-center px-4 w-full flex flex-col items-center reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <h1 className="text-5xl md:text-7xl font-bold text-white font-playfair tracking-wide mb-6 drop-shadow-lg">{title}</h1>
+        <div className="w-16 h-1.5 bg-amber-500 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
+      </div>
+    </div>
+  );
+};
+
+// KOMPONEN: Animasi Foto di Kotak Kecil
+const SliderImage = ({ images, className }) => {
+  const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (imgArray.length <= 1) return;
+    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 3500);
+    return () => clearInterval(timer);
+  }, [imgArray.length]);
+
+  if (imgArray.length === 0) return <div className={`bg-stone-200 ${className}`}></div>;
+
+  return (
+    <div className={`relative overflow-hidden group ${className}`}>
+      {imgArray.map((src, i) => (
+        <img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 group-hover:scale-105 ease-in-out ${i === idx ? "opacity-100" : "opacity-0"}`} alt="Visual" />
+      ))}
+      {imgArray.length > 1 && (
+        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-lg border border-white/10 z-10">
+          +{imgArray.length} Foto
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Profil() {
-  const [fotoProfil, setFotoProfil] = useState("");
+  const [fotoProfil, setFotoProfil] = useState([]);
   const [profilText, setProfilText] = useState({ sejarah: "Memuat...", visi: "Memuat...", misi: "Memuat..." });
   const [dataFotoKonteks, setDataFotoKonteks] = useState([]); 
   const [dataTimeline, setDataTimeline] = useState([]);
@@ -28,7 +82,6 @@ export default function Profil() {
 
         const fotoSnap = await getDocs(query(collection(db, "profil_galeri"), orderBy("createdAt", "desc")));
         setDataFotoKonteks(fotoSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
         const timeSnap = await getDocs(query(collection(db, "timeline_sejarah"), orderBy("tahun", "asc")));
         setDataTimeline(timeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (error) { console.error(error); }
@@ -41,19 +94,12 @@ export default function Profil() {
 
   return (
     <div className="bg-[#f9f8f6] pb-24 w-full text-left font-lora">
-      <div className="relative py-28 md:py-36 w-full bg-[#171412] flex flex-col items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000" style={{ backgroundImage: fotoProfil ? `url('${fotoProfil}')` : 'none', opacity: fotoProfil ? 0.8 : 0 }}>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/80 to-[#171412]/40 backdrop-blur-[1px]"></div>
-        </div>
-        <div className="relative z-10 text-center px-4 w-full flex flex-col items-center reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-          <h1 className="text-5xl md:text-7xl font-bold text-white font-playfair tracking-wide mb-6 drop-shadow-lg">Profil Asrama</h1>
-          <div className="w-16 h-1.5 bg-amber-500 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
-        </div>
-      </div>
+      
+      {/* SUNTIKAN HERO SLIDER MULTI FOTO */}
+      <HeroSlider images={fotoProfil} title="Profil Asrama" />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10 w-full flex flex-col gap-14">
         
-        {/* TITIK JANGKAR 1: SEJARAH (DENGAN ANIMASI REVEAL) */}
         <div id="sejarah" className="relative w-full h-[580px] md:h-[450px] mb-8 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
           {sejarahPages.map((teks, index) => {
             let zIndex = sejarahPages.length - index;
@@ -79,7 +125,6 @@ export default function Profil() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-2">
-          {/* TITIK JANGKAR 2: VISI MISI (ANIMASI REVEAL) */}
           <div id="visimisi" className="flex flex-col gap-8 w-full scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
             <div className="bg-[#fcfbf9] rounded-sm p-8 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full text-left hover:-translate-y-1 transition-transform">
               <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-5 flex items-center gap-3"><span className="w-2 h-2 bg-amber-500 rotate-45"></span> Visi</h3>
@@ -90,8 +135,6 @@ export default function Profil() {
               <p className="text-stone-700 leading-relaxed text-left whitespace-pre-line border-l-4 border-red-800 pl-4 py-2">{profilText.misi}</p>
             </div>
           </div>
-
-          {/* TITIK JANGKAR 3: GARIS WAKTU / TIMELINE (ANIMASI REVEAL DENGAN DELAY) */}
           <div id="timeline" className="bg-[#fcfbf9] rounded-sm p-8 md:p-10 border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] w-full h-full text-left flex flex-col scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out delay-200 hover:-translate-y-1 transition-transform">
             <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-8 border-b border-[#e8e4db] pb-4 flex items-center gap-3 shrink-0">
               <div className="w-8 h-0.5 bg-red-800"></div> Garis Waktu
@@ -108,46 +151,37 @@ export default function Profil() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-stone-500 italic text-sm">Belum ada catatan garis waktu sejarah.</p>
-              )}
+              ) : <p className="text-stone-500 italic text-sm">Belum ada garis waktu sejarah.</p>}
             </div>
           </div>
         </div>
 
-        {/* FOTO SISIPAN (ANIMASI REVEAL) */}
+        {/* FOTO SISIPAN (SUNTIKAN SLIDER IMAGE MULTI FOTO) */}
         {dataFotoKonteks.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-6 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
             {dataFotoKonteks.map(item => (
               <div key={item.id} className="bg-white p-4 border border-[#e8e4db] shadow-md transform hover:-rotate-1 transition-transform">
-                <img src={item.linkGambar} className="w-full h-64 object-cover mb-4 grayscale-[20%] hover:grayscale-0 transition-all duration-500" />
+                <SliderImage images={item.linkGambar} className="w-full h-64 mb-4 grayscale-[20%] hover:grayscale-0" />
                 <p className="text-stone-600 text-sm font-playfair italic text-center px-4 pb-2">"{item.konteks}"</p>
               </div>
             ))}
           </div>
         )}
 
-        {/* TITIK JANGKAR 4: TITIK TEMU / MAPS (ANIMASI REVEAL) */}
         <div id="lokasi" className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] p-8 md:p-12 relative overflow-hidden w-full text-left mt-6 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-center w-full">
             <div className="md:col-span-5 flex flex-col items-start justify-start w-full relative z-10 text-left">
               <div className="flex flex-row items-center justify-start gap-4 mb-6 w-full">
                 <div className="relative flex shrink-0 items-center justify-center w-14 h-14">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-30 animate-ping"></span>
-                  <div className="relative w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-800 border border-red-100 shadow-sm">
-                    <svg className="w-6 h-6 animate-bounce mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                  </div>
+                  <div className="relative w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-800 border border-red-100 shadow-sm"><svg className="w-6 h-6 animate-bounce mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
                 </div>
                 <h2 className="text-3xl font-bold text-stone-900 font-playfair m-0 text-left">Titik Temu</h2>
               </div>
-              <p className="text-stone-600 leading-relaxed mb-8 text-lg w-full text-left m-0">
-                Jantung pergerakan dan ruang tumbuh bersama perantau Minang di sudut nyaman Kota Pelajar. Kami selalu terbuka untuk silaturahmi.
-              </p>
+              <p className="text-stone-600 leading-relaxed mb-8 text-lg w-full text-left m-0">Jantung pergerakan dan ruang tumbuh bersama perantau Minang di sudut nyaman Kota Pelajar. Kami selalu terbuka untuk silaturahmi.</p>
               <div className="p-5 bg-stone-50 rounded-sm border border-[#e8e4db] w-full shadow-inner relative overflow-hidden group text-left flex flex-col justify-center">
                 <div className="absolute top-0 left-0 w-1 h-full bg-amber-500 group-hover:bg-red-800 transition-colors duration-500"></div>
-                <p className="text-sm text-stone-700 font-medium leading-relaxed w-full text-left m-0 font-sans">
-                  Jl. Marga Agung, Karangwaru, Kec. Tegalrejo, Kota Yogyakarta, Daerah Istimewa Yogyakarta 55241
-                </p>
+                <p className="text-sm text-stone-700 font-medium leading-relaxed w-full text-left m-0 font-sans">Jl. Marga Agung, Karangwaru, Kec. Tegalrejo, Kota Yogyakarta, Daerah Istimewa Yogyakarta 55241</p>
               </div>
             </div>
             <div className="md:col-span-7 w-full h-[300px] md:h-[400px] rounded-sm overflow-hidden relative group shadow-sm border border-[#e8e4db] bg-stone-100 cursor-crosshair">
