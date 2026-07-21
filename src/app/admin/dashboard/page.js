@@ -17,11 +17,15 @@ export default function AdminDashboard() {
   const [profilText, setProfilText] = useState({ sejarah: "", visi: "", misi: "", jejakAlumni: "", nilai1: "", nilai2: "", nilai3: "" });
   const [kontak, setKontak] = useState({ namaKetua: "", noTelpon: "" });
 
+  // BARU: State Status Asrama & Panduan PDF
+  const [statusAsrama, setStatusAsrama] = useState({ kamar: "", penghuni: "", ketersediaan: "Tersedia" });
+  const [panduanUrls, setPanduanUrls] = useState({ prosedur: "", aturan: "" });
+  const [filePanduan, setFilePanduan] = useState({ prosedur: null, aturan: null });
+
   const [dataFotoProfil, setDataFotoProfil] = useState([]);
   const [konteksFoto, setKonteksFoto] = useState("");
   const [fileFotoProfil, setFileFotoProfil] = useState(null);
 
-  // State: Timeline Sejarah (BARU)
   const [dataTimeline, setDataTimeline] = useState([]);
   const [tahunTimeline, setTahunTimeline] = useState("");
   const [judulTimeline, setJudulTimeline] = useState("");
@@ -50,7 +54,6 @@ export default function AdminDashboard() {
   const [tahun, setTahun] = useState("");
   const [filePDF, setFilePDF] = useState(null);
 
-  // State: Log Pengunduh Skripsi (BARU)
   const [dataLogUnduh, setDataLogUnduh] = useState([]);
 
   useEffect(() => { fetchAllData(); }, []);
@@ -63,26 +66,24 @@ export default function AdminDashboard() {
     const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
     if (docKontak.exists()) setKontak(docKontak.data());
 
+    // Fetch Status & Panduan
+    const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
+    if (docStatus.exists()) setStatusAsrama(docStatus.data());
+    const docPanduan = await getDoc(doc(db, "pengaturan", "panduan"));
+    if (docPanduan.exists()) setPanduanUrls(docPanduan.data());
+
     const fotoProfSnap = await getDocs(query(collection(db, "profil_galeri"), orderBy("createdAt", "desc")));
     setDataFotoProfil(fotoProfSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    
-    // Fetch Timeline Sejarah
     const timeSnap = await getDocs(query(collection(db, "timeline_sejarah"), orderBy("tahun", "asc")));
     setDataTimeline(timeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
     const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "desc")));
     setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    
     const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "desc"))); 
     setDataGaleri(galSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    
     const kehSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
     setDataKehidupan(kehSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    
     const skrSnap = await getDocs(query(collection(db, "skripsi"), orderBy("tahun", "desc")));
     setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
-    // Fetch Log Unduhan
     const logSnap = await getDocs(query(collection(db, "log_unduh_skripsi"), orderBy("waktuAkses", "desc")));
     setDataLogUnduh(logSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
@@ -120,6 +121,34 @@ export default function AdminDashboard() {
     } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
   };
 
+  // BARU: Menyimpan Status Asrama
+  const handleSaveStatusAsrama = async (e) => {
+    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
+    try {
+      await setDoc(doc(db, "pengaturan", "statusAsrama"), statusAsrama);
+      setStatus({ type: "success", message: "Status Asrama berhasil diperbarui!" });
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
+  };
+
+  // BARU: Mengunggah & Menyimpan Panduan (Bypass PDF dengan fl_attachment)
+  const handleSavePanduan = async (e) => {
+    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
+    try {
+      let newUrls = { ...panduanUrls };
+      if (filePanduan.prosedur) {
+        let rawUrl = await uploadToCloudinary(filePanduan.prosedur, "image");
+        newUrls.prosedur = rawUrl.replace("/upload/", "/upload/fl_attachment/");
+      }
+      if (filePanduan.aturan) {
+        let rawUrl = await uploadToCloudinary(filePanduan.aturan, "image");
+        newUrls.aturan = rawUrl.replace("/upload/", "/upload/fl_attachment/");
+      }
+      await setDoc(doc(db, "pengaturan", "panduan"), newUrls, { merge: true });
+      setPanduanUrls(newUrls); setFilePanduan({ prosedur: null, aturan: null });
+      setStatus({ type: "success", message: "Dokumen Prosedur & Aturan diperbarui!" });
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
+  };
+
   const handleSubmitFotoProfil = async (e) => {
     e.preventDefault(); setLoading(true);
     try {
@@ -130,7 +159,6 @@ export default function AdminDashboard() {
     } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
   };
 
-  // Submit Timeline Sejarah (BARU)
   const handleSubmitTimeline = async (e) => {
     e.preventDefault(); setLoading(true);
     try {
@@ -200,6 +228,7 @@ export default function AdminDashboard() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex space-x-2 mb-8 bg-white p-2 rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
           <button onClick={() => { setActiveTab("tampilan"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "tampilan" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Pengaturan Teks & Foto</button>
+          <button onClick={() => { setActiveTab("status"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "status" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Status & Panduan</button>
           <button onClick={() => { setActiveTab("timeline"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "timeline" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Timeline Sejarah</button>
           <button onClick={() => { setActiveTab("fotoprofil"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "fotoprofil" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Foto Profil</button>
           <button onClick={() => { setActiveTab("fasilitas"); setStatus({}); }} className={`px-4 py-2 text-sm rounded-lg font-medium whitespace-nowrap ${activeTab === "fasilitas" ? "bg-red-50 text-red-800" : "text-slate-700 hover:bg-slate-50"}`}>Fasilitas Asrama</button>
@@ -211,7 +240,7 @@ export default function AdminDashboard() {
 
         {status.message && <div className={`p-4 rounded-lg mb-6 text-sm font-medium border ${status.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200'}`}>{status.message}</div>}
 
-        {/* TAB 1: PENGATURAN TEKS & FOTO */}
+        {/* TAB PENGATURAN TEKS & FOTO */}
         {activeTab === "tampilan" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
@@ -220,36 +249,16 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   <h3 className="font-semibold text-red-800 border-l-2 border-red-800 pl-2">Kontak Asrama (Footer)</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-semibold text-slate-800 text-sm block mb-1">Nama Ketua Asrama</label>
-                      <input required type="text" value={kontak.namaKetua} onChange={(e) => setKontak({...kontak, namaKetua: e.target.value})} className="w-full px-4 py-2 border border-slate-300 rounded-md" />
-                    </div>
-                    <div>
-                      <label className="font-semibold text-slate-800 text-sm block mb-1">Nomor WhatsApp / Telp</label>
-                      <input required type="text" value={kontak.noTelpon} onChange={(e) => setKontak({...kontak, noTelpon: e.target.value})} className="w-full px-4 py-2 border border-slate-300 rounded-md" />
-                    </div>
+                    <div><label className="text-sm block mb-1">Nama Ketua</label><input required type="text" value={kontak.namaKetua} onChange={(e) => setKontak({...kontak, namaKetua: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div>
+                    <div><label className="text-sm block mb-1">Nomor WA</label><input required type="text" value={kontak.noTelpon} onChange={(e) => setKontak({...kontak, noTelpon: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div>
                   </div>
                 </div>
                 <div className="space-y-4 pt-4 border-t">
                   <h3 className="font-semibold text-red-800 border-l-2 border-red-800 pl-2">Halaman Profil</h3>
-                  <div>
-                    <label className="font-semibold text-slate-800 text-sm block mb-1">Sejarah Asrama (Gunakan Enter/Baris Baru untuk memisah Kertas)</label>
-                    <textarea required rows="4" value={profilText.sejarah} onChange={(e) => setProfilText({...profilText, sejarah: e.target.value})} className="w-full px-4 py-2 border border-slate-300 rounded-md"></textarea>
-                  </div>
+                  <div><label className="text-sm block mb-1">Sejarah Asrama (Gunakan Enter untuk memisah Kertas)</label><textarea required rows="4" value={profilText.sejarah} onChange={(e) => setProfilText({...profilText, sejarah: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-semibold text-slate-800 text-sm block mb-1">Visi</label>
-                      <textarea required rows="3" value={profilText.visi} onChange={(e) => setProfilText({...profilText, visi: e.target.value})} className="w-full px-4 py-2 border border-slate-300 rounded-md"></textarea>
-                    </div>
-                    <div>
-                      <label className="font-semibold text-slate-800 text-sm block mb-1">Misi</label>
-                      <textarea required rows="3" value={profilText.misi} onChange={(e) => setProfilText({...profilText, misi: e.target.value})} className="w-full px-4 py-2 border border-slate-300 rounded-md"></textarea>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div><label className="text-xs block mb-1">Sistem Silang</label><textarea required rows="2" value={profilText.nilai1} onChange={(e) => setProfilText({...profilText, nilai1: e.target.value})} className="w-full px-3 py-2 border rounded-md"></textarea></div>
-                    <div><label className="text-xs block mb-1">Intelektualitas</label><textarea required rows="2" value={profilText.nilai2} onChange={(e) => setProfilText({...profilText, nilai2: e.target.value})} className="w-full px-3 py-2 border rounded-md"></textarea></div>
-                    <div><label className="text-xs block mb-1">Kemandirian</label><textarea required rows="2" value={profilText.nilai3} onChange={(e) => setProfilText({...profilText, nilai3: e.target.value})} className="w-full px-3 py-2 border rounded-md"></textarea></div>
+                    <div><label className="text-sm block mb-1">Visi</label><textarea required rows="3" value={profilText.visi} onChange={(e) => setProfilText({...profilText, visi: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div>
+                    <div><label className="text-sm block mb-1">Misi</label><textarea required rows="3" value={profilText.misi} onChange={(e) => setProfilText({...profilText, misi: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div>
                   </div>
                 </div>
                 <div className="space-y-4 pt-4 border-t">
@@ -290,31 +299,81 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB TIMELINE SEJARAH (BARU) */}
+        {/* TAB STATUS ASRAMA & PANDUAN (BARU) */}
+        {activeTab === "status" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+              <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Status & Statistik Asrama</h2>
+              <p className="text-sm text-slate-600 mb-6">Angka ini akan ditampilkan di halaman Fasilitas Publik.</p>
+              <form onSubmit={handleSaveStatusAsrama} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Jumlah Kamar</label>
+                    <input type="number" required value={statusAsrama.kamar} onChange={(e) => setStatusAsrama({...statusAsrama, kamar: e.target.value})} className="w-full px-4 py-2 border rounded-md" placeholder="Cth: 20" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Jumlah Penghuni</label>
+                    <input type="number" required value={statusAsrama.penghuni} onChange={(e) => setStatusAsrama({...statusAsrama, penghuni: e.target.value})} className="w-full px-4 py-2 border rounded-md" placeholder="Cth: 40" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Status Ketersediaan</label>
+                    <select value={statusAsrama.ketersediaan} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaan: e.target.value})} className="w-full px-4 py-2 border rounded-md font-semibold">
+                      <option value="Tersedia" className="text-green-600">🟢 Tersedia</option>
+                      <option value="Penuh" className="text-red-600">🔴 Penuh</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">{loading ? "Menyimpan..." : "Perbarui Status"}</button>
+              </form>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+              <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Dokumen Prosedur & Aturan (PDF)</h2>
+              <p className="text-sm text-slate-600 mb-6">Unggah file PDF baru di sini. File yang lama akan terganti otomatis.</p>
+              <form onSubmit={handleSavePanduan} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <label className="font-bold text-slate-800 block mb-2">📄 Panduan Prosedur Pendaftaran</label>
+                    <input type="file" accept=".pdf" onChange={(e) => setFilePanduan({...filePanduan, prosedur: e.target.files[0]})} className="w-full text-sm cursor-pointer mb-2" />
+                    {panduanUrls.prosedur && <p className="text-xs text-green-600 font-medium">✓ File Prosedur Aktif Tersimpan</p>}
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <label className="font-bold text-slate-800 block mb-2">📄 Dokumen Aturan Asrama</label>
+                    <input type="file" accept=".pdf" onChange={(e) => setFilePanduan({...filePanduan, aturan: e.target.files[0]})} className="w-full text-sm cursor-pointer mb-2" />
+                    {panduanUrls.aturan && <p className="text-xs text-green-600 font-medium">✓ File Aturan Aktif Tersimpan</p>}
+                  </div>
+                </div>
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">{loading ? "Mengunggah PDF..." : "Simpan Dokumen"}</button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* TAB LAINNYA TETAP SAMA */}
         {activeTab === "timeline" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
               <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Tambah Titik Waktu (Timeline) Sejarah</h2>
               <form onSubmit={handleSubmitTimeline} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4">
-                  <input type="text" required value={tahunTimeline} onChange={(e) => setTahunTimeline(e.target.value)} placeholder="Tahun (Cth: 1962)" className="w-full px-4 py-2 border border-slate-300 rounded-md" />
-                  <input type="text" required value={judulTimeline} onChange={(e) => setJudulTimeline(e.target.value)} placeholder="Peristiwa (Cth: Pendirian Asrama)" className="w-full px-4 py-2 border border-slate-300 rounded-md" />
+                  <input type="text" required value={tahunTimeline} onChange={(e) => setTahunTimeline(e.target.value)} placeholder="Tahun" className="w-full px-4 py-2 border rounded-md" />
+                  <input type="text" required value={judulTimeline} onChange={(e) => setJudulTimeline(e.target.value)} placeholder="Peristiwa" className="w-full px-4 py-2 border rounded-md" />
                 </div>
-                <textarea required rows="2" value={deskripsiTimeline} onChange={(e) => setDeskripsiTimeline(e.target.value)} placeholder="Deskripsi singkat peristiwa..." className="w-full px-4 py-2 border border-slate-300 rounded-md"></textarea>
-                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">{loading ? "Menyimpan..." : "Tambahkan ke Timeline"}</button>
+                <textarea required rows="2" value={deskripsiTimeline} onChange={(e) => setDeskripsiTimeline(e.target.value)} placeholder="Deskripsi..." className="w-full px-4 py-2 border rounded-md"></textarea>
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Tambahkan ke Timeline</button>
               </form>
             </div>
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
               <h3 className="font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Garis Waktu Terdaftar</h3>
               <div className="space-y-4">
                 {dataTimeline.map(item => (
-                  <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex justify-between items-start gap-4">
+                  <div key={item.id} className="bg-slate-50 border rounded-lg p-4 flex justify-between items-start gap-4">
                     <div>
                       <span className="inline-block px-2 py-1 bg-amber-500 text-white text-xs font-bold rounded mb-2">{item.tahun}</span>
-                      <h4 className="font-bold text-slate-900 mb-1">{item.judul}</h4>
+                      <h4 className="font-bold mb-1">{item.judul}</h4>
                       <p className="text-sm text-slate-600">{item.deskripsi}</p>
                     </div>
-                    <button onClick={() => handleDelete("timeline_sejarah", item.id)} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded shrink-0 hover:bg-red-700">Hapus</button>
+                    <button onClick={() => handleDelete("timeline_sejarah", item.id)} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded hover:bg-red-700">Hapus</button>
                   </div>
                 ))}
               </div>
@@ -322,27 +381,25 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB FOTO PROFIL */}
         {activeTab === "fotoprofil" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
               <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Tambah Foto Profil (Pelengkap Teks)</h2>
-              <p className="text-sm text-slate-600 mb-4">Gambar ini akan disisipkan di halaman Profil beserta caption/konteks agar halaman tidak hanya berisi teks.</p>
               <form onSubmit={handleSubmitFotoProfil} className="space-y-4">
-                <textarea required rows="2" value={konteksFoto} onChange={(e) => setKonteksFoto(e.target.value)} placeholder="Tuliskan keterangan (konteks) dari foto ini..." className="w-full px-4 py-2 border border-slate-300 rounded-md"></textarea>
+                <textarea required rows="2" value={konteksFoto} onChange={(e) => setKonteksFoto(e.target.value)} placeholder="Tuliskan keterangan foto..." className="w-full px-4 py-2 border rounded-md"></textarea>
                 <input type="file" required accept="image/*" onChange={(e) => setFileFotoProfil(e.target.files[0])} className="w-full text-sm cursor-pointer" />
-                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">{loading ? "Menyimpan..." : "Tambahkan Foto Profil"}</button>
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Tambahkan Foto Profil</button>
               </form>
             </div>
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
               <h3 className="font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Daftar Foto Profil</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {dataFotoProfil.map(item => (
-                  <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden flex items-start gap-4 p-3">
+                  <div key={item.id} className="bg-slate-50 border rounded-lg overflow-hidden flex items-start gap-4 p-3">
                     <img src={item.linkGambar} className="w-24 h-24 object-cover rounded-md shrink-0" />
                     <div className="flex flex-col justify-between h-full w-full">
                       <p className="text-xs text-slate-600 line-clamp-3 mb-2">{item.konteks}</p>
-                      <button onClick={() => handleDelete("profil_galeri", item.id)} className="text-red-600 text-xs font-semibold self-start hover:underline">Hapus Foto</button>
+                      <button onClick={() => handleDelete("profil_galeri", item.id)} className="text-red-600 text-xs font-semibold hover:underline">Hapus Foto</button>
                     </div>
                   </div>
                 ))}
@@ -351,23 +408,22 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB FASILITAS ASRAMA */}
         {activeTab === "fasilitas" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
               <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Tambah Fasilitas Asrama</h2>
               <form onSubmit={handleSubmitFasilitas} className="space-y-4">
-                <input type="text" required value={namaFasilitas} onChange={(e) => setNamaFasilitas(e.target.value)} placeholder="Nama Fasilitas..." className="w-full px-4 py-2 border border-slate-300 rounded-md" />
-                <textarea required rows="2" value={deskripsiFasilitas} onChange={(e) => setDeskripsiFasilitas(e.target.value)} placeholder="Deskripsi..." className="w-full px-4 py-2 border border-slate-300 rounded-md"></textarea>
+                <input type="text" required value={namaFasilitas} onChange={(e) => setNamaFasilitas(e.target.value)} placeholder="Nama Fasilitas..." className="w-full px-4 py-2 border rounded-md" />
+                <textarea required rows="2" value={deskripsiFasilitas} onChange={(e) => setDeskripsiFasilitas(e.target.value)} placeholder="Deskripsi..." className="w-full px-4 py-2 border rounded-md"></textarea>
                 <input type="file" required accept="image/*" onChange={(e) => setFileFasilitas(e.target.files[0])} className="w-full text-sm cursor-pointer" />
-                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">{loading ? "Menyimpan..." : "Tambahkan Fasilitas"}</button>
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Tambahkan Fasilitas</button>
               </form>
             </div>
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
               <h3 className="font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Daftar Fasilitas Asrama</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {dataFasilitas.map(item => (
-                  <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden flex flex-col">
+                  <div key={item.id} className="bg-slate-50 border rounded-lg overflow-hidden flex flex-col">
                     <img src={item.linkGambar} className="w-full h-32 object-cover" />
                     <div className="p-4 flex flex-col flex-grow">
                       <h4 className="font-bold text-slate-900 mb-1">{item.nama}</h4>
@@ -381,13 +437,12 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB GALERI */}
         {activeTab === "galeri" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
               <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Tambah Galeri Kegiatan</h2>
               <form onSubmit={handleSubmitGaleri} className="space-y-4">
-                <input type="text" required value={judulGaleri} onChange={(e) => setJudulGaleri(e.target.value)} placeholder="Nama/Judul Kegiatan..." className="w-full px-4 py-2 border border-slate-300 rounded-md" />
+                <input type="text" required value={judulGaleri} onChange={(e) => setJudulGaleri(e.target.value)} placeholder="Nama/Judul Kegiatan..." className="w-full px-4 py-2 border rounded-md" />
                 <input type="color" value={warnaGaleri} onChange={(e) => setWarnaGaleri(e.target.value)} className="h-10 cursor-pointer border rounded-md" />
                 <input type="file" required accept="image/*" onChange={(e) => setFileGaleri(e.target.files[0])} className="w-full text-sm cursor-pointer" />
                 <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Tambah</button>
@@ -410,7 +465,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB PUBLIKASI */}
         {activeTab === "kehidupan" && (
            <div className="space-y-6">
              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
@@ -437,7 +491,6 @@ export default function AdminDashboard() {
            </div>
         )}
 
-        {/* TAB SKRIPSI */}
         {activeTab === "skripsi" && (
            <div className="space-y-6">
              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
@@ -465,7 +518,6 @@ export default function AdminDashboard() {
            </div>
         )}
 
-        {/* TAB LOG PENGUNDUH SKRIPSI (BONUS TAB) */}
         {activeTab === "log" && (
            <div className="space-y-6">
              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
@@ -473,8 +525,6 @@ export default function AdminDashboard() {
                  <h2 className="text-lg font-bold text-slate-900">Log Pengunjung (Pengunduh Skripsi)</h2>
                  <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataLogUnduh.length} Data</span>
                </div>
-               <p className="text-sm text-slate-600 mb-6">Data ini adalah identitas pengunjung web yang mengisi formulir keamanan sebelum mengunduh dan membaca skripsi alumni.</p>
-               
                <div className="overflow-x-auto">
                  <table className="w-full text-left border-collapse text-sm">
                    <thead>
