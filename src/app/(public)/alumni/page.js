@@ -11,7 +11,6 @@ export default function JaringanAlumni() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // STATE UNTUK FORMULIR KEAMANAN
   const [showModal, setShowModal] = useState(false);
   const [selectedSkripsi, setSelectedSkripsi] = useState(null);
   const [formData, setFormData] = useState({ nama: "", noHp: "", email: "" });
@@ -46,31 +45,19 @@ export default function JaringanAlumni() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      // Simpan data pengunduh ke Firebase
       await addDoc(collection(db, "log_unduh_skripsi"), {
-        namaPengunduh: formData.nama,
-        noHpPengunduh: formData.noHp,
-        emailPengunduh: formData.email,
-        judulSkripsi: selectedSkripsi.judul,
-        penulisSkripsi: selectedSkripsi.nama,
-        waktuAkses: serverTimestamp()
+        namaPengunduh: formData.nama, noHpPengunduh: formData.noHp, emailPengunduh: formData.email,
+        judulSkripsi: selectedSkripsi.judul, penulisSkripsi: selectedSkripsi.nama, waktuAkses: serverTimestamp()
       });
-      // Setelah tersimpan, buka PDF di tab baru
       window.open(selectedSkripsi.linkPDF, "_blank");
-      // Tutup dan reset form
-      setShowModal(false);
-      setFormData({ nama: "", noHp: "", email: "" });
-    } catch (error) {
-      alert("Terjadi kesalahan sistem. Silakan coba lagi.");
-    } finally {
-      setIsSubmitting(false);
-    }
+      setShowModal(false); setFormData({ nama: "", noHp: "", email: "" });
+    } catch (error) { alert("Terjadi kesalahan sistem. Silakan coba lagi."); } finally { setIsSubmitting(false); }
   };
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora">
       
-      {/* POPUP MODAL FORMULIR PENGAMAN */}
+      {/* POPUP MODAL */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 transition-opacity">
           <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-stone-200 animate-[fadeIn_0.3s_ease-out]">
@@ -80,11 +67,11 @@ export default function JaringanAlumni() {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
-            <p className="text-sm text-stone-600 mb-6 leading-relaxed">Untuk menjaga keamanan karya intelektual warga asrama, mohon isi identitas Anda sebelum membaca dokumen ini.</p>
+            <p className="text-sm text-stone-600 mb-6 leading-relaxed">Untuk menjaga keamanan karya intelektual, mohon isi identitas Anda sebelum membaca dokumen ini.</p>
             <form onSubmit={handleSubmitForm} className="space-y-4">
-              <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nama Lengkap</label><input type="text" required value={formData.nama} onChange={(e) => setFormData({...formData, nama: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm" placeholder="Masukkan nama..." /></div>
-              <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nomor HP/WhatsApp</label><input type="tel" required value={formData.noHp} onChange={(e) => setFormData({...formData, noHp: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm" placeholder="0812xxxxxx" /></div>
-              <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Email Aktif</label><input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm" placeholder="email@contoh.com" /></div>
+              <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nama Lengkap</label><input type="text" required value={formData.nama} onChange={(e) => setFormData({...formData, nama: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm" placeholder="Masukkan nama..." /></div>
+              <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nomor HP/WhatsApp</label><input type="tel" required value={formData.noHp} onChange={(e) => setFormData({...formData, noHp: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm" placeholder="0812xxxxxx" /></div>
+              <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Email Aktif</label><input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm" placeholder="email@contoh.com" /></div>
               <button type="submit" disabled={isSubmitting} className="w-full bg-[#171412] hover:bg-amber-600 text-white font-playfair font-bold text-lg py-3 rounded-lg transition-colors mt-2">{isSubmitting ? "Memproses..." : "Lanjutkan & Baca Skripsi"}</button>
             </form>
           </div>
@@ -104,13 +91,15 @@ export default function JaringanAlumni() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10">
         
-        <div className="bg-[#fcfbf9] rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] p-8 md:p-12 mb-16 relative overflow-hidden">
+        {/* TITIK JANGKAR 1: JEJAK ALUMNI (DENGAN KELAS REVEAL ANIMASI) */}
+        <div id="jejak" className="bg-[#fcfbf9] rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] p-8 md:p-12 mb-16 relative overflow-hidden scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
           <div className="absolute top-0 left-0 w-1 h-full bg-red-800"></div>
           <h2 className="text-3xl font-bold text-stone-900 mb-5 font-playfair">Jejak Alumni</h2>
           <p className="text-stone-600 leading-relaxed text-lg text-justify whitespace-pre-line">{jejakText}</p>
         </div>
 
-        <div className="bg-[#fcfbf9] rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden">
+        {/* TITIK JANGKAR 2: REPOSITORI SKRIPSI (DENGAN KELAS REVEAL ANIMASI) */}
+        <div id="repositori" className="bg-[#fcfbf9] rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out delay-200">
           <div className="p-6 md:p-8 border-b border-[#e8e4db] flex flex-col md:flex-row justify-between items-center gap-4 bg-white">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 border border-amber-100"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></div>
