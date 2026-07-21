@@ -4,92 +4,112 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 
-export default function KehidupanAsrama() {
-  const [dataKehidupan, setDataKehidupan] = useState([]);
+export default function Kehidupan() {
+  const [bgMedia, setBgMedia] = useState("");
   const [dataGaleri, setDataGaleri] = useState([]);
-  const [bgKehidupan, setBgKehidupan] = useState("");
+  const [dataBerita, setDataBerita] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const snapFoto = await getDoc(doc(db, "pengaturan", "tampilan"));
-        if (snapFoto.exists() && snapFoto.data().kehidupan) setBgKehidupan(snapFoto.data().kehidupan);
+        if (snapFoto.exists() && snapFoto.data().kehidupan) setBgMedia(snapFoto.data().kehidupan);
 
-        const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "asc")));
+        // Fetch Galeri (di database Admin, Galeri disimpan di koleksi "fasilitas")
+        const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "desc")));
         setDataGaleri(galSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-        const q = query(collection(db, "kehidupan"), orderBy("createdAt", "desc"));
-        const snapshot = await getDocs(q);
-        setDataKehidupan(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+        // Fetch Kabar Warga (di database Admin, ini disimpan di koleksi "kehidupan")
+        const berSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
+        setDataBerita(berSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (error) { console.error(error); } finally { setLoading(false); }
     };
     fetchData();
   }, []);
 
   return (
-    <div className="bg-stone-50 pb-24">
+    <div className="bg-[#f9f8f6] pb-24 font-lora">
       
-      {/* HEADER HERO KONSISTEN */}
-      <div className="relative py-24 md:py-32 w-full bg-[#171412] flex items-center justify-center overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000" 
-          style={{ backgroundImage: bgKehidupan ? `url('${bgKehidupan}')` : 'none', opacity: bgKehidupan ? 1 : 0 }}
-        >
-          <div className="absolute inset-0 bg-[#171412]/70 backdrop-blur-[2px]"></div>
+      {/* HEADER HERO */}
+      <div className="relative py-28 md:py-36 w-full bg-[#171412] flex flex-col items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000" style={{ backgroundImage: bgMedia ? `url('${bgMedia}')` : 'none', opacity: bgMedia ? 0.8 : 0 }}>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/80 to-[#171412]/40 backdrop-blur-[1px]"></div>
         </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 font-serif">Media dan Publikasi</h1>
-          <p className="text-stone-300 text-lg max-w-2xl mx-auto">Rekam jejak, inovasi, dan potret keseharian warga Asrama Merapi Singgalang.</p>
+        <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 font-playfair drop-shadow-lg">Media & Publikasi</h1>
+          <p className="text-stone-300 text-lg max-w-2xl mx-auto mb-6">Merekam setiap langkah, kegiatan, dan dinamika kehidupan warga perantau di Asrama Merapi Singgalang.</p>
+          <div className="w-16 h-1.5 bg-amber-500 mx-auto rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 mt-16">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-1.5 h-8 bg-amber-500 rounded-full"></div>
-          <h2 className="text-2xl md:text-3xl font-bold text-stone-900 font-serif">Galeri Kegiatan Asrama</h2>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+        
+        {/* TITIK JANGKAR 1: GALERI KEGIATAN */}
+        <div id="galeri" className="mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+          <div className="flex items-center gap-4 mb-10">
+            <div className="w-14 h-14 bg-[#171412] rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
+            <div>
+              <h2 className="text-3xl font-bold text-stone-900 font-playfair">Galeri Kegiatan Asrama</h2>
+              <p className="text-stone-500 text-sm mt-1">Dokumentasi momen-momen kebersamaan.</p>
+            </div>
+          </div>
+
+          {loading ? (
+            <p className="text-center py-10 text-stone-500">Memuat galeri...</p>
+          ) : dataGaleri.length === 0 ? (
+            <div className="bg-white p-8 border border-[#e8e4db] text-center text-stone-500">Belum ada foto kegiatan.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dataGaleri.map((item, idx) => (
+                <div key={item.id} className={`group relative h-64 md:h-80 overflow-hidden bg-stone-200 border border-[#e8e4db] shadow-sm hover:shadow-xl transition-all duration-500 reveal opacity-0 translate-y-12`} style={{ transitionDelay: `${(idx % 3) * 150}ms` }}>
+                  <img src={item.linkGambar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-300"></div>
+                  <div className="absolute bottom-0 left-0 w-full p-6 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                    <h3 className="text-xl font-bold font-playfair drop-shadow-md" style={{ color: item.warna || '#ffffff' }}>{item.judul}</h3>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {dataGaleri.length === 0 && !loading ? (
-           <div className="bg-white p-8 rounded-2xl border border-stone-200 text-stone-500 text-center shadow-sm mb-20">Belum ada foto galeri kegiatan yang diunggah.</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
-            {dataGaleri.map((item) => (
-              <div key={item.id} className="relative h-72 rounded-2xl overflow-hidden group shadow-md border border-stone-200">
-                <img src={item.linkGambar} alt={item.judul} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/20 to-transparent pointer-events-none"></div>
-                <h3 className="absolute bottom-6 left-6 right-6 font-bold text-xl drop-shadow-lg" style={{ color: item.warna || '#ffffff' }}>{item.judul}</h3>
-              </div>
-            ))}
+        {/* TITIK JANGKAR 2: KABAR TERBARU WARGA */}
+        <div id="kabar" className="scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out delay-200">
+          <div className="flex items-center gap-4 mb-10 border-t border-[#e8e4db] pt-16">
+            <div className="w-14 h-14 bg-red-800 rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
+            <div>
+              <h2 className="text-3xl font-bold text-stone-900 font-playfair">Kabar Terbaru Warga</h2>
+              <p className="text-stone-500 text-sm mt-1">Berita, prestasi, dan publikasi penghuni asrama.</p>
+            </div>
           </div>
-        )}
 
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-1.5 h-8 bg-red-800 rounded-full"></div>
-          <h2 className="text-2xl md:text-3xl font-bold text-stone-900 font-serif">Kabar Terbaru Warga</h2>
+          {loading ? (
+            <p className="text-center py-10 text-stone-500">Memuat kabar...</p>
+          ) : dataBerita.length === 0 ? (
+            <div className="bg-white p-8 border border-[#e8e4db] text-center text-stone-500">Belum ada publikasi berita.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {dataBerita.map((item, idx) => (
+                <div key={item.id} className={`bg-[#fcfbf9] border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] flex flex-col md:flex-row overflow-hidden group reveal opacity-0 translate-y-12`} style={{ transitionDelay: `${(idx % 2) * 200}ms` }}>
+                  <div className="w-full md:w-2/5 h-48 md:h-auto relative overflow-hidden bg-stone-100 shrink-0">
+                    <img src={item.linkGambar} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  </div>
+                  <div className="p-6 md:p-8 flex flex-col justify-center w-full">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-xs font-bold tracking-widest uppercase text-red-800 font-sans">{item.kategori}</span>
+                      <span className="text-stone-300">•</span>
+                      <span className="text-xs text-stone-500 font-sans">{item.tanggal}</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-3 group-hover:text-amber-600 transition-colors leading-snug">{item.judul}</h3>
+                    <p className="text-stone-600 text-sm leading-relaxed line-clamp-3">{item.deskripsi}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {loading ? (
-          <p className="text-center py-10 text-stone-500">Memuat data dari database...</p>
-        ) : dataKehidupan.length === 0 ? (
-          <div className="bg-white p-8 rounded-2xl border border-stone-200 text-stone-500 text-center shadow-sm">Belum ada kabar publikasi.</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {dataKehidupan.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden flex flex-col hover:shadow-xl hover:border-amber-200 transition-all duration-300">
-                <div className="relative h-56 bg-stone-100">
-                  <span className="absolute top-4 left-4 z-10 bg-red-800 text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase tracking-wider shadow-md">{item.kategori}</span>
-                  <img src={item.linkGambar} alt={item.judul} className="w-full h-full object-cover" />
-                </div>
-                <div className="p-8 flex flex-col flex-grow">
-                  <h3 className="text-xl font-bold text-stone-900 mb-3">{item.judul}</h3>
-                  <p className="text-stone-600 text-sm mb-6 flex-grow line-clamp-3 leading-relaxed">{item.deskripsi}</p>
-                  <div className="text-xs text-amber-600 font-bold uppercase tracking-wider">{item.tanggal}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
