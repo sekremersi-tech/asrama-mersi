@@ -33,7 +33,7 @@ const HeroSlider = ({ images, title }) => {
 
 export default function JaringanAlumni() {
   const [daftarSkripsi, setDaftarSkripsi] = useState([]);
-  const [bgAlumni, setBgAlumni] = useState([]); // Diubah menjadi Array
+  const [bgAlumni, setBgAlumni] = useState([]);
   const [jejakText, setJejakText] = useState("Memuat jejak alumni...");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -94,9 +94,19 @@ export default function JaringanAlumni() {
             </div>
             <p className="text-sm text-stone-600 mb-6 leading-relaxed">Untuk menjaga keamanan karya intelektual, mohon isi identitas Anda sebelum membaca dokumen ini.</p>
             <form onSubmit={handleSubmitForm} className="space-y-4">
-              <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nama Lengkap</label><input type="text" required value={formData.nama} onChange={(e) => setFormData({...formData, nama: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm" placeholder="Masukkan nama..." /></div>
-              <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nomor HP/WhatsApp</label><input type="tel" required value={formData.noHp} onChange={(e) => setFormData({...formData, noHp: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm" placeholder="0812xxxxxx" /></div>
-              <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Email Aktif</label><input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm" placeholder="email@contoh.com" /></div>
+              {/* PENAMBAHAN 'text-stone-900' AGAR TEKS INPUT BERWARNA HITAM */}
+              <div>
+                <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nama Lengkap</label>
+                <input type="text" required value={formData.nama} onChange={(e) => setFormData({...formData, nama: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" placeholder="Masukkan nama..." />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nomor HP/WhatsApp</label>
+                <input type="tel" required value={formData.noHp} onChange={(e) => setFormData({...formData, noHp: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" placeholder="0812xxxxxx" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Email Aktif</label>
+                <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" placeholder="email@contoh.com" />
+              </div>
               <button type="submit" disabled={isSubmitting} className="w-full bg-[#171412] hover:bg-amber-600 text-white font-playfair font-bold text-lg py-3 rounded-lg transition-colors mt-2">{isSubmitting ? "Memproses..." : "Lanjutkan & Baca Skripsi"}</button>
             </form>
           </div>
