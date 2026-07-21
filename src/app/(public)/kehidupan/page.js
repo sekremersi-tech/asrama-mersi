@@ -45,17 +45,14 @@ export default function Kehidupan() {
   const [dataBerita, setDataBerita] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // STATE MODAL
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalType, setModalType] = useState(""); 
   const [modalImageIdx, setModalImageIdx] = useState(0);
 
-  // STATE FORMULIR LOMBA
   const [showLombaModal, setShowLombaModal] = useState(false);
   const [formLomba, setFormLomba] = useState({ nama: "", alamat: "", noHp: "" });
   const [isSubmittingLomba, setIsSubmittingLomba] = useState(false);
 
-  // STATE FITUR KOMENTAR
   const [komentarList, setKomentarList] = useState([]);
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
@@ -75,22 +72,20 @@ export default function Kehidupan() {
   }, []);
 
   const openModal = async (item, type) => { 
-    setSelectedItem(item); 
-    setModalImageIdx(0); 
-    document.body.style.overflow = "hidden"; 
-
+    setSelectedItem(item); setModalImageIdx(0); document.body.style.overflow = "hidden"; 
+    setFormKomen({ nama: "", isi: "" }); // FIX: Bersihkan ketikan saat membuka
+    
     if (type === "berita" && item.kategori === "LOMBA TERBUKA") {
       setShowLombaModal(true);
       setModalType("lomba");
     } else {
       setShowLombaModal(false);
       setModalType(type);
-      
-      // FETCH KOMENTAR JIKA INI ADALAH BERITA BIASA
+      setKomentarList([]);
       if (type === "berita") {
-        setKomentarList([]);
         try {
-          const q = query(collection(db, "komentar_publikasi"), where("postId", "==", item.id));
+          const targetId = String(item.id); // FIX: Pastikan ID string
+          const q = query(collection(db, "komentar_publikasi"), where("postId", "==", targetId));
           const snap = await getDocs(q);
           let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
           comments.sort((a, b) => (a.waktu?.toMillis() || 0) - (b.waktu?.toMillis() || 0));
@@ -100,7 +95,11 @@ export default function Kehidupan() {
     }
   };
 
-  const closeModal = () => { setSelectedItem(null); setShowLombaModal(false); setKomentarList([]); document.body.style.overflow = "auto"; };
+  const closeModal = () => { 
+    setSelectedItem(null); setShowLombaModal(false); setKomentarList([]); 
+    setFormKomen({ nama: "", isi: "" }); // FIX: Bersihkan ketikan saat menutup
+    document.body.style.overflow = "auto"; 
+  };
 
   const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
   const nextModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev + 1) % modalImages.length); };
@@ -118,18 +117,22 @@ export default function Kehidupan() {
     } catch (error) { alert("Pendaftaran Gagal. Silakan coba lagi."); } finally { setIsSubmittingLomba(false); }
   };
 
-  // FUNGSI MENGIRIM KOMENTAR
   const submitKomentar = async (e) => {
     e.preventDefault();
     if (!formKomen.isi.trim()) return;
     setIsSubmittingKomen(true);
     try {
-      const newKomen = { postId: selectedItem.id, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), waktu: serverTimestamp() };
+      const targetId = String(selectedItem.id); // FIX: Pastikan ID string
+      const newKomen = { postId: targetId, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
       setKomentarList([...komentarList, {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }]);
       setFormKomen({nama: "", isi: ""});
-    } catch (err) { alert("Gagal mengirim komentar"); }
-    setIsSubmittingKomen(false);
+    } catch (err) { 
+      console.error(err);
+      alert("Gagal mengirim! (Pastikan Aturan Firebase Anda belum kedaluwarsa). Error: " + err.message); 
+    } finally {
+      setIsSubmittingKomen(false);
+    }
   };
 
   return (
@@ -169,7 +172,6 @@ export default function Kehidupan() {
                   {modalType === "berita" && <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>}
                   {modalType === "berita" ? <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p> : <p className="text-stone-600 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi || "Dokumentasi momen kebersamaan warga Asrama Mahasiswa Merapi Singgalang."}</p>}
                   
-                  {/* BAGIAN KOMENTAR PUBLIKASI */}
                   {modalType === "berita" && (
                     <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
                       <h3 className="font-playfair font-bold text-xl text-stone-900 mb-4">Komentar ({komentarList.length})</h3>
@@ -202,7 +204,7 @@ export default function Kehidupan() {
         </div>
       )}
 
-      {/* Sisa konten halaman Media... */}
+      {/* Konten sisa sama... */}
       <HeroSlider images={bgMedia} title="Media & Publikasi" subtitle="Merekam setiap langkah, kegiatan, dan dinamika kehidupan warga perantau di Asrama Merapi Singgalang." />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
