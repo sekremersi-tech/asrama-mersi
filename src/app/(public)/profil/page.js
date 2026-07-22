@@ -94,12 +94,14 @@ const StackedGallery = ({ data }) => {
   )
 }
 
-// MENAMPILKAN PERAN PADA KARTU ANGGOTA
 const MemberCard = ({ member, role, isMain = false }) => {
   const [flipped, setFlipped] = useState(false);
   const f1 = member.foto1 || `https://ui-avatars.com/api/?name=${member.nama}&background=991b1b&color=fff&size=256`;
   const f2 = member.foto2 || f1; 
   const sizeClasses = isMain ? "w-48 h-48 md:w-56 md:h-56" : "w-36 h-36 md:w-44 md:h-44";
+
+  // Desain teks jabatan khusus
+  const isKoordinator = role === "Koordinator";
 
   return (
     <div className="flex flex-col items-center perspective-1000 group">
@@ -115,9 +117,9 @@ const MemberCard = ({ member, role, isMain = false }) => {
       </div>
       <h4 className={`font-bold text-stone-900 text-center leading-tight mb-1 ${isMain ? 'text-xl' : 'text-base'}`}>{member.nama}</h4>
       
-      {/* Jika Koordinator, warnanya Amber, Jika Anggota warnanya abu-abu */}
+      {/* Label Jabatan Dinamis */}
       {role && (
-        <p className={`font-bold uppercase tracking-widest font-sans ${isMain ? 'text-xs text-red-800' : 'text-[10px]'} ${role === 'Koordinator' ? 'text-amber-600' : 'text-stone-400'}`}>
+        <p className={`font-bold uppercase tracking-widest font-sans ${isMain ? 'text-xs text-red-800' : 'text-[10px]'} ${isKoordinator ? 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded' : 'text-stone-400'}`}>
           {role}
         </p>
       )}
@@ -303,7 +305,6 @@ export default function ProfilAsrama() {
             <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10">Divisi & Anggota</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {dataDivisi.map(div => {
-                
                 // LOGIKA PENGURUTAN: Koordinator tampil duluan
                 const anggotaList = dataAnggota
                   .filter(a => a.divisiId === div.id)
