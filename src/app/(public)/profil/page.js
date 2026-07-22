@@ -30,10 +30,37 @@ const HeroSlider = ({ images, title }) => {
   );
 };
 
+const AutoSliderCard = ({ images, className }) => {
+  const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (imgArray.length <= 1) return;
+    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 3500);
+    return () => clearInterval(timer);
+  }, [imgArray.length]);
+
+  if (imgArray.length === 0) return <div className={`bg-stone-200 ${className}`}></div>;
+
+  return (
+    <div className={`relative overflow-hidden group w-full h-full ${className}`}>
+      {imgArray.map((src, i) => (
+        <img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 group-hover:scale-105 ease-in-out ${i === idx ? "opacity-100" : "opacity-0"}`} alt="Dokumentasi Profil" />
+      ))}
+      {imgArray.length > 1 && (
+        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-lg border border-white/10 z-10 font-sans">
+          +{imgArray.length} Foto
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function ProfilAsrama() {
   const [bgProfil, setBgProfil] = useState([]);
   const [profilText, setProfilText] = useState({ sejarah: "", visi: "", misi: "" });
   const [dataTimeline, setDataTimeline] = useState([]);
+  const [dataFotoProfil, setDataFotoProfil] = useState([]); // STATE UNTUK FOTO PROFIL
   const [loading, setLoading] = useState(true);
   
   const [pengurusInti, setPengurusInti] = useState(null);
@@ -63,6 +90,10 @@ export default function ProfilAsrama() {
           }
         }
 
+        // FETCH FOTO PROFIL / GALERI PROFIL
+        const fotoProfSnap = await getDocs(query(collection(db, "profil_galeri"), orderBy("createdAt", "desc")));
+        setDataFotoProfil(fotoProfSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
         const timeSnap = await getDocs(query(collection(db, "timeline_sejarah"), orderBy("tahun", "asc")));
         setDataTimeline(timeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
@@ -88,22 +119,20 @@ export default function ProfilAsrama() {
       setTimeout(() => {
         setHalAktif(newIndex);
         setIsAnimasiFlip(false);
-      }, 400); // Sinkron dengan durasi CSS
+      }, 400);
     }
   };
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora overflow-x-hidden relative">
       <style jsx global>{`
-        /* Animasi Flip Buku 3D */
         .perspective-1000 { perspective: 1000px; }
         .flip-next { animation: flipNext 0.4s ease-in forwards; transform-origin: left center; }
         .flip-prev { animation: flipPrev 0.4s ease-in forwards; transform-origin: right center; }
         @keyframes flipNext { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(-90deg); opacity: 0; } }
         @keyframes flipPrev { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(90deg); opacity: 0; } }
         
-        /* Animasi Melayang Peta */
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
         .animate-float { animation: float 6s ease-in-out infinite; }
       `}</style>
 
@@ -142,7 +171,33 @@ export default function ProfilAsrama() {
         </div>
       </div>
 
-      {/* 2 & 3. VISI MISI & TIMELINE */}
+      {/* 2. DOKUMENTASI & FOTO PROFIL ASRAMA (MEMUNCULKAN FOTO DARI FOTO PROFIL ADMIN) */}
+      {dataFotoProfil.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 mb-24 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+          <div className="text-center mb-12">
+            <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Kilas Balik Suasana</h4>
+            <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair mb-4">Dokumentasi Profil Asrama</h2>
+            <div className="w-12 h-1 bg-red-800 mx-auto rounded-full"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {dataFotoProfil.map((item) => (
+              <div key={item.id} className="bg-white rounded-sm border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] overflow-hidden flex flex-col group hover:-translate-y-1 transition-all duration-300">
+                <div className="h-64 w-full relative overflow-hidden bg-stone-100">
+                  <AutoSliderCard images={item.linkGambar} className="w-full h-full" />
+                </div>
+                {item.konteks && (
+                  <div className="p-6 flex flex-col flex-grow bg-[#fcfbf9] border-t border-[#e8e4db]">
+                    <p className="text-stone-700 text-sm leading-relaxed font-lora italic">"{item.konteks}"</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3 & 4. VISI MISI & TIMELINE */}
       <div id="visimisi" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 scroll-mt-28">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
           <div className="lg:col-span-5 flex flex-col gap-6 reveal opacity-0 translate-x-[-20px] transition-all duration-1000 ease-out">
@@ -177,7 +232,7 @@ export default function ProfilAsrama() {
         </div>
       </div>
 
-      {/* 4. STRUKTUR KEPENGURUSAN DENGAN ANIMASI FOTO FLIP */}
+      {/* 5. STRUKTUR KEPENGURUSAN */}
       <div id="kepengurusan" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-16">
           <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Struktur Organisasi</h4>
@@ -191,7 +246,6 @@ export default function ProfilAsrama() {
             
             <div className="flex justify-center mb-8">
               <div className="bg-white p-8 rounded-sm shadow-xl border-t-4 border-red-800 flex flex-col items-center w-72 transform hover:-translate-y-2 transition-transform duration-300 group perspective-1000">
-                {/* Animasi Flip 3D pada Foto */}
                 <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-amber-100 mb-6 shadow-inner group-hover:rotate-y-180 transition-transform duration-700 transform-style-3d">
                   <img src={pengurusInti.ketuaFoto || `https://ui-avatars.com/api/?name=${pengurusInti.ketuaNama}&background=991b1b&color=fff`} className="w-full h-full object-cover" alt="Ketua" />
                 </div>
@@ -253,7 +307,7 @@ export default function ProfilAsrama() {
         )}
       </div>
 
-      {/* 5. TITIK TEMU (MAPS DENGAN ANIMASI MELAYANG) */}
+      {/* 6. TITIK TEMU */}
       <div id="lokasi" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-10 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-16 lg:gap-8 bg-white p-10 md:p-16 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#e8e4db]">
           
@@ -271,7 +325,6 @@ export default function ProfilAsrama() {
                 width="100%" height="100%" style={{ border: 0, pointerEvents: 'none' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Lokasi Asrama Merapi Singgalang">
               </iframe>
             </div>
-            {/* Bayangan peta di bawah */}
             <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[80%] h-8 bg-black/20 blur-xl rounded-[100%]"></div>
           </div>
 
