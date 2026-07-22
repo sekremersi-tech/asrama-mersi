@@ -56,6 +56,13 @@ export default function JejakPrestasi() {
   const [formUnduh, setFormUnduh] = useState({ namaPengunduh: "", emailPengunduh: "", noHpPengunduh: "" });
   const [isSubmittingUnduh, setIsSubmittingUnduh] = useState(false);
 
+  // STATE PENCARIAN & PAGINASI SKRIPSI
+  const [searchSkripsi, setSearchSkripsi] = useState("");
+  const [skripsiPage, setSkripsiPage] = useState(0);
+  const [isSkripsiAnimating, setIsSkripsiAnimating] = useState(false);
+  const [skripsiAnimDirection, setSkripsiAnimDirection] = useState("");
+  const skripsiPerPage = 10;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -65,13 +72,11 @@ export default function JejakPrestasi() {
         const snapText = await getDoc(doc(db, "pengaturan", "profilText"));
         if (snapText.exists()) setProfilText(snapText.data());
 
-        // MENGAMBIL PRESTASI DARI KOLEKSI KEHIDUPAN (MEDIA PUBLIKASI)
         const berSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
         const allBerita = berSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const prestasiData = allBerita.filter(item => item.kategori === "PRESTASI");
         setDataPrestasi(prestasiData);
 
-        // MENGAMBIL DATA SKRIPSI
         const skrSnap = await getDocs(query(collection(db, "skripsi"), orderBy("tahun", "desc")));
         setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         
@@ -80,7 +85,12 @@ export default function JejakPrestasi() {
     fetchData();
   }, []);
 
-  // FUNGSI PAGINASI LIST PRESTASI (EFEK KERTAS BERGESER)
+  // RESET HALAMAN SKRIPSI KE AWAL SAAT PENCARIAN BERUBAH
+  useEffect(() => {
+    setSkripsiPage(0);
+  }, [searchSkripsi]);
+
+  // FUNGSI PAGINASI LIST PRESTASI
   const changePage = (newIndex, direction) => {
     if (newIndex >= 0 && newIndex < Math.ceil(dataPrestasi.length / itemsPerPage)) {
       setAnimDirection(direction);
@@ -92,7 +102,24 @@ export default function JejakPrestasi() {
     }
   };
 
-  // FUNGSI MODAL PRESTASI
+  // FUNGSI PAGINASI LIST SKRIPSI
+  const changeSkripsiPage = (newIndex, direction) => {
+    // Kita filter data dulu agar max halamannya akurat
+    const filteredLength = dataSkripsi.filter(item => {
+      const q = searchSkripsi.toLowerCase();
+      return item.judul?.toLowerCase().includes(q) || item.nama?.toLowerCase().includes(q) || item.tahun?.toString().includes(q) || item.jurusan?.toLowerCase().includes(q);
+    }).length;
+
+    if (newIndex >= 0 && newIndex < Math.ceil(filteredLength / skripsiPerPage)) {
+      setSkripsiAnimDirection(direction);
+      setIsSkripsiAnimating(true);
+      setTimeout(() => {
+        setSkripsiPage(newIndex);
+        setIsSkripsiAnimating(false);
+      }, 400); 
+    }
+  };
+
   const openModal = async (item) => { 
     setSelectedItem(item); setModalImageIdx(0); document.body.style.overflow = "hidden"; 
     setKomentarList([]); setFormKomen({ nama: "", isi: "" }); 
@@ -121,7 +148,6 @@ export default function JejakPrestasi() {
     } catch (err) { alert("Gagal mengirim komentar!"); } finally { setIsSubmittingKomen(false); }
   };
 
-  // FUNGSI MODAL UNDUH SKRIPSI
   const handleUnduhSkripsi = async (e) => {
     e.preventDefault();
     setIsSubmittingUnduh(true);
@@ -146,6 +172,20 @@ export default function JejakPrestasi() {
 
   const totalPages = Math.ceil(dataPrestasi.length / itemsPerPage);
   const currentDataPrestasi = dataPrestasi.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+
+  // LOGIKA PENCARIAN SKRIPSI
+  const filteredSkripsi = dataSkripsi.filter(item => {
+    const q = searchSkripsi.toLowerCase();
+    return (
+      item.judul?.toLowerCase().includes(q) ||
+      item.nama?.toLowerCase().includes(q) ||
+      item.tahun?.toString().includes(q) ||
+      item.jurusan?.toLowerCase().includes(q)
+    );
+  });
+
+  const totalSkripsiPages = Math.ceil(filteredSkripsi.length / skripsiPerPage);
+  const currentDataSkripsi = filteredSkripsi.slice(skripsiPage * skripsiPerPage, (skripsiPage + 1) * skripsiPerPage);
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora relative overflow-x-hidden">
@@ -250,7 +290,6 @@ export default function JejakPrestasi() {
             <div className="absolute inset-0 bg-[#f4f2ec] transform translate-y-2 rotate-1 rounded-sm shadow-md"></div>
             
             <div className={`relative bg-[#fcfbf9] p-8 md:p-14 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[500px] ${isAnimating ? (animDirection === 'next' ? 'slide-next-out' : 'slide-prev-out') : (animDirection === 'next' ? 'slide-next-in' : (animDirection === 'prev' ? 'slide-prev-in' : ''))}`}>
-              
               <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
                 <span className="text-amber-600 font-bold font-sans tracking-widest uppercase text-xs">Halaman {currentPage + 1}</span>
                 <h3 className="text-2xl font-bold text-stone-900 font-playfair">Catatan Prestasi</h3>
@@ -288,10 +327,10 @@ export default function JejakPrestasi() {
         )}
       </div>
 
-      {/* 3. REPOSITORI SKRIPSI DENGAN DESAIN KLASIK & ELEGAN SEPERTI GAMBAR */}
+      {/* 3. REPOSITORI SKRIPSI (TABEL DENGAN EFEK KERTAS & PENCARIAN) */}
       <div id="repositori" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-32 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         
-        {/* Header Desain Kotak Merah */}
+        {/* Header Desain Kotak Merah (Dipertahankan Persis) */}
         <div className="flex items-center gap-5 mb-12">
           <div className="w-16 h-16 bg-red-800 rounded-md flex items-center justify-center text-white shrink-0 shadow-sm">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
@@ -303,23 +342,81 @@ export default function JejakPrestasi() {
         </div>
         
         {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat repositori...</p> : dataSkripsi.length === 0 ? <div className="bg-white p-12 rounded-sm border border-stone-200 text-stone-500 text-center shadow-sm w-full">Belum ada data skripsi.</div> : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {dataSkripsi.map(item => (
-              <div key={item.id} className="bg-white p-8 rounded-sm shadow-md border border-stone-100 flex flex-col group hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h4 className="font-bold text-stone-900 text-lg uppercase tracking-wide font-serif mb-1">{item.nama}</h4>
-                    <p className="text-[11px] text-stone-500 font-sans uppercase tracking-widest">{item.jurusan}</p>
-                  </div>
-                  <span className="bg-stone-100 text-stone-600 text-xs font-medium px-3 py-1 rounded-sm">{item.tahun}</span>
+          <div className="relative mt-8 perspective-1000">
+            {/* Kertas Latar (Tumpukan Kertas Klasik) */}
+            <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-4 rotate-1 rounded-sm shadow-md"></div>
+            <div className="absolute inset-0 bg-[#f4f2ec] transform translate-y-2 -rotate-1 rounded-sm shadow-md"></div>
+            
+            {/* Kertas Utama & Animasi Paginasi Skripsi */}
+            <div className={`relative bg-[#fcfbf9] p-6 md:p-12 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[500px] ${isSkripsiAnimating ? (skripsiAnimDirection === 'next' ? 'slide-next-out' : 'slide-prev-out') : (skripsiAnimDirection === 'next' ? 'slide-next-in' : (skripsiAnimDirection === 'prev' ? 'slide-prev-in' : ''))}`}>
+              
+              {/* Kolom Pencarian */}
+              <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-8 border-b border-[#e8e4db] pb-6 gap-4">
+                <h3 className="text-2xl font-bold text-stone-900 font-playfair w-full md:w-auto">Katalog Arsip</h3>
+                <div className="relative w-full md:w-80">
+                  <input 
+                    type="text" 
+                    placeholder="Cari judul, penulis, tahun..." 
+                    value={searchSkripsi}
+                    onChange={(e) => setSearchSkripsi(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border-b-2 border-stone-300 bg-transparent focus:outline-none focus:border-red-800 transition-colors font-sans text-sm text-stone-800 placeholder-stone-400"
+                  />
+                  <svg className="absolute left-2 top-2.5 text-stone-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
-                <h3 className="text-[17px] font-serif text-stone-800 leading-relaxed mb-8 flex-grow italic">"{item.judul}"</h3>
-                <button onClick={() => { setSelectedSkripsi(item); setShowSkripsiModal(true); document.body.style.overflow = "hidden"; }} className="w-full bg-[#171412] hover:bg-stone-800 text-white py-3.5 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2 font-sans shadow-sm">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                  AKSES PDF
-                </button>
               </div>
-            ))}
+
+              {/* Tabel Skripsi */}
+              <div className="flex-grow overflow-x-auto pb-4">
+                {currentDataSkripsi.length === 0 ? (
+                  <div className="text-center py-16 italic text-stone-500">Skripsi tidak ditemukan...</div>
+                ) : (
+                  <table className="w-full text-left font-serif text-stone-800 min-w-[700px]">
+                    <thead className="border-b-2 border-stone-300 font-sans text-xs tracking-widest text-stone-500 uppercase">
+                      <tr>
+                        <th className="py-3 px-4 w-12 text-center">No</th>
+                        <th className="py-3 px-4 w-64">Penulis & Jurusan</th>
+                        <th className="py-3 px-4">Judul Skripsi</th>
+                        <th className="py-3 px-4 w-20 text-center">Tahun</th>
+                        <th className="py-3 px-4 w-40 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-200">
+                      {currentDataSkripsi.map((item, index) => {
+                        const skripsiNo = (skripsiPage * skripsiPerPage) + index + 1;
+                        return (
+                          <tr key={item.id} className="hover:bg-white transition-colors group">
+                            <td className="py-5 px-4 text-center font-bold text-stone-400">{skripsiNo}.</td>
+                            <td className="py-5 px-4 font-sans uppercase">
+                              <div className="font-bold text-stone-900 leading-tight mb-1">{item.nama}</div>
+                              <div className="text-[10px] text-stone-500 tracking-wider leading-tight">{item.jurusan}</div>
+                            </td>
+                            <td className="py-5 px-4 italic leading-relaxed text-[15px] pr-8 group-hover:text-red-900 transition-colors">"{item.judul}"</td>
+                            <td className="py-5 px-4 text-center font-sans font-bold text-stone-600 bg-stone-50/50">{item.tahun}</td>
+                            <td className="py-5 px-4 text-center">
+                              <button 
+                                onClick={() => { setSelectedSkripsi(item); setShowSkripsiModal(true); document.body.style.overflow = "hidden"; }} 
+                                className="w-full bg-[#171412] hover:bg-stone-800 text-white py-2.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2 font-sans shadow-sm"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                AKSES PDF
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* Navigasi Paginasi Skripsi */}
+              <div className="mt-8 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase pt-6 border-t border-[#e8e4db]">
+                <button onClick={() => changeSkripsiPage(skripsiPage - 1, 'prev')} disabled={skripsiPage === 0 || isSkripsiAnimating} className={`flex items-center gap-2 transition-colors ${skripsiPage === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-500 hover:text-red-800'}`}>← Lembar Sebelumnya</button>
+                <span className="text-stone-400 font-serif italic text-base lowercase">{skripsiPage + 1} / {totalSkripsiPages || 1}</span>
+                <button onClick={() => changeSkripsiPage(skripsiPage + 1, 'next')} disabled={skripsiPage >= totalSkripsiPages - 1 || isSkripsiAnimating} className={`flex items-center gap-2 transition-colors ${skripsiPage >= totalSkripsiPages - 1 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-900 hover:text-amber-600'}`}>Lembar Selanjutnya →</button>
+              </div>
+
+            </div>
           </div>
         )}
       </div>
