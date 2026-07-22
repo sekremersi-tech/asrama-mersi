@@ -39,6 +39,20 @@ const AutoSliderCard = ({ images, className, children, onClick }) => {
   );
 };
 
+// KARTU AUTO SLIDER KHUSUS BERITA
+const NewsAutoSliderCard = ({ images, className }) => {
+  const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
+  const [idx, setIdx] = useState(0);
+  useEffect(() => { if (imgArray.length <= 1) return; const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 3500); return () => clearInterval(timer); }, [imgArray.length]);
+  if (imgArray.length === 0) return <div className={`bg-stone-200 ${className}`}></div>;
+  return (
+    <div className={`relative overflow-hidden w-full h-full ${className}`}>
+      {imgArray.map((src, i) => (<img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 group-hover:scale-105 ease-in-out ${i === idx ? "opacity-100" : "opacity-0"}`} alt="Visual" />))}
+      {imgArray.length > 1 && <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg border border-white/10 z-10 font-sans">+{imgArray.length} Foto</div>}
+    </div>
+  );
+};
+
 export default function Kehidupan() {
   const [bgMedia, setBgMedia] = useState([]);
   const [dataGaleri, setDataGaleri] = useState([]);
@@ -57,6 +71,10 @@ export default function Kehidupan() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
+  // STATE SLIDER BERITA
+  const [newsPage, setNewsPage] = useState(0);
+  const newsPerPage = 2;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -64,6 +82,8 @@ export default function Kehidupan() {
         if (snapFoto.exists() && snapFoto.data().kehidupan) setBgMedia(snapFoto.data().kehidupan);
         const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "desc")));
         setDataGaleri(galSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        
+        // MENGAMBIL SEMUA BERITA UNTUK BISA DIGESER
         const berSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
         setDataBerita(berSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (error) { console.error(error); } finally { setLoading(false); }
@@ -73,7 +93,7 @@ export default function Kehidupan() {
 
   const openModal = async (item, type) => { 
     setSelectedItem(item); setModalImageIdx(0); document.body.style.overflow = "hidden"; 
-    setFormKomen({ nama: "", isi: "" }); // FIX: Bersihkan ketikan saat membuka
+    setFormKomen({ nama: "", isi: "" });
     
     if (type === "berita" && item.kategori === "LOMBA TERBUKA") {
       setShowLombaModal(true);
@@ -84,7 +104,7 @@ export default function Kehidupan() {
       setKomentarList([]);
       if (type === "berita") {
         try {
-          const targetId = String(item.id); // FIX: Pastikan ID string
+          const targetId = String(item.id);
           const q = query(collection(db, "komentar_publikasi"), where("postId", "==", targetId));
           const snap = await getDocs(q);
           let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -97,7 +117,7 @@ export default function Kehidupan() {
 
   const closeModal = () => { 
     setSelectedItem(null); setShowLombaModal(false); setKomentarList([]); 
-    setFormKomen({ nama: "", isi: "" }); // FIX: Bersihkan ketikan saat menutup
+    setFormKomen({ nama: "", isi: "" }); 
     document.body.style.overflow = "auto"; 
   };
 
@@ -108,7 +128,7 @@ export default function Kehidupan() {
   const handleSubmitLomba = async (e) => {
     e.preventDefault();
     if (!formLomba.noHp.startsWith("08")) return alert("Nomor HP harus diawali dengan angka 08");
-    if (formLomba.noHp.length < 11) return alert("Nomor HP tidak valid. Minimal harus 11 angka.");
+    if (formLomba.noHp.length < 11) return alert("Nomor HP tidak valid.");
     setIsSubmittingLomba(true);
     try {
       await addDoc(collection(db, "pendaftaran_lomba"), { lombaId: selectedItem.id, judulLomba: selectedItem.judul, namaPeserta: formLomba.nama, alamatPeserta: formLomba.alamat, noHpPeserta: formLomba.noHp, waktuDaftar: serverTimestamp() });
@@ -122,18 +142,17 @@ export default function Kehidupan() {
     if (!formKomen.isi.trim()) return;
     setIsSubmittingKomen(true);
     try {
-      const targetId = String(selectedItem.id); // FIX: Pastikan ID string
+      const targetId = String(selectedItem.id);
       const newKomen = { postId: targetId, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
       setKomentarList([...komentarList, {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }]);
       setFormKomen({nama: "", isi: ""});
-    } catch (err) { 
-      console.error(err);
-      alert("Gagal mengirim! (Pastikan Aturan Firebase Anda belum kedaluwarsa). Error: " + err.message); 
-    } finally {
-      setIsSubmittingKomen(false);
-    }
+    } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
+
+  // LOGIKA SLIDER
+  const totalNewsPages = Math.ceil(dataBerita.length / newsPerPage);
+  const displayedNews = dataBerita.slice(newsPage * newsPerPage, (newsPage + 1) * newsPerPage);
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora relative">
@@ -204,7 +223,6 @@ export default function Kehidupan() {
         </div>
       )}
 
-      {/* Konten sisa sama... */}
       <HeroSlider images={bgMedia} title="Media & Publikasi" subtitle="Merekam setiap langkah, kegiatan, dan dinamika kehidupan warga perantau di Asrama Merapi Singgalang." />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
@@ -221,21 +239,50 @@ export default function Kehidupan() {
           )}
         </div>
 
+        {/* KABAR TERBARU WARGA DENGAN SLIDER */}
         <div id="kabar" className="scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out delay-200">
-          <div className="flex items-center gap-4 mb-10 border-t border-[#e8e4db] pt-16"><div className="w-14 h-14 bg-red-800 rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div><div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Kabar Terbaru Warga</h2><p className="text-stone-500 text-sm mt-1">Berita, prestasi, dan publikasi penghuni asrama.</p></div></div>
+          <div className="flex flex-col md:flex-row justify-between items-end mb-10 border-b border-[#e8e4db] pb-4 pt-16">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-red-800 rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
+              <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Kabar Terbaru Warga</h2><p className="text-stone-500 text-sm mt-1">Berita, prestasi, dan publikasi penghuni asrama.</p></div>
+            </div>
+            
+            {/* Tombol Geser (Slider) Desktop */}
+            <div className="hidden md:flex items-center gap-4">
+              <button onClick={() => setNewsPage(p => Math.max(0, p - 1))} disabled={newsPage === 0} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <button onClick={() => setNewsPage(p => Math.min(totalNewsPages - 1, p + 1))} disabled={newsPage >= totalNewsPages - 1} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          </div>
+          
           {loading ? <p className="text-center py-10 text-stone-500">Memuat kabar...</p> : dataBerita.length === 0 ? <div className="bg-white p-8 border border-[#e8e4db] text-center text-stone-500">Belum ada publikasi berita.</div> : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {dataBerita.map((item, idx) => (
-                <div key={item.id} onClick={() => openModal(item, "berita")} className={`bg-[#fcfbf9] border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] flex flex-col md:flex-row overflow-hidden group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 reveal opacity-0 translate-y-12`} style={{ transitionDelay: `${(idx % 2) * 200}ms` }}>
-                  <AutoSliderCard images={item.linkGambar} className="w-full md:w-2/5 h-48 md:h-auto shrink-0 bg-stone-100" />
+            <div key={newsPage} className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-[fadeIn_0.5s_ease-out]">
+              {displayedNews.map((item, idx) => (
+                <div key={item.id} onClick={() => openModal(item, "berita")} className={`bg-[#fcfbf9] border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] flex flex-col md:flex-row overflow-hidden group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
+                  <div className="w-full md:w-2/5 h-48 md:h-auto shrink-0 relative overflow-hidden bg-stone-100"><NewsAutoSliderCard images={item.linkGambar} /></div>
                   <div className="p-6 md:p-8 flex flex-col justify-center w-full">
                     <div className="flex items-center gap-3 mb-3"><span className="text-xs font-bold tracking-widest uppercase text-red-800 font-sans">{item.kategori}</span><span className="text-stone-300">•</span><span className="text-xs text-stone-500 font-sans">{item.tanggal}</span></div>
-                    <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-3 group-hover:text-amber-600 transition-colors leading-snug">{item.judul}</h3>
-                    <p className="text-stone-600 text-sm leading-relaxed line-clamp-3">{item.deskripsi}</p>
+                    <h3 className="text-xl md:text-2xl font-bold text-stone-900 font-playfair mb-3 group-hover:text-amber-600 transition-colors leading-snug line-clamp-2">{item.judul}</h3>
+                    <p className="text-stone-600 text-sm leading-relaxed line-clamp-2">{item.deskripsi}</p>
                     <span className="text-amber-600 text-xs font-bold uppercase tracking-widest mt-4 font-sans flex items-center gap-1 group-hover:gap-2 transition-all">Baca Selengkapnya <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Tombol Geser (Slider) HP */}
+          {dataBerita.length > 0 && (
+            <div className="mt-8 flex md:hidden justify-center gap-6">
+              <button onClick={() => setNewsPage(p => Math.max(0, p - 1))} disabled={newsPage === 0} className="w-12 h-12 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <button onClick={() => setNewsPage(p => Math.min(totalNewsPages - 1, p + 1))} disabled={newsPage >= totalNewsPages - 1} className="w-12 h-12 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
             </div>
           )}
         </div>
