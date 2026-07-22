@@ -33,6 +33,7 @@ const HeroSlider = ({ images, title }) => {
 const AutoSliderCard = ({ images, className }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
   const [idx, setIdx] = useState(0);
+
   useEffect(() => {
     if (imgArray.length <= 1) return;
     const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 3500);
@@ -40,10 +41,11 @@ const AutoSliderCard = ({ images, className }) => {
   }, [imgArray.length]);
 
   if (imgArray.length === 0) return <div className={`bg-stone-200 ${className}`}></div>;
+
   return (
     <div className={`relative overflow-hidden w-full h-full ${className}`}>
       {imgArray.map((src, i) => (
-        <img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === idx ? "opacity-100 scale-105" : "opacity-0 scale-100"}`} alt="Visual" />
+        <img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === idx ? "opacity-100 scale-105" : "opacity-0 scale-100"}`} alt="Dokumentasi Profil" />
       ))}
       {imgArray.length > 1 && (
         <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-lg border border-white/10 z-10 font-sans">
@@ -54,10 +56,8 @@ const AutoSliderCard = ({ images, className }) => {
   );
 };
 
-// KOMPONEN GALERI TUMPUK
 const StackedGallery = ({ data }) => {
   const [activeIdx, setActiveIdx] = useState(0);
-  
   if (!data || data.length === 0) return null;
 
   return (
@@ -68,37 +68,23 @@ const StackedGallery = ({ data }) => {
           const isPrev = idx === (activeIdx - 1 + data.length) % data.length;
           const isNext = idx === (activeIdx + 1) % data.length;
           
-          let zIndex = 0;
-          let transform = 'scale(0.75) translateY(-30px)';
-          let opacity = 0;
+          let zIndex = 0; let transform = 'scale(0.75) translateY(-30px)'; let opacity = 0;
           
           if (isActive) { zIndex = 30; transform = 'scale(1) translateY(0)'; opacity = 1; }
           else if (isPrev) { zIndex = 20; transform = 'scale(0.85) translateX(-50px) translateY(10px) rotate(-4deg)'; opacity = 0.5; }
           else if (isNext) { zIndex = 20; transform = 'scale(0.85) translateX(50px) translateY(10px) rotate(4deg)'; opacity = 0.5; }
 
           const images = Array.isArray(item.linkGambar) ? item.linkGambar : [item.linkGambar];
-          
           return (
-            <div 
-              key={item.id} 
-              className="absolute w-[85%] md:w-[65%] h-[90%] transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer shadow-2xl rounded-sm overflow-hidden border border-stone-200 bg-white"
-              style={{ zIndex, transform, opacity, pointerEvents: isActive ? 'auto' : 'none' }}
-              onClick={() => !isActive && setActiveIdx(idx)}
-            >
+            <div key={item.id} className="absolute w-[85%] md:w-[65%] h-[90%] transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer shadow-2xl rounded-sm overflow-hidden border border-stone-200 bg-white" style={{ zIndex, transform, opacity, pointerEvents: isActive ? 'auto' : 'none' }} onClick={() => !isActive && setActiveIdx(idx)}>
                <AutoSliderCard images={images} className="w-full h-[75%]" />
-               <div className="h-[25%] bg-white p-4 flex items-center justify-center border-t border-stone-100">
-                 <p className="text-stone-600 italic font-lora text-sm md:text-base text-center line-clamp-2">"{item.konteks}"</p>
-               </div>
+               <div className="h-[25%] bg-white p-4 flex items-center justify-center border-t border-stone-100"><p className="text-stone-600 italic font-lora text-sm md:text-base text-center line-clamp-2">"{item.konteks}"</p></div>
             </div>
           );
         })}
-
-        {/* Panah Navigasi */}
         <button onClick={() => setActiveIdx((activeIdx - 1 + data.length) % data.length)} className="absolute left-0 md:left-4 z-40 bg-white/90 p-4 rounded-full shadow-lg text-stone-600 hover:text-red-800 transition-colors backdrop-blur-sm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
         <button onClick={() => setActiveIdx((activeIdx + 1) % data.length)} className="absolute right-0 md:right-4 z-40 bg-white/90 p-4 rounded-full shadow-lg text-stone-600 hover:text-red-800 transition-colors backdrop-blur-sm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
       </div>
-
-      {/* Indikator Titik (Dots) */}
       <div className="flex gap-2 mt-8 z-50">
         {data.map((_, i) => (
           <button key={i} onClick={() => setActiveIdx(i)} className={`h-2.5 rounded-full transition-all duration-500 ${i === activeIdx ? 'w-10 bg-amber-500' : 'w-2.5 bg-stone-300 hover:bg-stone-400'}`}></button>
@@ -108,7 +94,7 @@ const StackedGallery = ({ data }) => {
   )
 }
 
-// KOMPONEN KARTU KEPENGURUSAN (KLIK UNTUK FLIP 3D)
+// MENAMPILKAN PERAN PADA KARTU ANGGOTA
 const MemberCard = ({ member, role, isMain = false }) => {
   const [flipped, setFlipped] = useState(false);
   const f1 = member.foto1 || `https://ui-avatars.com/api/?name=${member.nama}&background=991b1b&color=fff&size=256`;
@@ -117,27 +103,24 @@ const MemberCard = ({ member, role, isMain = false }) => {
 
   return (
     <div className="flex flex-col items-center perspective-1000 group">
-      <div 
-        onClick={() => setFlipped(!flipped)}
-        className={`relative ${sizeClasses} rounded-xl shadow-lg border-4 border-white mb-4 cursor-pointer transform-style-3d transition-transform duration-700 ease-in-out ${flipped ? 'rotate-y-180' : ''} hover:shadow-2xl hover:-translate-y-1`}
-      >
-        {/* Bagian Depan (Foto 1) */}
+      <div onClick={() => setFlipped(!flipped)} className={`relative ${sizeClasses} rounded-xl shadow-lg border-4 border-white mb-4 cursor-pointer transform-style-3d transition-transform duration-700 ease-in-out ${flipped ? 'rotate-y-180' : ''} hover:shadow-2xl hover:-translate-y-1`}>
         <div className="absolute inset-0 backface-hidden bg-stone-100 rounded-lg overflow-hidden">
            <img src={f1} className="w-full h-full object-cover" alt={member.nama} />
-           <div className="absolute bottom-2 right-2 bg-black/60 p-1.5 rounded-full text-white opacity-60 group-hover:opacity-100 transition-opacity">
-             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-           </div>
+           <div className="absolute bottom-2 right-2 bg-black/60 p-1.5 rounded-full text-white opacity-60 group-hover:opacity-100 transition-opacity"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></div>
         </div>
-        {/* Bagian Belakang (Foto 2) */}
         <div className="absolute inset-0 backface-hidden rotate-y-180 bg-stone-100 rounded-lg overflow-hidden">
            <img src={f2} className="w-full h-full object-cover" alt={`${member.nama} Alternate`} />
-           <div className="absolute bottom-2 right-2 bg-amber-500/90 p-1.5 rounded-full text-white shadow-sm">
-             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-           </div>
+           <div className="absolute bottom-2 right-2 bg-amber-500/90 p-1.5 rounded-full text-white shadow-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></div>
         </div>
       </div>
       <h4 className={`font-bold text-stone-900 text-center leading-tight mb-1 ${isMain ? 'text-xl' : 'text-base'}`}>{member.nama}</h4>
-      {role && <p className={`font-bold text-red-800 uppercase tracking-widest font-sans ${isMain ? 'text-xs' : 'text-[10px]'}`}>{role}</p>}
+      
+      {/* Jika Koordinator, warnanya Amber, Jika Anggota warnanya abu-abu */}
+      {role && (
+        <p className={`font-bold uppercase tracking-widest font-sans ${isMain ? 'text-xs text-red-800' : 'text-[10px]'} ${role === 'Koordinator' ? 'text-amber-600' : 'text-stone-400'}`}>
+          {role}
+        </p>
+      )}
     </div>
   );
 }
@@ -213,7 +196,7 @@ export default function ProfilAsrama() {
         .backface-hidden { backface-visibility: hidden; }
         .rotate-y-180 { transform: rotateY(180deg); }
         .flip-next { animation: flipNext 0.4s ease-in forwards; transform-origin: left center; }
-        .flip-prev { animation: flipPrev 0.4s ease-in forwards; transform-origin: right center; }
+        .flip-prev { animation: flipPrev 0.4s forwards; transform-origin: right center; }
         @keyframes flipNext { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(-90deg); opacity: 0; } }
         @keyframes flipPrev { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(90deg); opacity: 0; } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
@@ -254,8 +237,6 @@ export default function ProfilAsrama() {
             <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair mb-4">Dokumentasi Profil Asrama</h2>
             <div className="w-12 h-1 bg-red-800 mx-auto rounded-full"></div>
           </div>
-          
-          {/* Komponen Tumpukan Foto */}
           <StackedGallery data={dataFotoProfil} />
         </div>
       )}
@@ -295,7 +276,7 @@ export default function ProfilAsrama() {
         </div>
       </div>
 
-      {/* 5. STRUKTUR KEPENGURUSAN (KOTAK BESAR & KLIK UNTUK FLIP) */}
+      {/* 5. STRUKTUR KEPENGURUSAN MENGURUTKAN KOORDINATOR TERLEBIH DAHULU */}
       <div id="kepengurusan" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-16">
           <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Struktur Organisasi</h4>
@@ -307,11 +288,9 @@ export default function ProfilAsrama() {
         {pengurusInti && (
           <div className="mb-20">
             <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10">Pengurus Inti</h3>
-            
             <div className="flex justify-center mb-12">
               <MemberCard member={{ nama: pengurusInti.ketuaNama, foto1: pengurusInti.ketuaFoto, foto2: pengurusInti.ketuaFoto2 }} role="Ketua Asrama" isMain={true} />
             </div>
-
             <div className="flex flex-col sm:flex-row justify-center gap-12 sm:gap-24">
               <MemberCard member={{ nama: pengurusInti.sekreNama, foto1: pengurusInti.sekreFoto, foto2: pengurusInti.sekreFoto2 }} role="Sekretaris" isMain={true} />
               <MemberCard member={{ nama: pengurusInti.bendaharaNama, foto1: pengurusInti.bendaharaFoto, foto2: pengurusInti.bendaharaFoto2 }} role="Bendahara" isMain={true} />
@@ -324,7 +303,18 @@ export default function ProfilAsrama() {
             <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10">Divisi & Anggota</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {dataDivisi.map(div => {
-                const anggotaList = dataAnggota.filter(a => a.divisiId === div.id);
+                
+                // LOGIKA PENGURUTAN: Koordinator tampil duluan
+                const anggotaList = dataAnggota
+                  .filter(a => a.divisiId === div.id)
+                  .sort((a, b) => {
+                    const roleA = a.peran || "Anggota";
+                    const roleB = b.peran || "Anggota";
+                    if (roleA === "Koordinator" && roleB !== "Koordinator") return -1;
+                    if (roleA !== "Koordinator" && roleB === "Koordinator") return 1;
+                    return 0;
+                  });
+
                 return (
                   <div key={div.id} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300">
                     <div className="bg-[#171412] py-4 px-6 text-center border-b-2 border-red-800">
@@ -334,7 +324,12 @@ export default function ProfilAsrama() {
                       {anggotaList.length === 0 ? <p className="text-sm text-stone-400 text-center italic">Belum ada anggota</p> : (
                         <div className="grid grid-cols-2 gap-8 justify-items-center">
                           {anggotaList.map(anggota => (
-                            <MemberCard key={anggota.id} member={{ nama: anggota.nama, foto1: anggota.foto, foto2: anggota.foto2 }} isMain={false} />
+                            <MemberCard 
+                              key={anggota.id} 
+                              member={{ nama: anggota.nama, foto1: anggota.foto, foto2: anggota.foto2 }} 
+                              role={anggota.peran || "Anggota"} 
+                              isMain={false} 
+                            />
                           ))}
                         </div>
                       )}
