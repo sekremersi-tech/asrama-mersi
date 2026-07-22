@@ -37,26 +37,22 @@ export default function JejakPrestasi() {
   const [dataSkripsi, setDataSkripsi] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // STATE MODAL PRESTASI
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalImageIdx, setModalImageIdx] = useState(0);
   const [komentarList, setKomentarList] = useState([]);
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
-  // STATE PAGINASI LIST PRESTASI
   const [currentPage, setCurrentPage] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [animDirection, setAnimDirection] = useState("");
   const itemsPerPage = 10;
 
-  // STATE MODAL UNDUH SKRIPSI
   const [showSkripsiModal, setShowSkripsiModal] = useState(false);
   const [selectedSkripsi, setSelectedSkripsi] = useState(null);
   const [formUnduh, setFormUnduh] = useState({ namaPengunduh: "", emailPengunduh: "", noHpPengunduh: "" });
   const [isSubmittingUnduh, setIsSubmittingUnduh] = useState(false);
 
-  // STATE PENCARIAN & PAGINASI SKRIPSI
   const [searchSkripsi, setSearchSkripsi] = useState("");
   const [skripsiPage, setSkripsiPage] = useState(0);
   const [isSkripsiAnimating, setIsSkripsiAnimating] = useState(false);
@@ -85,12 +81,10 @@ export default function JejakPrestasi() {
     fetchData();
   }, []);
 
-  // RESET HALAMAN SKRIPSI KE AWAL SAAT PENCARIAN BERUBAH
   useEffect(() => {
     setSkripsiPage(0);
   }, [searchSkripsi]);
 
-  // FUNGSI PAGINASI LIST PRESTASI
   const changePage = (newIndex, direction) => {
     if (newIndex >= 0 && newIndex < Math.ceil(dataPrestasi.length / itemsPerPage)) {
       setAnimDirection(direction);
@@ -102,9 +96,7 @@ export default function JejakPrestasi() {
     }
   };
 
-  // FUNGSI PAGINASI LIST SKRIPSI
   const changeSkripsiPage = (newIndex, direction) => {
-    // Kita filter data dulu agar max halamannya akurat
     const filteredLength = dataSkripsi.filter(item => {
       const q = searchSkripsi.toLowerCase();
       return item.judul?.toLowerCase().includes(q) || item.nama?.toLowerCase().includes(q) || item.tahun?.toString().includes(q) || item.jurusan?.toLowerCase().includes(q);
@@ -148,8 +140,22 @@ export default function JejakPrestasi() {
     } catch (err) { alert("Gagal mengirim komentar!"); } finally { setIsSubmittingKomen(false); }
   };
 
+  // LOGIKA VALIDASI UNDUH SKRIPSI YANG DIPERKETAT
   const handleUnduhSkripsi = async (e) => {
     e.preventDefault();
+    
+    // Validasi Nomor HP
+    if (!formUnduh.noHpPengunduh.startsWith("08")) {
+      return alert("Gagal: Nomor HP / WA harus diawali dengan angka 08");
+    }
+    if (formUnduh.noHpPengunduh.length < 11) {
+      return alert("Gagal: Nomor HP / WA tidak valid. Minimal harus 11 angka.");
+    }
+    // Validasi Email
+    if (!formUnduh.emailPengunduh.includes("@")) {
+      return alert("Gagal: Format email tidak valid.");
+    }
+
     setIsSubmittingUnduh(true);
     try {
       await addDoc(collection(db, "log_unduh_skripsi"), {
@@ -173,7 +179,6 @@ export default function JejakPrestasi() {
   const totalPages = Math.ceil(dataPrestasi.length / itemsPerPage);
   const currentDataPrestasi = dataPrestasi.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
-  // LOGIKA PENCARIAN SKRIPSI
   const filteredSkripsi = dataSkripsi.filter(item => {
     const q = searchSkripsi.toLowerCase();
     return (
@@ -183,7 +188,6 @@ export default function JejakPrestasi() {
       item.jurusan?.toLowerCase().includes(q)
     );
   });
-
   const totalSkripsiPages = Math.ceil(filteredSkripsi.length / skripsiPerPage);
   const currentDataSkripsi = filteredSkripsi.slice(skripsiPage * skripsiPerPage, (skripsiPage + 1) * skripsiPerPage);
 
@@ -245,16 +249,50 @@ export default function JejakPrestasi() {
         </div>
       )}
 
-      {/* MODAL UNDUH SKRIPSI */}
+      {/* MODAL UNDUH SKRIPSI DENGAN VALIDASI KETAT DAN WARNA TEXT HITAM */}
       {showSkripsiModal && selectedSkripsi && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={() => {setShowSkripsiModal(false); document.body.style.overflow = "auto";}}>
           <div className="bg-white p-8 rounded-lg shadow-2xl max-w-md w-full border-t-4 border-red-800" onClick={e => e.stopPropagation()}>
             <h3 className="font-playfair text-2xl font-bold text-stone-900 mb-2">Akses Skripsi</h3>
             <p className="text-sm text-stone-500 mb-6 pb-4 border-b border-stone-100">Silakan isi data diri Anda untuk mengunduh karya tulis ini. Data digunakan untuk keperluan pendataan perpustakaan asrama.</p>
             <form onSubmit={handleUnduhSkripsi} className="space-y-4 font-sans">
-              <div><label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nama Lengkap</label><input type="text" required value={formUnduh.namaPengunduh} onChange={(e) => setFormUnduh({...formUnduh, namaPengunduh: e.target.value})} className="w-full px-4 py-2 border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm" placeholder="Nama..." /></div>
-              <div><label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Email Aktif</label><input type="email" required value={formUnduh.emailPengunduh} onChange={(e) => setFormUnduh({...formUnduh, emailPengunduh: e.target.value})} className="w-full px-4 py-2 border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm" placeholder="Email..." /></div>
-              <div><label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nomor WA / HP</label><input type="tel" required value={formUnduh.noHpPengunduh} onChange={(e) => setFormUnduh({...formUnduh, noHpPengunduh: e.target.value})} className="w-full px-4 py-2 border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm" placeholder="Nomor HP..." /></div>
+              <div>
+                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nama Lengkap</label>
+                {/* VALIDASI: HANYA HURUF DAN SPASI + TEXT WARNA HITAM MENGGUNAKAN text-stone-900 */}
+                <input 
+                  type="text" 
+                  required 
+                  value={formUnduh.namaPengunduh} 
+                  onChange={(e) => setFormUnduh({...formUnduh, namaPengunduh: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} 
+                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
+                  placeholder="Hanya isi dengan huruf..." 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Email Aktif</label>
+                {/* VALIDASI: TYPE EMAIL + TEXT WARNA HITAM */}
+                <input 
+                  type="email" 
+                  required 
+                  value={formUnduh.emailPengunduh} 
+                  onChange={(e) => setFormUnduh({...formUnduh, emailPengunduh: e.target.value})} 
+                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
+                  placeholder="contoh@gmail.com" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nomor WA / HP</label>
+                {/* VALIDASI: HANYA ANGKA + TEXT WARNA HITAM */}
+                <input 
+                  type="tel" 
+                  required 
+                  maxLength={14}
+                  value={formUnduh.noHpPengunduh} 
+                  onChange={(e) => setFormUnduh({...formUnduh, noHpPengunduh: e.target.value.replace(/\D/g, '')})} 
+                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
+                  placeholder="Awali dengan 08..." 
+                />
+              </div>
               <button type="submit" disabled={isSubmittingUnduh} className="w-full bg-[#171412] hover:bg-red-800 text-white font-bold py-3 rounded transition-colors mt-2">{isSubmittingUnduh ? "Memproses..." : "Unduh Dokumen"}</button>
             </form>
           </div>
@@ -263,7 +301,7 @@ export default function JejakPrestasi() {
 
       <HeroSlider images={bgAlumni} title="Jejak & Prestasi" />
 
-      {/* 1. JEJAK ALUMNI (TEKS) */}
+      {/* 1. JEJAK ALUMNI */}
       <div id="jejak" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-4">Jejak Alumni</h2>
@@ -276,7 +314,7 @@ export default function JejakPrestasi() {
         </div>
       </div>
 
-      {/* 2. LIST PRESTASI (KERTAS BERTUMPUK DENGAN ANIMASI GESER) */}
+      {/* 2. LIST PRESTASI */}
       <div id="prestasi" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-10">
           <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Tinta Emas</h4>
@@ -327,10 +365,8 @@ export default function JejakPrestasi() {
         )}
       </div>
 
-      {/* 3. REPOSITORI SKRIPSI (TABEL DENGAN EFEK KERTAS & PENCARIAN) */}
+      {/* 3. REPOSITORI SKRIPSI */}
       <div id="repositori" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-32 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        
-        {/* Header Desain Kotak Merah (Dipertahankan Persis) */}
         <div className="flex items-center gap-5 mb-12">
           <div className="w-16 h-16 bg-red-800 rounded-md flex items-center justify-center text-white shrink-0 shadow-sm">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
@@ -343,14 +379,10 @@ export default function JejakPrestasi() {
         
         {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat repositori...</p> : dataSkripsi.length === 0 ? <div className="bg-white p-12 rounded-sm border border-stone-200 text-stone-500 text-center shadow-sm w-full">Belum ada data skripsi.</div> : (
           <div className="relative mt-8 perspective-1000">
-            {/* Kertas Latar (Tumpukan Kertas Klasik) */}
             <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-4 rotate-1 rounded-sm shadow-md"></div>
             <div className="absolute inset-0 bg-[#f4f2ec] transform translate-y-2 -rotate-1 rounded-sm shadow-md"></div>
             
-            {/* Kertas Utama & Animasi Paginasi Skripsi */}
             <div className={`relative bg-[#fcfbf9] p-6 md:p-12 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[500px] ${isSkripsiAnimating ? (skripsiAnimDirection === 'next' ? 'slide-next-out' : 'slide-prev-out') : (skripsiAnimDirection === 'next' ? 'slide-next-in' : (skripsiAnimDirection === 'prev' ? 'slide-prev-in' : ''))}`}>
-              
-              {/* Kolom Pencarian */}
               <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-8 border-b border-[#e8e4db] pb-6 gap-4">
                 <h3 className="text-2xl font-bold text-stone-900 font-playfair w-full md:w-auto">Katalog Arsip</h3>
                 <div className="relative w-full md:w-80">
@@ -365,7 +397,6 @@ export default function JejakPrestasi() {
                 </div>
               </div>
 
-              {/* Tabel Skripsi */}
               <div className="flex-grow overflow-x-auto pb-4">
                 {currentDataSkripsi.length === 0 ? (
                   <div className="text-center py-16 italic text-stone-500">Skripsi tidak ditemukan...</div>
@@ -409,7 +440,6 @@ export default function JejakPrestasi() {
                 )}
               </div>
 
-              {/* Navigasi Paginasi Skripsi */}
               <div className="mt-8 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase pt-6 border-t border-[#e8e4db]">
                 <button onClick={() => changeSkripsiPage(skripsiPage - 1, 'prev')} disabled={skripsiPage === 0 || isSkripsiAnimating} className={`flex items-center gap-2 transition-colors ${skripsiPage === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-500 hover:text-red-800'}`}>← Lembar Sebelumnya</button>
                 <span className="text-stone-400 font-serif italic text-base lowercase">{skripsiPage + 1} / {totalSkripsiPages || 1}</span>
