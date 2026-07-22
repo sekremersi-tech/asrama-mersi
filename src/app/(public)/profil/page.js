@@ -99,8 +99,6 @@ const MemberCard = ({ member, role, isMain = false }) => {
   const f1 = member.foto1 || `https://ui-avatars.com/api/?name=${member.nama}&background=991b1b&color=fff&size=256`;
   const f2 = member.foto2 || f1; 
   const sizeClasses = isMain ? "w-48 h-48 md:w-56 md:h-56" : "w-36 h-36 md:w-44 md:h-44";
-
-  // Desain teks jabatan khusus
   const isKoordinator = role === "Koordinator";
 
   return (
@@ -116,8 +114,6 @@ const MemberCard = ({ member, role, isMain = false }) => {
         </div>
       </div>
       <h4 className={`font-bold text-stone-900 text-center leading-tight mb-1 ${isMain ? 'text-xl' : 'text-base'}`}>{member.nama}</h4>
-      
-      {/* Label Jabatan Dinamis */}
       {role && (
         <p className={`font-bold uppercase tracking-widest font-sans ${isMain ? 'text-xs text-red-800' : 'text-[10px]'} ${isKoordinator ? 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded' : 'text-stone-400'}`}>
           {role}
@@ -129,7 +125,7 @@ const MemberCard = ({ member, role, isMain = false }) => {
 
 export default function ProfilAsrama() {
   const [bgProfil, setBgProfil] = useState([]);
-  const [profilText, setProfilText] = useState({ sejarah: "", visi: "", misi: "" });
+  const [profilText, setProfilText] = useState({ visi: "", misi: "" });
   const [dataTimeline, setDataTimeline] = useState([]);
   const [dataFotoProfil, setDataFotoProfil] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -138,6 +134,7 @@ export default function ProfilAsrama() {
   const [dataDivisi, setDataDivisi] = useState([]);
   const [dataAnggota, setDataAnggota] = useState([]);
 
+  // STATE BUKU SEJARAH (DARI KOLEKSI BARU)
   const [halamanSejarah, setHalamanSejarah] = useState([]);
   const [halAktif, setHalAktif] = useState(0);
   const [isAnimasiFlip, setIsAnimasiFlip] = useState(false);
@@ -151,12 +148,16 @@ export default function ProfilAsrama() {
         
         const snapText = await getDoc(doc(db, "pengaturan", "profilText"));
         if (snapText.exists()) {
-          const dataText = snapText.data();
-          setProfilText(dataText);
-          if (dataText.sejarah) {
-            const pecah = dataText.sejarah.split(/\n\s*\n/).filter(p => p.trim() !== "");
-            setHalamanSejarah(pecah.length > 0 ? pecah : [dataText.sejarah]);
-          }
+          setProfilText(snapText.data());
+        }
+
+        // MENGAMBIL DATA SEJARAH BUKU
+        const sejSnap = await getDocs(query(collection(db, "sejarah_asrama"), orderBy("createdAt", "asc")));
+        const sejData = sejSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (sejData.length > 0) {
+          setHalamanSejarah(sejData);
+        } else {
+          setHalamanSejarah([{ judul: "Bagian 1", isi: "Belum ada catatan sejarah yang ditambahkan oleh Admin." }]);
         }
 
         const fotoProfSnap = await getDocs(query(collection(db, "profil_galeri"), orderBy("createdAt", "desc")));
@@ -207,7 +208,7 @@ export default function ProfilAsrama() {
 
       <HeroSlider images={bgProfil} title="Profil Asrama" />
 
-      {/* 1. SEJARAH */}
+      {/* 1. SEJARAH (DINAMIS DARI DATABASE) */}
       <div id="sejarah" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-10"><div className="w-12 h-1 bg-red-800 mx-auto rounded-full mb-6"></div></div>
         <div className="relative mt-8 perspective-1000">
@@ -216,11 +217,15 @@ export default function ProfilAsrama() {
           
           <div className={`relative bg-[#fcfbf9] p-8 md:p-14 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[400px] ${isAnimasiFlip ? (arahFlip === 'next' ? 'flip-next' : 'flip-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500'}`}>
             <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
-              <span className="text-amber-600 font-bold italic font-serif text-lg">Bagian {halAktif + 1}</span>
+              {/* Menampilkan Judul Dinamis dari Admin */}
+              <span className="text-amber-600 font-bold italic font-serif text-lg">{halamanSejarah[halAktif]?.judul}</span>
               <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair">Catatan Sejarah</h2>
             </div>
             <div className="flex-grow flex items-center overflow-hidden">
-              <p className="text-stone-700 leading-relaxed text-lg md:text-xl text-justify whitespace-pre-line font-lora">{loading ? "Memuat catatan lembar sejarah..." : halamanSejarah[halAktif]}</p>
+              {/* Menampilkan Isi Dinamis dari Admin */}
+              <p className="text-stone-700 leading-relaxed text-lg md:text-xl text-justify whitespace-pre-line font-lora">
+                {loading ? "Memuat catatan lembar sejarah..." : halamanSejarah[halAktif]?.isi}
+              </p>
             </div>
             <div className="mt-12 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase">
               <button onClick={() => changePage(halAktif - 1, 'prev')} disabled={halAktif === 0 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-500 hover:text-red-800'}`}>← Balik Lembar</button>
@@ -231,7 +236,7 @@ export default function ProfilAsrama() {
         </div>
       </div>
 
-      {/* 2. DOKUMENTASI (FOTO PROFIL BERTUMPUK DENGAN INDIKATOR GESER) */}
+      {/* 2. DOKUMENTASI (FOTO PROFIL BERTUMPUK) */}
       {dataFotoProfil.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-32 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
           <div className="text-center mb-12">
@@ -278,7 +283,7 @@ export default function ProfilAsrama() {
         </div>
       </div>
 
-      {/* 5. STRUKTUR KEPENGURUSAN MENGURUTKAN KOORDINATOR TERLEBIH DAHULU */}
+      {/* 5. STRUKTUR KEPENGURUSAN */}
       <div id="kepengurusan" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-16">
           <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Struktur Organisasi</h4>
@@ -305,7 +310,6 @@ export default function ProfilAsrama() {
             <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10">Divisi & Anggota</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {dataDivisi.map(div => {
-                // LOGIKA PENGURUTAN: Koordinator tampil duluan
                 const anggotaList = dataAnggota
                   .filter(a => a.divisiId === div.id)
                   .sort((a, b) => {
