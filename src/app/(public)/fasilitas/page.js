@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp, where } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, doc, getDoc, addDoc, serverTimestamp, where } from "firebase/firestore";
 
 const HeroSlider = ({ images, title, subtitle }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
@@ -28,7 +28,7 @@ const AutoSliderCard = ({ images, className, onClick }) => {
   return (
     <div className={`relative overflow-hidden group cursor-pointer ${className}`} onClick={onClick}>
       {imgArray.map((src, i) => (<img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 group-hover:scale-105 ease-in-out ${i === idx ? "opacity-100" : "opacity-0"}`} alt="Visual" />))}
-      {imgArray.length > 1 && <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-lg border border-white/10 z-10">+{imgArray.length} Foto</div>}
+      {imgArray.length > 1 && <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-lg border border-white/10 z-10 font-sans">+{imgArray.length} Foto</div>}
       <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-300"></div>
     </div>
   );
@@ -38,6 +38,7 @@ export default function FasilitasAsrama() {
   const [bgFasilitas, setBgFasilitas] = useState([]);
   const [dataFasilitas, setDataFasilitas] = useState([]);
   const [dataPenyewaan, setDataPenyewaan] = useState([]); 
+  const [kabarTerbaru, setKabarTerbaru] = useState([]); // Menambah State Kabar Terbaru
   const [kontak, setKontak] = useState({ noTelpon: "-" });
   const [loading, setLoading] = useState(true);
   const [statusAsrama, setStatusAsrama] = useState({ kamar: "0", penghuni: "0", ketersediaan: "Penuh" });
@@ -54,6 +55,10 @@ export default function FasilitasAsrama() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
+  // STATE SLIDER UNTUK KABAR TERBARU
+  const [newsPage, setNewsPage] = useState(0);
+  const newsPerPage = 2;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -68,8 +73,15 @@ export default function FasilitasAsrama() {
 
         const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "asc")));
         setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        
         const sewaSnap = await getDocs(query(collection(db, "daftar_penyewaan"), orderBy("createdAt", "desc")));
         setDataPenyewaan(sewaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+        // MENGAMBIL BERITA UNTUK SLIDER DI BAWAH
+        const qKabar = query(collection(db, "kehidupan"), orderBy("createdAt", "desc"), limit(10)); 
+        const snapKabar = await getDocs(qKabar);
+        setKabarTerbaru(snapKabar.docs.map(d => ({ id: d.id, ...d.data() })));
+
       } catch (error) { console.error(error); } finally { setLoading(false); }
     };
     fetchData();
@@ -81,7 +93,7 @@ export default function FasilitasAsrama() {
   const openModal = async (item, type) => { 
     setSelectedItem(item); setModalImageIdx(0); setModalType(type); document.body.style.overflow = "hidden"; 
     setKomentarList([]); setFormKomen({ nama: "", isi: "" }); 
-    if (type === "sewa") {
+    if (type === "sewa" || type === "berita") {
       try {
         const targetId = String(item.id);
         const q = query(collection(db, "komentar_publikasi"), where("postId", "==", targetId));
@@ -131,6 +143,10 @@ export default function FasilitasAsrama() {
     const pesan = `Halo Uda/Uni, saya pengunjung website Asrama Merapi Singgalang. Saya ingin bertanya tentang penyewaan *${namaSewa}*.`;
     return `https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(pesan)}`;
   };
+
+  // LOGIKA SLIDER BERITA
+  const totalNewsPages = Math.ceil(kabarTerbaru.length / newsPerPage);
+  const displayedNews = kabarTerbaru.slice(newsPage * newsPerPage, (newsPage + 1) * newsPerPage);
 
   return (
     <div className="bg-[#f9f8f6] pb-24 min-h-screen text-left font-lora overflow-x-hidden relative">
@@ -184,9 +200,11 @@ export default function FasilitasAsrama() {
                   <p className="text-amber-600 font-bold font-sans tracking-wide mb-6 text-xl">{selectedItem.harga}</p>
                   <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
                   <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
+                  
                   <a href={formatWhatsAppLink(selectedItem.noHpSewa, selectedItem.nama)} target="_blank" rel="noopener noreferrer" className="w-full mt-6 bg-[#171412] hover:bg-amber-500 text-white text-center py-3.5 rounded-sm text-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 font-sans shadow-md">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> Reservasi via WhatsApp
                   </a>
+
                   <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
                     <h3 className="font-playfair font-bold text-xl text-stone-900 mb-4">Tanya / Komentar ({komentarList.length})</h3>
                     <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
@@ -202,6 +220,32 @@ export default function FasilitasAsrama() {
                     <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
                       <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900" />
                       <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Ketik pertanyaan atau komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"></textarea>
+                      <button type="submit" disabled={isSubmittingKomen} className="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
+                    </form>
+                  </div>
+                </>
+              ) : modalType === "berita" ? (
+                <>
+                  <div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-red-800 bg-red-50 px-3 py-1 rounded-sm font-sans">{selectedItem.kategori}</span><span className="text-xs text-stone-500 font-sans">{selectedItem.tanggal}</span></div>
+                  <h2 className="text-3xl font-bold font-playfair text-stone-900 mb-6 leading-snug">{selectedItem.judul}</h2>
+                  <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
+                  <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
+                  
+                  <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
+                    <h3 className="font-playfair font-bold text-xl text-stone-900 mb-4">Komentar ({komentarList.length})</h3>
+                    <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
+                      {komentarList.length === 0 ? <p className="text-sm text-stone-500 italic">Belum ada diskusi. Ada pertanyaan?</p> : (
+                        komentarList.map(k => (
+                          <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
+                            <div className="flex justify-between items-center mb-1"><span className="font-bold text-sm text-stone-900">{k.nama}</span><span className="text-[10px] text-stone-400">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span></div>
+                            <p className="text-sm text-stone-600">{k.isi}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
+                      <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900" />
+                      <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Tulis komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"></textarea>
                       <button type="submit" disabled={isSubmittingKomen} className="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
                     </form>
                   </div>
@@ -286,6 +330,60 @@ export default function FasilitasAsrama() {
           </div>
         )}
       </div>
+
+      {/* SEKSI KABAR TERBARU WARGA DENGAN SLIDER 2 ITEM */}
+      <section className="max-w-7xl mx-auto px-4 py-12 md:py-24 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-10 border-b border-[#e8e4db] pb-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-red-800 rounded-sm flex items-center justify-center text-white shrink-0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
+            <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Kabar Terbaru Warga</h2><p className="text-stone-500 text-sm mt-1">Berita, prestasi, dan publikasi penghuni asrama.</p></div>
+          </div>
+          
+          <div className="hidden md:flex items-center gap-6">
+            <div className="flex gap-2">
+              <button onClick={() => setNewsPage(p => Math.max(0, p - 1))} disabled={newsPage === 0} className="w-10 h-10 flex items-center justify-center rounded-full bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-colors shadow-sm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <button onClick={() => setNewsPage(p => Math.min(totalNewsPages - 1, p + 1))} disabled={newsPage >= totalNewsPages - 1} className="w-10 h-10 flex items-center justify-center rounded-full bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-colors shadow-sm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+            <Link href="/kehidupan" className="text-red-800 text-xs font-bold uppercase tracking-widest font-sans items-center gap-1 hover:gap-2 transition-all hover:text-stone-900 flex">
+              Lihat Publikasi Lain <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </Link>
+          </div>
+        </div>
+        
+        {kabarTerbaru.length === 0 ? <div className="text-center py-12 bg-white rounded-sm border border-[#e8e4db] text-stone-500 shadow-sm">Belum ada kabar terbaru.</div> : (
+          <div key={newsPage} className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-[fadeIn_0.5s_ease-out]">
+            {displayedNews.map((item) => (
+              <div key={item.id} onClick={() => openModal(item, "berita")} className={`bg-[#fcfbf9] border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] flex flex-col md:flex-row overflow-hidden group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
+                <div className="w-full md:w-2/5 h-48 md:h-auto shrink-0 relative overflow-hidden bg-stone-100"><AutoSliderCard images={item.linkGambar} /></div>
+                <div className="p-6 md:p-8 flex flex-col justify-center w-full">
+                  <div className="flex items-center gap-3 mb-3"><span className="text-xs font-bold tracking-widest uppercase text-red-800 font-sans">{item.kategori}</span><span className="text-stone-300">•</span><span className="text-xs text-stone-500 font-sans">{item.tanggal}</span></div>
+                  <h3 className="text-xl md:text-2xl font-bold text-stone-900 font-playfair mb-3 group-hover:text-amber-600 transition-colors leading-snug line-clamp-2">{item.judul}</h3>
+                  <p className="text-stone-600 text-sm leading-relaxed line-clamp-2">{item.deskripsi}</p>
+                  <span className="text-amber-600 text-xs font-bold uppercase tracking-widest mt-4 font-sans flex items-center gap-1 group-hover:gap-2 transition-all">Baca Selengkapnya <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-8 flex flex-col md:hidden gap-6">
+          <div className="flex justify-center gap-6">
+            <button onClick={() => setNewsPage(p => Math.max(0, p - 1))} disabled={newsPage === 0} className="w-12 h-12 flex items-center justify-center rounded-full bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-colors shadow-sm">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <button onClick={() => setNewsPage(p => Math.min(totalNewsPages - 1, p + 1))} disabled={newsPage >= totalNewsPages - 1} className="w-12 h-12 flex items-center justify-center rounded-full bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-colors shadow-sm">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
+          <Link href="/kehidupan" className="flex text-red-800 text-xs font-bold uppercase tracking-widest font-sans items-center justify-center gap-1 bg-red-50 py-3.5 rounded-sm border border-red-100">
+            Lihat Publikasi Lain <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
