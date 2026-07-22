@@ -38,20 +38,22 @@ export default function AdminDashboard() {
   const [brosurUrl, setBrosurUrl] = useState("");
   const [fileBrosur, setFileBrosur] = useState(null);
 
-  // STATE MANAJEMEN BUKU SEJARAH (TAMBAH STATE EDIT)
   const [dataSejarah, setDataSejarah] = useState([]);
   const [judulSejarah, setJudulSejarah] = useState("");
   const [isiSejarah, setIsiSejarah] = useState("");
-  const [editSejarahId, setEditSejarahId] = useState(null); // State untuk mendeteksi mode Edit
+  const [editSejarahId, setEditSejarahId] = useState(null); 
 
   const [pengurusInti, setPengurusInti] = useState({ ketuaNama: "", ketuaFoto: "", ketuaFoto2: "", sekreNama: "", sekreFoto: "", sekreFoto2: "", bendaharaNama: "", bendaharaFoto: "", bendaharaFoto2: "" });
   const [fileInti, setFileInti] = useState({ ketua: null, ketua2: null, sekretaris: null, sekretaris2: null, bendahara: null, bendahara2: null });
   const [dataDivisi, setDataDivisi] = useState([]);
   const [namaDivisiBaru, setNamaDivisiBaru] = useState("");
   const [dataAnggota, setDataAnggota] = useState([]);
+  
+  // STATE MANAJEMEN ANGGOTA DIVISI (DITAMBAH STATE EDIT)
   const [formAnggota, setFormAnggota] = useState({ divisiId: "", nama: "", peran: "Anggota" });
   const [fileAnggota, setFileAnggota] = useState(null);
   const [fileAnggota2, setFileAnggota2] = useState(null);
+  const [editAnggotaId, setEditAnggotaId] = useState(null);
 
   const [dataFotoProfil, setDataFotoProfil] = useState([]);
   const [konteksFoto, setKonteksFoto] = useState("");
@@ -161,45 +163,88 @@ export default function AdminDashboard() {
 
   const uploadToCloudinary = async (file, resourceType = "image") => { const formData = new FormData(); formData.append("file", file); formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: "POST", body: formData }); const data = await res.json(); if (data.error) throw new Error(data.error.message); return data.secure_url; };
   
-  // HANDLER SUBMIT BUKU SEJARAH (DENGAN LOGIKA EDIT)
-  const handleSubmitSejarah = async (e) => {
-    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
-    try {
-      if (editSejarahId) {
-        // Mode Update
-        await updateDoc(doc(db, "sejarah_asrama", editSejarahId), { 
-          judul: judulSejarah, 
-          isi: isiSejarah 
-        });
-        setStatus({ type: "success", message: "Halaman sejarah berhasil diperbarui!" });
-      } else {
-        // Mode Tambah Baru
-        await addDoc(collection(db, "sejarah_asrama"), { 
-          judul: judulSejarah, 
-          isi: isiSejarah, 
-          createdAt: serverTimestamp() 
-        });
-        setStatus({ type: "success", message: "Halaman sejarah baru ditambahkan!" });
-      }
-      setJudulSejarah(""); setIsiSejarah(""); setEditSejarahId(null); fetchAllData();
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
-  };
-
-  // TRIGGER KLIK TOMBOL EDIT SEJARAH
-  const handleEditSejarahClick = (item) => {
-    setEditSejarahId(item.id);
-    setJudulSejarah(item.judul);
-    setIsiSejarah(item.isi);
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Opsional: scroll ke atas form
-  };
-
+  const handleSubmitSejarah = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { if (editSejarahId) { await updateDoc(doc(db, "sejarah_asrama", editSejarahId), { judul: judulSejarah, isi: isiSejarah }); setStatus({ type: "success", message: "Halaman sejarah berhasil diperbarui!" }); } else { await addDoc(collection(db, "sejarah_asrama"), { judul: judulSejarah, isi: isiSejarah, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Halaman sejarah baru ditambahkan!" }); } setJudulSejarah(""); setIsiSejarah(""); setEditSejarahId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
+  const handleEditSejarahClick = (item) => { setEditSejarahId(item.id); setJudulSejarah(item.judul); setIsiSejarah(item.isi); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const handleSaveTampilan = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newUrls = { ...tampilanUrls }; const keys = ["hero", "profil", "fasilitas", "kehidupan", "alumni", "gateway"]; for (let key of keys) { if (tampilanFiles[key] && tampilanFiles[key].length > 0) { let urls = []; for (const file of tampilanFiles[key]) { urls.push(await uploadToCloudinary(file, "image")); } newUrls[key] = urls; } } if (tampilanFiles.gateway && tampilanFiles.gateway.length > 0) { delete newUrls.gateway1; delete newUrls.gateway2; delete newUrls.gateway3; } await setDoc(doc(db, "pengaturan", "tampilan"), newUrls, { merge: true }); setTampilanUrls(newUrls); setTampilanFiles({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] }); setStatus({ type: "success", message: "Semua foto latar berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveProfilText = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "profilText"), profilText); await setDoc(doc(db, "pengaturan", "kontak"), kontak); setStatus({ type: "success", message: "Teks profil & Kontak berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveStatusAsrama = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "statusAsrama"), statusAsrama); setStatus({ type: "success", message: "Status Asrama berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveBrosur = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { if (fileBrosur) { const url = await uploadToCloudinary(fileBrosur, "image"); await setDoc(doc(db, "pengaturan", "brosur"), { link: url }); setBrosurUrl(url); setFileBrosur(null); setStatus({ type: "success", message: "Brosur Pendaftaran berhasil diperbarui!" }); } } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSavePengurusInti = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newData = { ...pengurusInti }; if (fileInti.ketua) newData.ketuaFoto = await uploadToCloudinary(fileInti.ketua, "image"); if (fileInti.ketua2) newData.ketuaFoto2 = await uploadToCloudinary(fileInti.ketua2, "image"); if (fileInti.sekretaris) newData.sekreFoto = await uploadToCloudinary(fileInti.sekretaris, "image"); if (fileInti.sekretaris2) newData.sekreFoto2 = await uploadToCloudinary(fileInti.sekretaris2, "image"); if (fileInti.bendahara) newData.bendaharaFoto = await uploadToCloudinary(fileInti.bendahara, "image"); if (fileInti.bendahara2) newData.bendaharaFoto2 = await uploadToCloudinary(fileInti.bendahara2, "image"); await setDoc(doc(db, "pengaturan", "pengurus_inti"), newData); setPengurusInti(newData); setFileInti({ ketua: null, ketua2: null, sekretaris: null, sekretaris2: null, bendahara: null, bendahara2: null }); setStatus({ type: "success", message: "Pengurus Inti berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleTambahDivisi = async (e) => { e.preventDefault(); setLoading(true); try { await addDoc(collection(db, "divisi_asrama"), { namaDivisi: namaDivisiBaru, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Divisi berhasil ditambahkan!" }); setNamaDivisiBaru(""); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
-  const handleTambahAnggota = async (e) => { e.preventDefault(); setLoading(true); try { let fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; let fotoUrl2 = ""; if (fileAnggota) { fotoUrl = await uploadToCloudinary(fileAnggota, "image"); } if (fileAnggota2) { fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); } else { fotoUrl2 = fotoUrl; } await addDoc(collection(db, "anggota_divisi"), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, foto2: fotoUrl2, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Anggota Divisi berhasil ditambahkan!" }); setFormAnggota({ ...formAnggota, nama: "", peran: "Anggota" }); setFileAnggota(null); setFileAnggota2(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
+  
+  // HANDLER KLIK EDIT ANGGOTA
+  const handleEditAnggotaClick = (anggota) => {
+    setEditAnggotaId(anggota.id);
+    setFormAnggota({
+      divisiId: anggota.divisiId,
+      nama: anggota.nama,
+      peran: anggota.peran || "Anggota"
+    });
+    setFileAnggota(null);
+    setFileAnggota2(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // HANDLER SUBMIT ANGGOTA (BISA TAMBAH BARU / SIMPAN PERUBAHAN EDIT)
+  const handleTambahAnggota = async (e) => {
+    e.preventDefault(); setLoading(true);
+    try {
+      let fotoUrl = ""; 
+      let fotoUrl2 = ""; 
+      
+      if (editAnggotaId) {
+        // --- MODE EDIT ANGGOTA ---
+        const existing = dataAnggota.find(a => a.id === editAnggotaId);
+        fotoUrl = existing.foto;
+        fotoUrl2 = existing.foto2 || existing.foto;
+
+        if (fileAnggota) { fotoUrl = await uploadToCloudinary(fileAnggota, "image"); }
+        if (fileAnggota2) { fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); }
+        else if (fileAnggota) { fotoUrl2 = fotoUrl; } // Fallback
+
+        // Perbarui Avatar Otomatis jika nama berubah dan belum pernah upload foto asli
+        if (!fileAnggota && fotoUrl.includes("ui-avatars.com") && existing.nama !== formAnggota.nama) {
+          fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random";
+          if (!existing.foto2 || existing.foto2.includes("ui-avatars.com")) { fotoUrl2 = fotoUrl; }
+        }
+
+        await updateDoc(doc(db, "anggota_divisi", editAnggotaId), { 
+          divisiId: formAnggota.divisiId, 
+          nama: formAnggota.nama, 
+          peran: formAnggota.peran, 
+          foto: fotoUrl, 
+          foto2: fotoUrl2 
+        });
+        setStatus({ type: "success", message: "Data Anggota berhasil diperbarui!" });
+
+      } else {
+        // --- MODE TAMBAH BARU ANGGOTA ---
+        fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random";
+        if (fileAnggota) { fotoUrl = await uploadToCloudinary(fileAnggota, "image"); }
+        if (fileAnggota2) { fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); } else { fotoUrl2 = fotoUrl; }
+        
+        await addDoc(collection(db, "anggota_divisi"), { 
+          divisiId: formAnggota.divisiId, 
+          nama: formAnggota.nama, 
+          peran: formAnggota.peran, 
+          foto: fotoUrl, 
+          foto2: fotoUrl2, 
+          createdAt: serverTimestamp() 
+        });
+        setStatus({ type: "success", message: "Anggota Divisi berhasil ditambahkan!" });
+      }
+      
+      // Reset Form
+      setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); 
+      setFileAnggota(null); setFileAnggota2(null); setEditAnggotaId(null); fetchAllData();
+      
+      // Mengosongkan tampilan input file secara visual
+      if(document.getElementById('foto1Anggota')) document.getElementById('foto1Anggota').value = "";
+      if(document.getElementById('foto2Anggota')) document.getElementById('foto2Anggota').value = "";
+      
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
+  };
+
   const handleSubmitTimeline = async (e) => { e.preventDefault(); setLoading(true); try { await addDoc(collection(db, "timeline_sejarah"), { tahun: tahunTimeline, judul: judulTimeline, deskripsi: deskripsiTimeline, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Timeline berhasil ditambahkan!" }); setTahunTimeline(""); setJudulTimeline(""); setDeskripsiTimeline(""); e.target.reset(); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSubmitFasilitas = async (e) => { e.preventDefault(); setLoading(true); try { let urls = []; for (const file of filesFasilitas) { urls.push(await uploadToCloudinary(file, "image")); } await addDoc(collection(db, "daftar_fasilitas"), { nama: namaFasilitas, deskripsi: deskripsiFasilitas, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Fasilitas berhasil ditambahkan!" }); setNamaFasilitas(""); setDeskripsiFasilitas(""); setFilesFasilitas([]); e.target.reset(); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSubmitPenyewaan = async (e) => { e.preventDefault(); setLoading(true); try { let urls = []; for (const file of filesSewa) { urls.push(await uploadToCloudinary(file, "image")); } await addDoc(collection(db, "daftar_penyewaan"), { nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Item penyewaan berhasil ditambahkan!" }); setNamaSewa(""); setDeskripsiSewa(""); setKategoriSewa("Tempat / Barang"); setHargaSewa(""); setNoHpSewa(""); setFilesSewa([]); e.target.reset(); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
@@ -245,7 +290,6 @@ export default function AdminDashboard() {
                   </form> 
                 </div> 
 
-                {/* MANAJEMEN SEJARAH DENGAN FITUR EDIT */}
                 <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
                   <h2 className="text-lg font-bold mb-4 border-b pb-2">Manajemen Catatan Sejarah (Buku)</h2>
                   <form onSubmit={handleSubmitSejarah} className="space-y-4 mb-6">
@@ -259,8 +303,6 @@ export default function AdminDashboard() {
                         <textarea required rows="3" value={isiSejarah} onChange={(e) => setIsiSejarah(e.target.value)} placeholder="Tuliskan cerita sejarah untuk lembaran ini..." className="w-full px-4 py-2 border border-slate-300 rounded-md bg-slate-50 text-sm"></textarea>
                       </div>
                     </div>
-                    
-                    {/* Tombol Berubah Sesuai Mode (Edit / Tambah) */}
                     <div className="flex flex-col md:flex-row gap-3">
                       <button type="submit" disabled={loading} className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-md font-semibold w-full md:w-auto">
                         {editSejarahId ? "Simpan Perubahan" : "Tambah Lembaran"}
@@ -282,8 +324,6 @@ export default function AdminDashboard() {
                             <div className="font-bold text-amber-700 text-sm mb-1">{item.judul}</div>
                             <div className="text-xs text-slate-500 line-clamp-1 pr-4">{item.isi}</div>
                           </div>
-                          
-                          {/* Tambahan Tombol Edit di Samping Hapus */}
                           <div className="flex gap-2 shrink-0 w-full md:w-auto justify-end">
                             <button type="button" onClick={() => handleEditSejarahClick(item)} className="text-amber-600 text-xs font-bold border border-amber-200 bg-white px-3 py-1.5 rounded hover:bg-amber-50">Edit</button>
                             <button type="button" onClick={() => handleDelete("sejarah_asrama", item.id)} className="text-red-500 text-xs font-bold border border-red-200 bg-white px-3 py-1.5 rounded hover:bg-red-50">Hapus</button>
@@ -300,8 +340,124 @@ export default function AdminDashboard() {
           </div> 
         )}
         
-        {/* TAB 2 S.D 11 LAINNYA TETAP SAMA */}
-        {activeTab === "kepengurusan" && allowedTabs.includes("kepengurusan") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">1. Pengurus Inti Asrama</h2> <form onSubmit={handleSavePengurusInti} className="space-y-6"> <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Ketua Asrama</label> <input type="text" required value={pengurusInti.ketuaNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaNama: e.target.value})} placeholder="Nama Ketua..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Sekretaris</label> <input type="text" required value={pengurusInti.sekreNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreNama: e.target.value})} placeholder="Nama Sekretaris..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Bendahara</label> <input type="text" required value={pengurusInti.bendaharaNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaNama: e.target.value})} placeholder="Nama Bendahara..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> </div> <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2.5 rounded-md font-bold w-full md:w-auto">Simpan Pengurus Inti</button> </form> </div> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">2. Tambah Divisi Baru</h2> <form onSubmit={handleTambahDivisi} className="space-y-4"> <div> <label className="text-sm font-semibold mb-1 block">Nama Divisi</label> <input type="text" required value={namaDivisiBaru} onChange={(e) => setNamaDivisiBaru(e.target.value)} placeholder="Cth: Divisi Bakat & Minat..." className="w-full px-4 py-2 border rounded-md" /> </div> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Buat Divisi</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">3. Tambah Anggota Divisi</h2> <form onSubmit={handleTambahAnggota} className="space-y-4"> <div> <label className="text-sm font-semibold mb-1 block">Pilih Divisi</label> <select required value={formAnggota.divisiId} onChange={(e) => setFormAnggota({...formAnggota, divisiId: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"> <option value="">-- Pilih Divisi --</option> {dataDivisi.map(div => <option key={div.id} value={div.id}>{div.namaDivisi}</option>)} </select> </div> <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> <div> <label className="text-sm font-semibold mb-1 block">Nama Anggota</label> <input type="text" required value={formAnggota.nama} onChange={(e) => setFormAnggota({...formAnggota, nama: e.target.value})} placeholder="Nama Anggota..." className="w-full px-4 py-2 border rounded-md" /> </div> <div> <label className="text-sm font-semibold mb-1 block">Peran / Jabatan</label> <select required value={formAnggota.peran} onChange={(e) => setFormAnggota({...formAnggota, peran: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white text-stone-800"> <option value="Anggota">Anggota</option> <option value="Koordinator">Koordinator</option> </select> </div> </div> <div className="grid grid-cols-2 gap-2"> <div> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileAnggota(e.target.files[0])} className="w-full text-xs border border-slate-200 p-1.5 rounded bg-slate-50" /> </div> <div> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Belakang)</label> <input type="file" accept="image/*" onChange={(e) => setFileAnggota2(e.target.files[0])} className="w-full text-xs border border-amber-200 p-1.5 rounded bg-amber-50" /> </div> </div> <button type="submit" disabled={loading || !formAnggota.divisiId} className="w-full bg-red-800 hover:bg-red-900 text-white px-4 py-2.5 rounded-md font-bold mt-2">Tambah Anggota</button> </form> </div> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Daftar Divisi & Anggota</h2> {dataDivisi.length === 0 ? <p className="text-sm text-stone-500">Belum ada divisi.</p> : ( <div className="space-y-6"> {dataDivisi.map(div => ( <div key={div.id} className="bg-slate-50 border border-slate-200 p-4 rounded-lg"> <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2"> <h3 className="font-bold text-lg text-red-800">{div.namaDivisi}</h3> <button onClick={() => handleDelete("divisi_asrama", div.id)} className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">Hapus Divisi</button> </div> <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4"> {dataAnggota.filter(a => a.divisiId === div.id).map(anggota => ( <div key={anggota.id} className="bg-white p-3 border rounded flex flex-col items-center text-center relative group"> <img src={anggota.foto} className="w-12 h-12 rounded-lg object-cover mb-2 border border-slate-200" /> <span className="text-xs font-semibold leading-tight">{anggota.nama}</span> <span className="text-[10px] text-amber-600 font-bold mt-1">{anggota.peran || "Anggota"}</span> <button onClick={() => handleDelete("anggota_divisi", anggota.id)} className="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button> </div> ))} {dataAnggota.filter(a => a.divisiId === div.id).length === 0 && <p className="text-xs text-stone-500 col-span-full">Belum ada anggota.</p>} </div> </div> ))} </div> )} </div> </div> )}
+        {/* TAB KEPENGURUSAN */}
+        {activeTab === "kepengurusan" && allowedTabs.includes("kepengurusan") && ( 
+          <div className="space-y-6"> 
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
+              <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">1. Pengurus Inti Asrama</h2> 
+              <form onSubmit={handleSavePengurusInti} className="space-y-6"> 
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
+                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Ketua Asrama</label> <input type="text" required value={pengurusInti.ketuaNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaNama: e.target.value})} placeholder="Nama Ketua..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Sekretaris</label> <input type="text" required value={pengurusInti.sekreNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreNama: e.target.value})} placeholder="Nama Sekretaris..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Bendahara</label> <input type="text" required value={pengurusInti.bendaharaNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaNama: e.target.value})} placeholder="Nama Bendahara..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> 
+                </div> 
+                <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2.5 rounded-md font-bold w-full md:w-auto">Simpan Pengurus Inti</button> 
+              </form> 
+            </div> 
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> 
+              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
+                <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">2. Tambah Divisi Baru</h2> 
+                <form onSubmit={handleTambahDivisi} className="space-y-4"> 
+                  <div> <label className="text-sm font-semibold mb-1 block">Nama Divisi</label> <input type="text" required value={namaDivisiBaru} onChange={(e) => setNamaDivisiBaru(e.target.value)} placeholder="Cth: Divisi Bakat & Minat..." className="w-full px-4 py-2 border rounded-md" /> </div> 
+                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Buat Divisi</button> 
+                </form> 
+              </div> 
+
+              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
+                {/* JUDUL FORM DINAMIS (EDIT/TAMBAH) */}
+                <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">
+                  {editAnggotaId ? "Edit Data Anggota" : "3. Tambah Anggota Divisi"}
+                </h2> 
+                
+                <form onSubmit={handleTambahAnggota} className="space-y-4"> 
+                  <div> 
+                    <label className="text-sm font-semibold mb-1 block">Pilih Divisi</label> 
+                    <select required value={formAnggota.divisiId} onChange={(e) => setFormAnggota({...formAnggota, divisiId: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"> 
+                      <option value="">-- Pilih Divisi --</option> 
+                      {dataDivisi.map(div => <option key={div.id} value={div.id}>{div.namaDivisi}</option>)} 
+                    </select> 
+                  </div> 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> 
+                    <div> 
+                      <label className="text-sm font-semibold mb-1 block">Nama Anggota</label> 
+                      <input type="text" required value={formAnggota.nama} onChange={(e) => setFormAnggota({...formAnggota, nama: e.target.value})} placeholder="Nama Anggota..." className="w-full px-4 py-2 border rounded-md" /> 
+                    </div> 
+                    <div> 
+                      <label className="text-sm font-semibold mb-1 block">Peran / Jabatan</label> 
+                      <select required value={formAnggota.peran} onChange={(e) => setFormAnggota({...formAnggota, peran: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white text-stone-800"> 
+                        <option value="Anggota">Anggota</option> 
+                        <option value="Koordinator">Koordinator</option> 
+                      </select> 
+                    </div> 
+                  </div> 
+                  <div className="grid grid-cols-2 gap-2"> 
+                    <div> 
+                      <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Depan)</label> 
+                      <input type="file" id="foto1Anggota" accept="image/*" onChange={(e) => setFileAnggota(e.target.files[0])} className="w-full text-xs border border-slate-200 p-1.5 rounded bg-slate-50" /> 
+                    </div> 
+                    <div> 
+                      <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Belakang)</label> 
+                      <input type="file" id="foto2Anggota" accept="image/*" onChange={(e) => setFileAnggota2(e.target.files[0])} className="w-full text-xs border border-amber-200 p-1.5 rounded bg-amber-50" /> 
+                    </div> 
+                  </div> 
+                  
+                  {/* TOMBOL DINAMIS */}
+                  <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                    <button type="submit" disabled={loading || !formAnggota.divisiId} className="w-full bg-red-800 hover:bg-red-900 text-white px-4 py-2.5 rounded-md font-bold">
+                      {editAnggotaId ? "Simpan Perubahan" : "Tambah Anggota"}
+                    </button>
+                    {editAnggotaId && (
+                      <button type="button" onClick={() => { 
+                        setEditAnggotaId(null); 
+                        setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); 
+                        setFileAnggota(null); 
+                        setFileAnggota2(null); 
+                        if(document.getElementById('foto1Anggota')) document.getElementById('foto1Anggota').value = ""; 
+                        if(document.getElementById('foto2Anggota')) document.getElementById('foto2Anggota').value = ""; 
+                      }} className="w-full bg-stone-500 hover:bg-stone-600 text-white px-4 py-2.5 rounded-md font-bold">
+                        Batal Edit
+                      </button>
+                    )}
+                  </div>
+                </form> 
+              </div> 
+            </div> 
+
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
+              <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Daftar Divisi & Anggota</h2> 
+              {dataDivisi.length === 0 ? <p className="text-sm text-stone-500">Belum ada divisi.</p> : ( 
+                <div className="space-y-6"> 
+                  {dataDivisi.map(div => ( 
+                    <div key={div.id} className="bg-slate-50 border border-slate-200 p-4 rounded-lg"> 
+                      <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2"> 
+                        <h3 className="font-bold text-lg text-red-800">{div.namaDivisi}</h3> 
+                        <button onClick={() => handleDelete("divisi_asrama", div.id)} className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">Hapus Divisi</button> 
+                      </div> 
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4"> 
+                        {dataAnggota.filter(a => a.divisiId === div.id).map(anggota => ( 
+                          <div key={anggota.id} className="bg-white p-3 border rounded flex flex-col items-center text-center relative group"> 
+                            <img src={anggota.foto} className="w-12 h-12 rounded-lg object-cover mb-2 border border-slate-200" /> 
+                            <span className="text-xs font-semibold leading-tight">{anggota.nama}</span> 
+                            <span className="text-[10px] text-amber-600 font-bold mt-1">{anggota.peran || "Anggota"}</span> 
+                            
+                            {/* TOMBOL EDIT & HAPUS PADA KARTU ANGGOTA */}
+                            <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => handleEditAnggotaClick(anggota)} className="bg-amber-500 hover:bg-amber-600 text-white w-6 h-6 rounded-full text-[12px] flex items-center justify-center shadow-md">✎</button>
+                              <button onClick={() => handleDelete("anggota_divisi", anggota.id)} className="bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full text-[10px] flex items-center justify-center shadow-md">✕</button>
+                            </div>
+
+                          </div> 
+                        ))} 
+                        {dataAnggota.filter(a => a.divisiId === div.id).length === 0 && <p className="text-xs text-stone-500 col-span-full">Belum ada anggota.</p>} 
+                      </div> 
+                    </div> 
+                  ))} 
+                </div> 
+              )} 
+            </div> 
+          </div> 
+        )}
+
+        {/* TAB 2 S.D 11 LAINNYA TETAP SAMA SEPERTI SEBELUMNYA */}
         {activeTab === "status" && allowedTabs.includes("status") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Status Asrama</h2> <form onSubmit={handleSaveStatusAsrama} className="space-y-4"> <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> <div><label className="text-sm font-semibold mb-1 block">Jumlah Kamar</label><input type="number" required value={statusAsrama.kamar} onChange={(e) => setStatusAsrama({...statusAsrama, kamar: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div><label className="text-sm font-semibold mb-1 block">Jumlah Penghuni</label><input type="number" required value={statusAsrama.penghuni} onChange={(e) => setStatusAsrama({...statusAsrama, penghuni: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div> <label className="text-sm font-semibold mb-1 block">Ketersediaan</label> <select value={statusAsrama.ketersediaan} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaan: e.target.value})} className="w-full px-4 py-2 border rounded-md"> <option value="Tersedia">🟢 Tersedia</option> <option value="Penuh">🔴 Penuh</option> </select> </div> </div> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Perbarui Status</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Foto Brosur Penerimaan Warga Asrama</h2> <form onSubmit={handleSaveBrosur} className="space-y-4"> <div className="bg-slate-50 p-4 border rounded-lg flex items-center justify-between"> <input type="file" accept="image/*" onChange={(e) => setFileBrosur(e.target.files[0])} className="w-full text-sm cursor-pointer" /> {brosurUrl && <a href={brosurUrl} target="_blank" className="text-xs text-amber-600 font-bold ml-4 whitespace-nowrap">Lihat Brosur Saat Ini</a>} </div> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Unggah Brosur Baru</button> </form> </div> </div> )}
         {activeTab === "timeline" && allowedTabs.includes("timeline") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Timeline</h2> <form onSubmit={handleSubmitTimeline} className="space-y-4"> <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4"> <input type="text" required value={tahunTimeline} onChange={(e) => setTahunTimeline(e.target.value)} placeholder="Tahun" className="w-full px-4 py-2 border rounded-md" /> <input type="text" required value={judulTimeline} onChange={(e) => setJudulTimeline(e.target.value)} placeholder="Peristiwa" className="w-full px-4 py-2 border rounded-md" /> </div> <textarea required rows="2" value={deskripsiTimeline} onChange={(e) => setDeskripsiTimeline(e.target.value)} placeholder="Deskripsi..." className="w-full px-4 py-2 border rounded-md"></textarea> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Tambahkan</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Timeline</h3> <div className="space-y-4"> {dataTimeline.map(item => ( <div key={item.id} className="bg-slate-50 border rounded-lg p-4 flex justify-between"> <div> <span className="px-2 py-1 bg-amber-500 text-white text-xs rounded mb-2">{item.tahun}</span> <h4 className="font-bold">{item.judul}</h4> <p className="text-sm text-slate-600">{item.deskripsi}</p> </div> <button onClick={() => handleDelete("timeline_sejarah", item.id)} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded">Hapus</button> </div> ))} </div> </div> </div> )}
         {activeTab === "fotoprofil" && allowedTabs.includes("fotoprofil") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Foto Profil</h2> <form onSubmit={handleSubmitFotoProfil} className="space-y-4"> <textarea required rows="2" value={konteksFoto} onChange={(e) => setKonteksFoto(e.target.value)} placeholder="Konteks..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="file" multiple required accept="image/*" onChange={(e) => setFilesFotoProfil(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-slate-50" /> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Tambahkan</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Foto Profil</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {dataFotoProfil.map(item => { const imgUtama = Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar; return ( <div key={item.id} className="bg-slate-50 border rounded-lg flex gap-4 p-3"> <img src={imgUtama} className="w-24 h-24 object-cover rounded-md shrink-0" /> <div className="flex flex-col justify-between w-full"> <p className="text-xs text-slate-600">{item.konteks}</p> <button onClick={() => handleDelete("profil_galeri", item.id)} className="text-red-600 text-xs">Hapus</button> </div> </div> ); })} </div> </div> </div> )}
