@@ -56,7 +56,7 @@ export default function PublicLayout({ children }) {
         { name: "Catatan Sejarah", path: "/profil#sejarah" },
         { name: "Visi & Misi", path: "/profil#visimisi" },
         { name: "Garis Waktu", path: "/profil#timeline" },
-        { name: "Struktur Kepengurusan", path: "/profil#kepengurusan" }, // BARU
+        { name: "Struktur Kepengurusan", path: "/profil#kepengurusan" },
         { name: "Titik Temu", path: "/profil#lokasi" }
       ]
     },
@@ -64,9 +64,9 @@ export default function PublicLayout({ children }) {
       name: "Fasilitas & Penyewaan", 
       path: "/fasilitas",
       subLinks: [
-        { name: "Informasi Pendaftaran", path: "/fasilitas#pendaftaran" }, // BARU
-        { name: "Fasilitas Asrama", path: "/fasilitas#fasilitas" }, // BARU
-        { name: "Layanan Penyewaan", path: "/fasilitas#penyewaan" } // BARU
+        { name: "Informasi Pendaftaran", path: "/fasilitas#pendaftaran" },
+        { name: "Fasilitas Asrama", path: "/fasilitas#fasilitas" },
+        { name: "Layanan Penyewaan", path: "/fasilitas#penyewaan" }
       ]
     },
     { 
@@ -78,10 +78,12 @@ export default function PublicLayout({ children }) {
       ]
     },
     { 
-      name: "Jaringan Alumni", 
+      // PERUBAHAN NAMA MENU DI SINI
+      name: "Jejak & Prestasi", 
       path: "/alumni",
       subLinks: [
         { name: "Jejak Alumni", path: "/alumni#jejak" },
+        { name: "Prestasi Warga", path: "/alumni#prestasi" },
         { name: "Repositori Skripsi", path: "/alumni#repositori" }
       ]
     },
@@ -97,7 +99,6 @@ export default function PublicLayout({ children }) {
         html, body { max-width: 100vw; overflow-x: hidden; }
       `}</style>
 
-      {/* NAVBAR */}
       <nav className="bg-[#fcfbf9]/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-[#e8e4db]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
@@ -168,7 +169,6 @@ export default function PublicLayout({ children }) {
 
       <main className="flex-grow w-full overflow-x-hidden">{children}</main>
 
-      {/* FOOTER */}
       <footer className="bg-[#171412] text-stone-300 py-16 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-800 via-amber-500 to-red-800"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 relative z-10">
@@ -176,9 +176,7 @@ export default function PublicLayout({ children }) {
           <div className="lg:col-span-1">
             <div className="flex items-start gap-3 mb-6">
               <img src="/mersi.png" alt="Logo Mersi" className="w-10 h-10 object-contain shrink-0" />
-              <span className="font-playfair font-bold text-xl text-white tracking-wide leading-tight">
-                Asrama Mahasiswa <br/> Merapi Singgalang
-              </span>
+              <span className="font-playfair font-bold text-xl text-white tracking-wide leading-tight">Asrama Mahasiswa <br/> Merapi Singgalang</span>
             </div>
             <p className="text-sm leading-relaxed text-stone-400 font-lora">Etalase prestasi dan repositori intelektual warga Asrama Mahasiswa Merapi Singgalang. Mengedepankan nilai kekeluargaan dan semangat perantau Minangkabau.</p>
           </div>
@@ -190,7 +188,7 @@ export default function PublicLayout({ children }) {
               <li><Link href="/profil" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Profil Asrama</Link></li>
               <li><Link href="/fasilitas" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Fasilitas & Penyewaan</Link></li>
               <li><Link href="/kehidupan" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Media & Publikasi</Link></li>
-              <li><Link href="/alumni" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Jaringan Alumni</Link></li>
+              <li><Link href="/alumni" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Jejak & Prestasi</Link></li>
             </ul>
           </div>
 
@@ -227,9 +225,7 @@ export default function PublicLayout({ children }) {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-stone-800 text-center relative z-10">
-          <p className="text-xs text-stone-500 font-sans tracking-wider">
-            © {new Date().getFullYear()} Asrama Mahasiswa Merapi Singgalang Yogyakarta. Hak Cipta Dilindungi.
-          </p>
+          <p className="text-xs text-stone-500 font-sans tracking-wider">© {new Date().getFullYear()} Asrama Mahasiswa Merapi Singgalang Yogyakarta. Hak Cipta Dilindungi.</p>
         </div>
       </footer>
     </div>
