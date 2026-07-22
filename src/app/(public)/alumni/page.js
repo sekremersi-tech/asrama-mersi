@@ -2,16 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, addDoc, serverTimestamp, where, doc, getDoc } from "firebase/firestore";
 
 const HeroSlider = ({ images, title }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
   const [idx, setIdx] = useState(0);
-  useEffect(() => { if (imgArray.length <= 1) return; const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000); return () => clearInterval(timer); }, [imgArray.length]);
+
+  useEffect(() => {
+    if (imgArray.length <= 1) return;
+    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000);
+    return () => clearInterval(timer);
+  }, [imgArray.length]);
+
   return (
     <div className="relative py-28 md:py-36 w-full bg-[#171412] flex flex-col items-center justify-center overflow-hidden">
       <div className="absolute inset-0 w-full h-full bg-[#171412]">
-        {imgArray.map((bg, i) => (<div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-70' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>))}
+        {imgArray.map((bg, i) => (
+          <div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-70' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>
+        ))}
         <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/80 to-[#171412]/40 backdrop-blur-[1px]"></div>
       </div>
       <div className="relative z-10 max-w-4xl mx-auto px-4 text-center reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
@@ -22,142 +30,303 @@ const HeroSlider = ({ images, title }) => {
   );
 };
 
-export default function JaringanAlumni() {
-  const [daftarSkripsi, setDaftarSkripsi] = useState([]);
+export default function JejakPrestasi() {
   const [bgAlumni, setBgAlumni] = useState([]);
-  const [jejakText, setJejakText] = useState("Memuat jejak alumni...");
+  const [profilText, setProfilText] = useState({ jejakAlumni: "" });
+  const [dataPrestasi, setDataPrestasi] = useState([]);
+  const [dataSkripsi, setDataSkripsi] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
 
-  const [showModal, setShowModal] = useState(false);
+  // STATE MODAL PRESTASI
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [modalImageIdx, setModalImageIdx] = useState(0);
+  const [komentarList, setKomentarList] = useState([]);
+  const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
+  const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
+
+  // STATE PAGINASI LIST PRESTASI
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animDirection, setAnimDirection] = useState("");
+  const itemsPerPage = 10;
+
+  // STATE MODAL UNDUH SKRIPSI
+  const [showSkripsiModal, setShowSkripsiModal] = useState(false);
   const [selectedSkripsi, setSelectedSkripsi] = useState(null);
-  const [formData, setFormData] = useState({ nama: "", noHp: "", email: "" });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formUnduh, setFormUnduh] = useState({ namaPengunduh: "", emailPengunduh: "", noHpPengunduh: "" });
+  const [isSubmittingUnduh, setIsSubmittingUnduh] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const snapFoto = await getDoc(doc(db, "pengaturan", "tampilan"));
         if (snapFoto.exists() && snapFoto.data().alumni) setBgAlumni(snapFoto.data().alumni);
+        
         const snapText = await getDoc(doc(db, "pengaturan", "profilText"));
-        if (snapText.exists() && snapText.data().jejakAlumni) setJejakText(snapText.data().jejakAlumni);
-        const q = query(collection(db, "skripsi"), orderBy("tahun", "desc"));
-        const querySnapshot = await getDocs(q);
-        setDaftarSkripsi(querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+        if (snapText.exists()) setProfilText(snapText.data());
+
+        // MENGAMBIL PRESTASI DARI KOLEKSI KEHIDUPAN (MEDIA PUBLIKASI)
+        const berSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
+        const allBerita = berSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Filter di sisi klien untuk mencegah error Indexing Firestore
+        const prestasiData = allBerita.filter(item => item.kategori === "PRESTASI");
+        setDataPrestasi(prestasiData);
+
+        // MENGAMBIL DATA SKRIPSI
+        const skrSnap = await getDocs(query(collection(db, "skripsi"), orderBy("tahun", "desc")));
+        setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        
       } catch (error) { console.error(error); } finally { setLoading(false); }
     };
     fetchData();
   }, []);
 
-  // UPDATE PENCARIAN: Sekarang mendukung pencarian TAHUN
-  const filteredSkripsi = daftarSkripsi.filter((skripsi) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      (skripsi.judul && skripsi.judul.toLowerCase().includes(term)) || 
-      (skripsi.nama && skripsi.nama.toLowerCase().includes(term)) ||
-      (skripsi.tahun && String(skripsi.tahun).toLowerCase().includes(term))
-    );
-  });
-
-  const handleBukaPDF = (skripsi) => { setSelectedSkripsi(skripsi); setShowModal(true); };
-
-  const handleSubmitForm = async (e) => {
-    e.preventDefault();
-    if (!formData.noHp.startsWith("08")) return alert("Nomor HP harus diawali dengan angka 08");
-    if (formData.noHp.length < 11) return alert("Nomor HP tidak valid. Minimal harus 11 angka.");
-    setIsSubmitting(true);
-    try {
-      await addDoc(collection(db, "log_unduh_skripsi"), { namaPengunduh: formData.nama, noHpPengunduh: formData.noHp, emailPengunduh: formData.email, judulSkripsi: selectedSkripsi.judul, penulisSkripsi: selectedSkripsi.nama, waktuAkses: serverTimestamp() });
-      window.open(selectedSkripsi.linkPDF, "_blank");
-      setShowModal(false); setFormData({ nama: "", noHp: "", email: "" });
-    } catch (error) { alert("Terjadi kesalahan sistem. Silakan coba lagi."); } finally { setIsSubmitting(false); }
+  // FUNGSI PAGINASI LIST PRESTASI (EFEK KERTAS BERGESER)
+  const changePage = (newIndex, direction) => {
+    if (newIndex >= 0 && newIndex < Math.ceil(dataPrestasi.length / itemsPerPage)) {
+      setAnimDirection(direction);
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentPage(newIndex);
+        setIsAnimating(false);
+      }, 400); // Waktu yang sama dengan durasi CSS animasi
+    }
   };
 
+  // FUNGSI MODAL PRESTASI
+  const openModal = async (item) => { 
+    setSelectedItem(item); setModalImageIdx(0); document.body.style.overflow = "hidden"; 
+    setKomentarList([]); setFormKomen({ nama: "", isi: "" }); 
+    try {
+      const targetId = String(item.id);
+      const q = query(collection(db, "komentar_publikasi"), where("postId", "==", targetId));
+      const snap = await getDocs(q);
+      let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      comments.sort((a, b) => (a.waktu?.toMillis() || 0) - (b.waktu?.toMillis() || 0));
+      setKomentarList(comments);
+    } catch(e) { console.error(e); }
+  };
+
+  const closeModal = () => { setSelectedItem(null); setKomentarList([]); setFormKomen({ nama: "", isi: "" }); document.body.style.overflow = "auto"; };
+  
+  const submitKomentar = async (e) => {
+    e.preventDefault();
+    if (!formKomen.isi.trim()) return;
+    setIsSubmittingKomen(true);
+    try {
+      const targetId = String(selectedItem.id);
+      const newKomen = { postId: targetId, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), waktu: serverTimestamp() };
+      const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
+      setKomentarList([...komentarList, {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }]);
+      setFormKomen({nama: "", isi: ""});
+    } catch (err) { alert("Gagal mengirim komentar!"); } finally { setIsSubmittingKomen(false); }
+  };
+
+  // FUNGSI MODAL UNDUH SKRIPSI
+  const handleUnduhSkripsi = async (e) => {
+    e.preventDefault();
+    setIsSubmittingUnduh(true);
+    try {
+      await addDoc(collection(db, "log_unduh_skripsi"), {
+        ...formUnduh,
+        skripsiId: selectedSkripsi.id,
+        judulSkripsi: selectedSkripsi.judul,
+        penulisSkripsi: selectedSkripsi.nama,
+        waktuAkses: serverTimestamp()
+      });
+      window.open(selectedSkripsi.linkPDF, "_blank");
+      setShowSkripsiModal(false);
+      setFormUnduh({ namaPengunduh: "", emailPengunduh: "", noHpPengunduh: "" });
+      document.body.style.overflow = "auto";
+    } catch (error) { alert("Gagal memproses unduhan."); } finally { setIsSubmittingUnduh(false); }
+  };
+
+  const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
+  const nextModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev + 1) % modalImages.length); };
+  const prevModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev - 1 + modalImages.length) % modalImages.length); };
+
+  // DATA LIST PRESTASI SAAT INI
+  const totalPages = Math.ceil(dataPrestasi.length / itemsPerPage);
+  const currentDataPrestasi = dataPrestasi.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+
   return (
-    <div className="bg-[#f9f8f6] pb-24 font-lora">
-      {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 transition-opacity">
-          <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-stone-200 animate-[fadeIn_0.3s_ease-out]">
-            <div className="flex justify-between items-center mb-6 border-b border-stone-100 pb-4">
-              <h3 className="font-playfair font-bold text-2xl text-stone-900">Verifikasi Akses</h3>
-              <button onClick={() => setShowModal(false)} className="text-stone-400 hover:text-red-600 transition-colors"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    <div className="bg-[#f9f8f6] pb-24 font-lora relative overflow-x-hidden">
+      <style jsx global>{`
+        .slide-next-out { animation: slideNextOut 0.4s forwards ease-in-out; }
+        .slide-next-in { animation: slideNextIn 0.4s forwards ease-in-out; }
+        .slide-prev-out { animation: slidePrevOut 0.4s forwards ease-in-out; }
+        .slide-prev-in { animation: slidePrevIn 0.4s forwards ease-in-out; }
+        @keyframes slideNextOut { to { transform: translateX(-50px); opacity: 0; } }
+        @keyframes slideNextIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slidePrevOut { to { transform: translateX(50px); opacity: 0; } }
+        @keyframes slidePrevIn { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      `}</style>
+
+      {/* MODAL POP-UP PRESTASI (SAMA SEPERTI DI MEDIA) */}
+      {selectedItem && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={closeModal}>
+          <button onClick={closeModal} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-black/50 p-2 rounded-full z-50"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+          <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className={`relative w-full md:w-3/5 bg-stone-900 h-64 md:h-[80vh] flex items-center justify-center shrink-0 group`}>
+              <img src={modalImages[modalImageIdx]} className="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Preview" />
+              {modalImages.length > 1 && (
+                <>
+                  <button onClick={prevModalImage} className="absolute left-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                  <button onClick={nextModalImage} className="absolute right-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                  <div className="absolute bottom-4 bg-black/60 px-4 py-1.5 rounded-full text-white text-xs tracking-widest font-bold font-sans">{modalImageIdx + 1} / {modalImages.length}</div>
+                </>
+              )}
             </div>
-            <p className="text-sm text-stone-600 mb-6 leading-relaxed">Untuk menjaga keamanan karya intelektual, mohon isi identitas Anda sebelum membaca dokumen ini.</p>
-            <form onSubmit={handleSubmitForm} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nama Lengkap</label>
-                <input type="text" required value={formData.nama} onChange={(e) => setFormData({...formData, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" placeholder="Masukkan nama..." />
+
+            <div className={`w-full md:w-2/5 p-8 md:p-10 flex flex-col bg-[#fcfbf9] overflow-y-auto max-h-[50vh] md:max-h-[80vh]`}>
+              <div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-red-800 bg-red-50 px-3 py-1 rounded-sm font-sans">{selectedItem.kategori}</span><span className="text-xs text-stone-500 font-sans">{selectedItem.tanggal}</span></div>
+              <h2 className="text-3xl font-bold font-playfair text-stone-900 mb-6 leading-snug">{selectedItem.judul}</h2>
+              <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
+              <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
+              
+              <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
+                <h3 className="font-playfair font-bold text-xl text-stone-900 mb-4">Komentar ({komentarList.length})</h3>
+                <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
+                  {komentarList.length === 0 ? <p className="text-sm text-stone-500 italic">Belum ada diskusi. Ada pertanyaan?</p> : (
+                    komentarList.map(k => (
+                      <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-1"><span className="font-bold text-sm text-stone-900">{k.nama}</span><span className="text-[10px] text-stone-400">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span></div>
+                        <p className="text-sm text-stone-600">{k.isi}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
+                  <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900" />
+                  <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Tulis ucapan selamat/komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"></textarea>
+                  <button type="submit" disabled={isSubmittingKomen} className="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
+                </form>
               </div>
-              <div>
-                <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Nomor HP/WhatsApp</label>
-                <input type="tel" required value={formData.noHp} onChange={(e) => setFormData({...formData, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" placeholder="Awali dengan 08..." maxLength={14}/>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1 font-sans">Email Aktif</label>
-                <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans text-sm text-stone-900 placeholder:text-stone-400" placeholder="email@contoh.com" />
-              </div>
-              <button type="submit" disabled={isSubmitting} className="w-full bg-[#171412] hover:bg-amber-600 text-white font-playfair font-bold text-lg py-3 rounded-lg transition-colors mt-2">{isSubmitting ? "Memproses..." : "Lanjutkan & Baca Skripsi"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL UNDUH SKRIPSI */}
+      {showSkripsiModal && selectedSkripsi && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={() => {setShowSkripsiModal(false); document.body.style.overflow = "auto";}}>
+          <div className="bg-white p-8 rounded-lg shadow-2xl max-w-md w-full border-t-4 border-red-800" onClick={e => e.stopPropagation()}>
+            <h3 className="font-playfair text-2xl font-bold text-stone-900 mb-2">Akses Skripsi</h3>
+            <p className="text-sm text-stone-500 mb-6 pb-4 border-b border-stone-100">Silakan isi data diri Anda untuk mengunduh karya tulis ini. Data digunakan untuk keperluan pendataan perpustakaan asrama.</p>
+            <form onSubmit={handleUnduhSkripsi} className="space-y-4 font-sans">
+              <div><label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nama Lengkap</label><input type="text" required value={formUnduh.namaPengunduh} onChange={(e) => setFormUnduh({...formUnduh, namaPengunduh: e.target.value})} className="w-full px-4 py-2 border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm" placeholder="Nama..." /></div>
+              <div><label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Email Aktif</label><input type="email" required value={formUnduh.emailPengunduh} onChange={(e) => setFormUnduh({...formUnduh, emailPengunduh: e.target.value})} className="w-full px-4 py-2 border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm" placeholder="Email..." /></div>
+              <div><label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nomor WA / HP</label><input type="tel" required value={formUnduh.noHpPengunduh} onChange={(e) => setFormUnduh({...formUnduh, noHpPengunduh: e.target.value})} className="w-full px-4 py-2 border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm" placeholder="Nomor HP..." /></div>
+              <button type="submit" disabled={isSubmittingUnduh} className="w-full bg-[#171412] hover:bg-red-800 text-white font-bold py-3 rounded transition-colors mt-2">{isSubmittingUnduh ? "Memproses..." : "Unduh Dokumen"}</button>
             </form>
           </div>
         </div>
       )}
 
-      <HeroSlider images={bgAlumni} title="Jaringan Alumni" />
+      <HeroSlider images={bgAlumni} title="Jejak & Prestasi" />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10">
-        <div id="jejak" className="bg-[#fcfbf9] rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] p-8 md:p-12 mb-16 relative overflow-hidden scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-          <div className="absolute top-0 left-0 w-1 h-full bg-red-800"></div>
-          <h2 className="text-3xl font-bold text-stone-900 mb-5 font-playfair">Jejak Alumni</h2>
-          <p className="text-stone-600 leading-relaxed text-lg text-justify whitespace-pre-line">{jejakText}</p>
+      {/* 1. JEJAK ALUMNI (TEKS) */}
+      <div id="jejak" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-4">Jejak Alumni</h2>
+          <div className="w-12 h-1 bg-red-800 mx-auto rounded-full"></div>
         </div>
-
-        <div id="repositori" className="bg-[#fcfbf9] rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out delay-200">
-          <div className="p-6 md:p-8 border-b border-[#e8e4db] flex flex-col md:flex-row justify-between items-center gap-4 bg-white">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 border border-amber-100"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></div>
-              <h2 className="text-2xl font-bold text-stone-900 font-playfair">Repositori Skripsi</h2>
-            </div>
-            <div className="relative w-full md:w-80 font-sans">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"><circle cx="11" cy="11" r="8"></circle><line x1="21" x2="16.65" y1="21" y2="16.65"></line></svg>
-              {/* PLACEHOLDER DIPERBARUI */}
-              <input type="text" placeholder="Cari judul, nama, atau tahun..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-stone-50 text-stone-900" />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse font-sans">
-              <thead>
-                <tr className="bg-stone-50 border-b border-[#e8e4db] text-xs uppercase tracking-widest text-stone-500">
-                  <th className="p-6 font-bold">Tahun</th>
-                  <th className="p-6 font-bold">Penulis & Jurusan</th>
-                  <th className="p-6 font-bold w-1/2">Judul Karya Ilmiah</th>
-                  <th className="p-6 font-bold text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#e8e4db]">
-                {loading ? (
-                  <tr><td colSpan="4" className="p-16 text-center text-stone-500 font-lora">Memuat data repositori...</td></tr>
-                ) : filteredSkripsi.length === 0 ? (
-                  <tr><td colSpan="4" className="p-16 text-center text-stone-500 font-lora">Belum ada skripsi yang ditemukan.</td></tr>
-                ) : (
-                  filteredSkripsi.map((skripsi) => (
-                    <tr key={skripsi.id} className="hover:bg-amber-50/30 transition-colors">
-                      <td className="p-6 text-stone-900 font-bold text-lg font-playfair">{skripsi.tahun}</td>
-                      <td className="p-6"><div className="font-bold text-stone-900 mb-1">{skripsi.nama}</div><div className="text-sm text-stone-500">{skripsi.jurusan}</div></td>
-                      <td className="p-6 text-stone-700 leading-relaxed text-sm font-lora">{skripsi.judul}</td>
-                      <td className="p-6 text-center align-middle">
-                        {skripsi.linkPDF && skripsi.linkPDF !== "#" ? (
-                          <button onClick={() => handleBukaPDF(skripsi)} className="inline-flex items-center justify-center gap-2 bg-[#171412] hover:bg-amber-600 text-white px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wide transition-all shadow-md w-max"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg> Buka PDF</button>
-                        ) : <span className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold uppercase tracking-wide text-stone-400 bg-stone-100 rounded cursor-not-allowed">Tidak Ada File</span>}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="bg-white p-8 md:p-12 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db]">
+          <p className="text-stone-600 leading-relaxed text-lg text-center whitespace-pre-line font-lora italic">
+            {loading ? "Memuat catatan jejak alumni..." : `"${profilText.jejakAlumni}"`}
+          </p>
         </div>
       </div>
+
+      {/* 2. LIST PRESTASI (KERTAS BERTUMPUK DENGAN ANIMASI GESER) */}
+      <div id="prestasi" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="text-center mb-10">
+          <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Tinta Emas</h4>
+          <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair mb-4">Daftar Prestasi Warga</h2>
+          <div className="w-16 h-1 bg-amber-500 mx-auto rounded-full"></div>
+        </div>
+        
+        {loading ? <p className="text-center text-stone-500">Memuat data prestasi...</p> : dataPrestasi.length === 0 ? <p className="text-center text-stone-500 bg-white p-12 border border-[#e8e4db] rounded-sm shadow-sm">Belum ada catatan prestasi.</p> : (
+          <div className="relative mt-12 perspective-1000">
+            {/* Kertas Latar (Tumpukan) */}
+            <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-4 -rotate-1 rounded-sm shadow-md"></div>
+            <div className="absolute inset-0 bg-[#f4f2ec] transform translate-y-2 rotate-1 rounded-sm shadow-md"></div>
+            
+            {/* Kertas Utama & Animasi */}
+            <div className={`relative bg-[#fcfbf9] p-8 md:p-14 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[500px] ${isAnimating ? (animDirection === 'next' ? 'slide-next-out' : 'slide-prev-out') : (animDirection === 'next' ? 'slide-next-in' : (animDirection === 'prev' ? 'slide-prev-in' : ''))}`}>
+              
+              <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
+                <span className="text-amber-600 font-bold font-sans tracking-widest uppercase text-xs">Halaman {currentPage + 1}</span>
+                <h3 className="text-2xl font-bold text-stone-900 font-playfair">Catatan Prestasi</h3>
+              </div>
+              
+              {/* List Item Prestasi */}
+              <div className="flex-grow">
+                <ul className="divide-y divide-stone-200 border-b border-stone-200">
+                  {currentDataPrestasi.map((item, idx) => {
+                    const noUrut = (currentPage * itemsPerPage) + idx + 1;
+                    return (
+                      <li 
+                        key={item.id} 
+                        onClick={() => openModal(item)}
+                        className="py-5 px-4 md:px-6 hover:bg-white group cursor-pointer transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
+                      >
+                        <div className="flex gap-4 md:gap-6 items-start md:items-center w-full">
+                          <span className="font-playfair text-xl md:text-2xl text-stone-300 font-bold min-w-[30px]">{noUrut}.</span>
+                          <div className="flex-grow">
+                            <h4 className="font-bold text-stone-900 text-lg md:text-xl group-hover:text-red-800 transition-colors leading-tight mb-1">{item.judul}</h4>
+                            <p className="text-sm text-stone-500 font-sans">{item.tanggal}</p>
+                          </div>
+                        </div>
+                        <span className="hidden md:flex text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap text-xs font-bold uppercase tracking-widest font-sans items-center gap-1">
+                          Lihat Detail <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              {/* Navigasi Paginasi */}
+              <div className="mt-12 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase">
+                <button onClick={() => changePage(currentPage - 1, 'prev')} disabled={currentPage === 0 || isAnimating} className={`flex items-center gap-2 transition-colors ${currentPage === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-500 hover:text-red-800'}`}>← Lembar Sebelumnya</button>
+                <span className="text-stone-400 font-serif italic text-base lowercase">{currentPage + 1} / {totalPages || 1}</span>
+                <button onClick={() => changePage(currentPage + 1, 'next')} disabled={currentPage === totalPages - 1 || isAnimating} className={`flex items-center gap-2 transition-colors ${currentPage === totalPages - 1 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-900 hover:text-amber-600'}`}>Lembar Selanjutnya →</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. REPOSITORI SKRIPSI */}
+      <div id="repositori" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="flex items-center gap-4 mb-10 border-t border-[#e8e4db] pt-16">
+          <div className="w-14 h-14 bg-red-800 rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></div>
+          <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Repositori Skripsi</h2><p className="text-stone-500 text-sm mt-1">Karya tulis ilmiah warga dan alumni asrama.</p></div>
+        </div>
+        
+        {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat repositori...</p> : dataSkripsi.length === 0 ? <div className="bg-white p-12 rounded-sm border border-[#e8e4db] text-stone-500 text-center shadow-sm w-full">Belum ada data skripsi.</div> : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {dataSkripsi.map(item => (
+              <div key={item.id} className="bg-white p-6 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col group hover:-translate-y-1 transition-transform duration-300">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="font-bold text-stone-900 text-lg mb-1">{item.nama}</h4>
+                    <p className="text-xs text-stone-500 font-sans uppercase tracking-widest">{item.jurusan}</p>
+                  </div>
+                  <span className="bg-stone-100 text-stone-600 text-xs font-bold px-2 py-1 rounded-sm">{item.tahun}</span>
+                </div>
+                <h3 className="text-base font-serif text-stone-800 leading-snug mb-6 flex-grow italic">"{item.judul}"</h3>
+                <button onClick={() => { setSelectedSkripsi(item); setShowSkripsiModal(true); document.body.style.overflow = "hidden"; }} className="w-full bg-[#171412] hover:bg-red-800 text-white py-3 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2 font-sans">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Akses PDF
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
