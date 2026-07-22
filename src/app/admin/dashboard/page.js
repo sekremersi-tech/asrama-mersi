@@ -32,11 +32,16 @@ export default function AdminDashboard() {
 
   const [tampilanUrls, setTampilanUrls] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
   const [tampilanFiles, setTampilanFiles] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
-  const [profilText, setProfilText] = useState({ sejarah: "", visi: "", misi: "", jejakAlumni: "", nilai1: "", nilai2: "", nilai3: "" });
+  const [profilText, setProfilText] = useState({ visi: "", misi: "", jejakAlumni: "" });
   const [kontak, setKontak] = useState({ namaKetua: "", noTelpon: "" });
   const [statusAsrama, setStatusAsrama] = useState({ kamar: "", penghuni: "", ketersediaan: "Tersedia" });
   const [brosurUrl, setBrosurUrl] = useState("");
   const [fileBrosur, setFileBrosur] = useState(null);
+
+  // STATE MANAJEMEN BUKU SEJARAH (BARU)
+  const [dataSejarah, setDataSejarah] = useState([]);
+  const [judulSejarah, setJudulSejarah] = useState("");
+  const [isiSejarah, setIsiSejarah] = useState("");
 
   const [pengurusInti, setPengurusInti] = useState({ ketuaNama: "", ketuaFoto: "", ketuaFoto2: "", sekreNama: "", sekreFoto: "", sekreFoto2: "", bendaharaNama: "", bendaharaFoto: "", bendaharaFoto2: "" });
   const [fileInti, setFileInti] = useState({ ketua: null, ketua2: null, sekretaris: null, sekretaris2: null, bendahara: null, bendahara2: null });
@@ -118,6 +123,10 @@ export default function AdminDashboard() {
     const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
     if (docBrosur.exists()) setBrosurUrl(docBrosur.data().link);
 
+    // FETCH DATA BUKU SEJARAH
+    const sejSnap = await getDocs(query(collection(db, "sejarah_asrama"), orderBy("createdAt", "asc")));
+    setDataSejarah(sejSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
     const docInti = await getDoc(doc(db, "pengaturan", "pengurus_inti"));
     if (docInti.exists()) setPengurusInti(docInti.data());
     const divSnap = await getDocs(query(collection(db, "divisi_asrama"), orderBy("createdAt", "asc")));
@@ -150,62 +159,25 @@ export default function AdminDashboard() {
     setDataKomentar(komenSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
-  const uploadToCloudinary = async (file, resourceType = "image") => { 
-    const formData = new FormData(); formData.append("file", file); 
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); 
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: "POST", body: formData }); 
-    const data = await res.json(); 
-    if (data.error) throw new Error(data.error.message); 
-    return data.secure_url; 
+  const uploadToCloudinary = async (file, resourceType = "image") => { const formData = new FormData(); formData.append("file", file); formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: "POST", body: formData }); const data = await res.json(); if (data.error) throw new Error(data.error.message); return data.secure_url; };
+  
+  // HANDLER SUBMIT BUKU SEJARAH BARU
+  const handleSubmitSejarah = async (e) => {
+    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
+    try {
+      await addDoc(collection(db, "sejarah_asrama"), { judul: judulSejarah, isi: isiSejarah, createdAt: serverTimestamp() });
+      setStatus({ type: "success", message: "Halaman sejarah ditambahkan!" });
+      setJudulSejarah(""); setIsiSejarah(""); fetchAllData();
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
   };
 
   const handleSaveTampilan = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newUrls = { ...tampilanUrls }; const keys = ["hero", "profil", "fasilitas", "kehidupan", "alumni", "gateway"]; for (let key of keys) { if (tampilanFiles[key] && tampilanFiles[key].length > 0) { let urls = []; for (const file of tampilanFiles[key]) { urls.push(await uploadToCloudinary(file, "image")); } newUrls[key] = urls; } } if (tampilanFiles.gateway && tampilanFiles.gateway.length > 0) { delete newUrls.gateway1; delete newUrls.gateway2; delete newUrls.gateway3; } await setDoc(doc(db, "pengaturan", "tampilan"), newUrls, { merge: true }); setTampilanUrls(newUrls); setTampilanFiles({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] }); setStatus({ type: "success", message: "Semua foto latar berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveProfilText = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "profilText"), profilText); await setDoc(doc(db, "pengaturan", "kontak"), kontak); setStatus({ type: "success", message: "Teks profil & Kontak berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveStatusAsrama = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "statusAsrama"), statusAsrama); setStatus({ type: "success", message: "Status Asrama berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveBrosur = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { if (fileBrosur) { const url = await uploadToCloudinary(fileBrosur, "image"); await setDoc(doc(db, "pengaturan", "brosur"), { link: url }); setBrosurUrl(url); setFileBrosur(null); setStatus({ type: "success", message: "Brosur Pendaftaran berhasil diperbarui!" }); } } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
-  
-  const handleSavePengurusInti = async (e) => {
-    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
-    try {
-      let newData = { ...pengurusInti };
-      if (fileInti.ketua) newData.ketuaFoto = await uploadToCloudinary(fileInti.ketua, "image");
-      if (fileInti.ketua2) newData.ketuaFoto2 = await uploadToCloudinary(fileInti.ketua2, "image");
-      if (fileInti.sekretaris) newData.sekreFoto = await uploadToCloudinary(fileInti.sekretaris, "image");
-      if (fileInti.sekretaris2) newData.sekreFoto2 = await uploadToCloudinary(fileInti.sekretaris2, "image");
-      if (fileInti.bendahara) newData.bendaharaFoto = await uploadToCloudinary(fileInti.bendahara, "image");
-      if (fileInti.bendahara2) newData.bendaharaFoto2 = await uploadToCloudinary(fileInti.bendahara2, "image");
-      await setDoc(doc(db, "pengaturan", "pengurus_inti"), newData);
-      setPengurusInti(newData); 
-      setFileInti({ ketua: null, ketua2: null, sekretaris: null, sekretaris2: null, bendahara: null, bendahara2: null });
-      setStatus({ type: "success", message: "Pengurus Inti berhasil diperbarui!" });
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
-  };
-
+  const handleSavePengurusInti = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newData = { ...pengurusInti }; if (fileInti.ketua) newData.ketuaFoto = await uploadToCloudinary(fileInti.ketua, "image"); if (fileInti.ketua2) newData.ketuaFoto2 = await uploadToCloudinary(fileInti.ketua2, "image"); if (fileInti.sekretaris) newData.sekreFoto = await uploadToCloudinary(fileInti.sekretaris, "image"); if (fileInti.sekretaris2) newData.sekreFoto2 = await uploadToCloudinary(fileInti.sekretaris2, "image"); if (fileInti.bendahara) newData.bendaharaFoto = await uploadToCloudinary(fileInti.bendahara, "image"); if (fileInti.bendahara2) newData.bendaharaFoto2 = await uploadToCloudinary(fileInti.bendahara2, "image"); await setDoc(doc(db, "pengaturan", "pengurus_inti"), newData); setPengurusInti(newData); setFileInti({ ketua: null, ketua2: null, sekretaris: null, sekretaris2: null, bendahara: null, bendahara2: null }); setStatus({ type: "success", message: "Pengurus Inti berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleTambahDivisi = async (e) => { e.preventDefault(); setLoading(true); try { await addDoc(collection(db, "divisi_asrama"), { namaDivisi: namaDivisiBaru, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Divisi berhasil ditambahkan!" }); setNamaDivisiBaru(""); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
-  
-  const handleTambahAnggota = async (e) => {
-    e.preventDefault(); setLoading(true);
-    try {
-      let fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random";
-      let fotoUrl2 = ""; 
-      if (fileAnggota) { fotoUrl = await uploadToCloudinary(fileAnggota, "image"); }
-      if (fileAnggota2) { fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); } else { fotoUrl2 = fotoUrl; }
-      
-      await addDoc(collection(db, "anggota_divisi"), { 
-        divisiId: formAnggota.divisiId, 
-        nama: formAnggota.nama, 
-        peran: formAnggota.peran, 
-        foto: fotoUrl, 
-        foto2: fotoUrl2, 
-        createdAt: serverTimestamp() 
-      });
-      
-      setStatus({ type: "success", message: "Anggota Divisi berhasil ditambahkan!" });
-      setFormAnggota({ ...formAnggota, nama: "", peran: "Anggota" }); 
-      setFileAnggota(null); setFileAnggota2(null); fetchAllData();
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
-  };
-
+  const handleTambahAnggota = async (e) => { e.preventDefault(); setLoading(true); try { let fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; let fotoUrl2 = ""; if (fileAnggota) { fotoUrl = await uploadToCloudinary(fileAnggota, "image"); } if (fileAnggota2) { fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); } else { fotoUrl2 = fotoUrl; } await addDoc(collection(db, "anggota_divisi"), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, foto2: fotoUrl2, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Anggota Divisi berhasil ditambahkan!" }); setFormAnggota({ ...formAnggota, nama: "", peran: "Anggota" }); setFileAnggota(null); setFileAnggota2(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSubmitTimeline = async (e) => { e.preventDefault(); setLoading(true); try { await addDoc(collection(db, "timeline_sejarah"), { tahun: tahunTimeline, judul: judulTimeline, deskripsi: deskripsiTimeline, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Timeline berhasil ditambahkan!" }); setTahunTimeline(""); setJudulTimeline(""); setDeskripsiTimeline(""); e.target.reset(); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSubmitFasilitas = async (e) => { e.preventDefault(); setLoading(true); try { let urls = []; for (const file of filesFasilitas) { urls.push(await uploadToCloudinary(file, "image")); } await addDoc(collection(db, "daftar_fasilitas"), { nama: namaFasilitas, deskripsi: deskripsiFasilitas, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Fasilitas berhasil ditambahkan!" }); setNamaFasilitas(""); setDeskripsiFasilitas(""); setFilesFasilitas([]); e.target.reset(); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSubmitPenyewaan = async (e) => { e.preventDefault(); setLoading(true); try { let urls = []; for (const file of filesSewa) { urls.push(await uploadToCloudinary(file, "image")); } await addDoc(collection(db, "daftar_penyewaan"), { nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Item penyewaan berhasil ditambahkan!" }); setNamaSewa(""); setDeskripsiSewa(""); setKategoriSewa("Tempat / Barang"); setHargaSewa(""); setNoHpSewa(""); setFilesSewa([]); e.target.reset(); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
@@ -235,122 +207,62 @@ export default function AdminDashboard() {
 
         {status.message && <div className={`p-4 rounded-lg mb-6 text-sm font-medium border ${status.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200'}`}>{status.message}</div>}
 
-        {activeTab === "kepengurusan" && allowedTabs.includes("kepengurusan") && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">1. Pengurus Inti Asrama</h2>
-              <form onSubmit={handleSavePengurusInti} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm">
-                    <label className="text-sm font-bold block mb-2 text-red-800">Ketua Asrama</label>
-                    <input type="text" required value={pengurusInti.ketuaNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaNama: e.target.value})} placeholder="Nama Ketua..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" />
-                    <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label>
-                    <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" />
-                    <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label>
-                    <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" />
-                  </div>
-                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm">
-                    <label className="text-sm font-bold block mb-2 text-red-800">Sekretaris</label>
-                    <input type="text" required value={pengurusInti.sekreNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreNama: e.target.value})} placeholder="Nama Sekretaris..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" />
-                    <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label>
-                    <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" />
-                    <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label>
-                    <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" />
-                  </div>
-                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm">
-                    <label className="text-sm font-bold block mb-2 text-red-800">Bendahara</label>
-                    <input type="text" required value={pengurusInti.bendaharaNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaNama: e.target.value})} placeholder="Nama Bendahara..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" />
-                    <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label>
-                    <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" />
-                    <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label>
-                    <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" />
-                  </div>
-                </div>
-                <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2.5 rounded-md font-bold w-full md:w-auto">Simpan Pengurus Inti</button>
-              </form>
-            </div>
+        {/* TAB 1: PENGATURAN TEKS & SEJARAH BUKU */}
+        {activeTab === "tampilan" && allowedTabs.includes("tampilan") && ( 
+          <div className="space-y-6"> 
+            
+            {role === "sekre" && ( 
+              <>
+                <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
+                  <h2 className="text-lg font-bold mb-4 border-b pb-2">Edit Teks Website Asrama</h2> 
+                  <form onSubmit={handleSaveProfilText} className="space-y-6"> 
+                    <div className="space-y-4"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Kontak Asrama (Footer)</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> <div><label className="text-sm block mb-1">Nama Ketua</label><input required type="text" value={kontak.namaKetua} onChange={(e) => setKontak({...kontak, namaKetua: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div><label className="text-sm block mb-1">Nomor WA</label><input required type="text" value={kontak.noTelpon} onChange={(e) => setKontak({...kontak, noTelpon: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> </div> </div> 
+                    <div className="space-y-4 pt-4 border-t"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Profil - Visi Misi</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> <div><label className="text-sm block mb-1">Visi</label><textarea required rows="3" value={profilText.visi} onChange={(e) => setProfilText({...profilText, visi: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> <div><label className="text-sm block mb-1">Misi</label><textarea required rows="3" value={profilText.misi} onChange={(e) => setProfilText({...profilText, misi: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> </div> </div> 
+                    <div className="space-y-4 pt-4 border-t"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Jejak & Prestasi</h3> <div><label className="text-sm block mb-1">Teks Jejak Alumni</label><textarea required rows="2" value={profilText.jejakAlumni} onChange={(e) => setProfilText({...profilText, jejakAlumni: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> </div> 
+                    <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2 rounded-md font-semibold">Simpan Teks Utama</button> 
+                  </form> 
+                </div> 
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
-                <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">2. Tambah Divisi Baru</h2>
-                <form onSubmit={handleTambahDivisi} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-semibold mb-1 block">Nama Divisi</label>
-                    <input type="text" required value={namaDivisiBaru} onChange={(e) => setNamaDivisiBaru(e.target.value)} placeholder="Cth: Divisi Bakat & Minat..." className="w-full px-4 py-2 border rounded-md" />
-                  </div>
-                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Buat Divisi</button>
-                </form>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
-                <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">3. Tambah Anggota Divisi</h2>
-                <form onSubmit={handleTambahAnggota} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-semibold mb-1 block">Pilih Divisi</label>
-                    <select required value={formAnggota.divisiId} onChange={(e) => setFormAnggota({...formAnggota, divisiId: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white">
-                      <option value="">-- Pilih Divisi --</option>
-                      {dataDivisi.map(div => <option key={div.id} value={div.id}>{div.namaDivisi}</option>)}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-semibold mb-1 block">Nama Anggota</label>
-                      <input type="text" required value={formAnggota.nama} onChange={(e) => setFormAnggota({...formAnggota, nama: e.target.value})} placeholder="Nama Anggota..." className="w-full px-4 py-2 border rounded-md" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-semibold mb-1 block">Peran / Jabatan</label>
-                      <select required value={formAnggota.peran} onChange={(e) => setFormAnggota({...formAnggota, peran: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white text-stone-800">
-                        <option value="Anggota">Anggota</option>
-                        <option value="Koordinator">Koordinator</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Depan)</label>
-                      <input type="file" accept="image/*" onChange={(e) => setFileAnggota(e.target.files[0])} className="w-full text-xs border border-slate-200 p-1.5 rounded bg-slate-50" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Belakang)</label>
-                      <input type="file" accept="image/*" onChange={(e) => setFileAnggota2(e.target.files[0])} className="w-full text-xs border border-amber-200 p-1.5 rounded bg-amber-50" />
-                    </div>
-                  </div>
-                  <button type="submit" disabled={loading || !formAnggota.divisiId} className="w-full bg-red-800 hover:bg-red-900 text-white px-4 py-2.5 rounded-md font-bold mt-2">Tambah Anggota</button>
-                </form>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Daftar Divisi & Anggota</h2>
-              {dataDivisi.length === 0 ? <p className="text-sm text-stone-500">Belum ada divisi.</p> : (
-                <div className="space-y-6">
-                  {dataDivisi.map(div => (
-                    <div key={div.id} className="bg-slate-50 border border-slate-200 p-4 rounded-lg">
-                      <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2">
-                        <h3 className="font-bold text-lg text-red-800">{div.namaDivisi}</h3>
-                        <button onClick={() => handleDelete("divisi_asrama", div.id)} className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">Hapus Divisi</button>
+                {/* MANAJEMEN SEJARAH (BUKU) */}
+                <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+                  <h2 className="text-lg font-bold mb-4 border-b pb-2">Manajemen Catatan Sejarah (Buku)</h2>
+                  <form onSubmit={handleSubmitSejarah} className="space-y-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4">
+                      <div>
+                        <label className="text-sm font-semibold mb-1 block">Judul Halaman / Bagian</label>
+                        <input type="text" required value={judulSejarah} onChange={(e) => setJudulSejarah(e.target.value)} placeholder="Cth: Bagian 1 / Masa Pendirian" className="w-full px-4 py-2 border border-slate-300 rounded-md bg-slate-50 text-sm" />
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {dataAnggota.filter(a => a.divisiId === div.id).map(anggota => (
-                          <div key={anggota.id} className="bg-white p-3 border rounded flex flex-col items-center text-center relative group">
-                            <img src={anggota.foto} className="w-12 h-12 rounded-lg object-cover mb-2 border border-slate-200" />
-                            <span className="text-xs font-semibold leading-tight">{anggota.nama}</span>
-                            <span className="text-[10px] text-amber-600 font-bold mt-1">{anggota.peran || "Anggota"}</span>
-                            <button onClick={() => handleDelete("anggota_divisi", anggota.id)} className="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                      <div>
+                        <label className="text-sm font-semibold mb-1 block">Isi Cerita Sejarah</label>
+                        <textarea required rows="3" value={isiSejarah} onChange={(e) => setIsiSejarah(e.target.value)} placeholder="Tuliskan cerita sejarah untuk lembaran ini..." className="w-full px-4 py-2 border border-slate-300 rounded-md bg-slate-50 text-sm"></textarea>
+                      </div>
+                    </div>
+                    <button type="submit" disabled={loading} className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-md font-semibold w-full md:w-auto">Tambah Lembaran</button>
+                  </form>
+                  <h3 className="font-bold text-sm text-slate-500 uppercase tracking-widest mb-3">Daftar Lembaran (Urut dari terlama ke terbaru)</h3>
+                  {dataSejarah.length === 0 ? <p className="text-sm italic text-stone-400">Belum ada lembar sejarah.</p> : (
+                    <div className="space-y-3">
+                      {dataSejarah.map((item) => (
+                        <div key={item.id} className="flex justify-between items-center p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                          <div>
+                            <div className="font-bold text-amber-700 text-sm mb-1">{item.judul}</div>
+                            <div className="text-xs text-slate-500 line-clamp-1 pr-4">{item.isi}</div>
                           </div>
-                        ))}
-                        {dataAnggota.filter(a => a.divisiId === div.id).length === 0 && <p className="text-xs text-stone-500 col-span-full">Belum ada anggota.</p>}
-                      </div>
+                          <button type="button" onClick={() => handleDelete("sejarah_asrama", item.id)} className="text-red-500 text-xs font-bold border border-red-200 bg-white px-3 py-1.5 rounded hover:bg-red-50">Hapus</button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+              </>
+            )}
 
-        {/* TAB 2 S.D 11 LAINNYA */}
-        {activeTab === "tampilan" && allowedTabs.includes("tampilan") && ( <div className="space-y-6"> {role === "sekre" && ( <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Edit Teks Website Asrama</h2> <form onSubmit={handleSaveProfilText} className="space-y-6"> <div className="space-y-4"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Kontak Asrama (Footer)</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> <div><label className="text-sm block mb-1">Nama Ketua</label><input required type="text" value={kontak.namaKetua} onChange={(e) => setKontak({...kontak, namaKetua: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div><label className="text-sm block mb-1">Nomor WA</label><input required type="text" value={kontak.noTelpon} onChange={(e) => setKontak({...kontak, noTelpon: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> </div> </div> <div className="space-y-4 pt-4 border-t"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Profil</h3> <div><label className="text-sm block mb-1">Sejarah Asrama</label><textarea required rows="4" value={profilText.sejarah} onChange={(e) => setProfilText({...profilText, sejarah: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> <div><label className="text-sm block mb-1">Visi</label><textarea required rows="3" value={profilText.visi} onChange={(e) => setProfilText({...profilText, visi: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> <div><label className="text-sm block mb-1">Misi</label><textarea required rows="3" value={profilText.misi} onChange={(e) => setProfilText({...profilText, misi: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> </div> </div> <div className="space-y-4 pt-4 border-t"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Jejak & Prestasi</h3> <div><label className="text-sm block mb-1">Teks Jejak Alumni</label><textarea required rows="2" value={profilText.jejakAlumni} onChange={(e) => setProfilText({...profilText, jejakAlumni: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea></div> </div> <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2 rounded-md font-semibold">Simpan Teks</button> </form> </div> )} <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Ubah Foto Latar Belakang (Multi-Upload)</h2> <form onSubmit={handleSaveTampilan} className="space-y-6"> <div className="space-y-4"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Slideshow Gateway (Halaman Beranda Utama)</h3> <div className="bg-slate-50 p-4 border rounded-lg"> <label className="font-semibold block mb-2">Pilih Beberapa Foto Gateway Sekaligus</label> <input type="file" multiple accept="image/*" onChange={(e) => setTampilanFiles({...tampilanFiles, gateway: Array.from(e.target.files)})} className="w-full text-sm cursor-pointer bg-white p-2 border rounded" /> </div> </div> <div className="space-y-4 pt-4 border-t"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Latar Belakang Tiap Halaman (Slideshow)</h3> {[{ id: 'hero', title: 'Beranda (Hero)' }, { id: 'profil', title: 'Profil' }, { id: 'fasilitas', title: 'Fasilitas' }, { id: 'kehidupan', title: 'Media' }, { id: 'alumni', title: 'Alumni' }].map((item) => ( <div key={item.id} className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 items-center bg-slate-50 p-4 border rounded-lg"> <label className="font-semibold text-sm">Latar {item.title}</label> <input type="file" multiple accept="image/*" onChange={(e) => setTampilanFiles({...tampilanFiles, [item.id]: Array.from(e.target.files)})} className="w-full text-sm cursor-pointer bg-white p-2 border rounded" /> </div> ))} </div> <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2 rounded-md font-semibold">Simpan Slideshow Latar</button> </form> </div> </div> )}
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Ubah Foto Latar Belakang (Multi-Upload)</h2> <form onSubmit={handleSaveTampilan} className="space-y-6"> <div className="space-y-4"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Slideshow Gateway (Halaman Beranda Utama)</h3> <div className="bg-slate-50 p-4 border rounded-lg"> <label className="font-semibold block mb-2">Pilih Beberapa Foto Gateway Sekaligus</label> <input type="file" multiple accept="image/*" onChange={(e) => setTampilanFiles({...tampilanFiles, gateway: Array.from(e.target.files)})} className="w-full text-sm cursor-pointer bg-white p-2 border rounded" /> </div> </div> <div className="space-y-4 pt-4 border-t"> <h3 className="font-semibold text-red-800 border-l-2 pl-2">Latar Belakang Tiap Halaman (Slideshow)</h3> {[{ id: 'hero', title: 'Beranda (Hero)' }, { id: 'profil', title: 'Profil' }, { id: 'fasilitas', title: 'Fasilitas' }, { id: 'kehidupan', title: 'Media' }, { id: 'alumni', title: 'Alumni' }].map((item) => ( <div key={item.id} className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 items-center bg-slate-50 p-4 border rounded-lg"> <label className="font-semibold text-sm">Latar {item.title}</label> <input type="file" multiple accept="image/*" onChange={(e) => setTampilanFiles({...tampilanFiles, [item.id]: Array.from(e.target.files)})} className="w-full text-sm cursor-pointer bg-white p-2 border rounded" /> </div> ))} </div> <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2 rounded-md font-semibold">Simpan Slideshow Latar</button> </form> </div> 
+          </div> 
+        )}
+        
+        {/* TAB 2 S.D 11 LAINNYA TETAP SAMA */}
+        {activeTab === "kepengurusan" && allowedTabs.includes("kepengurusan") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">1. Pengurus Inti Asrama</h2> <form onSubmit={handleSavePengurusInti} className="space-y-6"> <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Ketua Asrama</label> <input type="text" required value={pengurusInti.ketuaNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaNama: e.target.value})} placeholder="Nama Ketua..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Sekretaris</label> <input type="text" required value={pengurusInti.sekreNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreNama: e.target.value})} placeholder="Nama Sekretaris..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Bendahara</label> <input type="text" required value={pengurusInti.bendaharaNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaNama: e.target.value})} placeholder="Nama Bendahara..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> </div> <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2.5 rounded-md font-bold w-full md:w-auto">Simpan Pengurus Inti</button> </form> </div> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">2. Tambah Divisi Baru</h2> <form onSubmit={handleTambahDivisi} className="space-y-4"> <div> <label className="text-sm font-semibold mb-1 block">Nama Divisi</label> <input type="text" required value={namaDivisiBaru} onChange={(e) => setNamaDivisiBaru(e.target.value)} placeholder="Cth: Divisi Bakat & Minat..." className="w-full px-4 py-2 border rounded-md" /> </div> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Buat Divisi</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">3. Tambah Anggota Divisi</h2> <form onSubmit={handleTambahAnggota} className="space-y-4"> <div> <label className="text-sm font-semibold mb-1 block">Pilih Divisi</label> <select required value={formAnggota.divisiId} onChange={(e) => setFormAnggota({...formAnggota, divisiId: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"> <option value="">-- Pilih Divisi --</option> {dataDivisi.map(div => <option key={div.id} value={div.id}>{div.namaDivisi}</option>)} </select> </div> <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> <div> <label className="text-sm font-semibold mb-1 block">Nama Anggota</label> <input type="text" required value={formAnggota.nama} onChange={(e) => setFormAnggota({...formAnggota, nama: e.target.value})} placeholder="Nama Anggota..." className="w-full px-4 py-2 border rounded-md" /> </div> <div> <label className="text-sm font-semibold mb-1 block">Peran / Jabatan</label> <select required value={formAnggota.peran} onChange={(e) => setFormAnggota({...formAnggota, peran: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white text-stone-800"> <option value="Anggota">Anggota</option> <option value="Koordinator">Koordinator</option> </select> </div> </div> <div className="grid grid-cols-2 gap-2"> <div> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileAnggota(e.target.files[0])} className="w-full text-xs border border-slate-200 p-1.5 rounded bg-slate-50" /> </div> <div> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Belakang)</label> <input type="file" accept="image/*" onChange={(e) => setFileAnggota2(e.target.files[0])} className="w-full text-xs border border-amber-200 p-1.5 rounded bg-amber-50" /> </div> </div> <button type="submit" disabled={loading || !formAnggota.divisiId} className="w-full bg-red-800 hover:bg-red-900 text-white px-4 py-2.5 rounded-md font-bold mt-2">Tambah Anggota</button> </form> </div> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">Daftar Divisi & Anggota</h2> {dataDivisi.length === 0 ? <p className="text-sm text-stone-500">Belum ada divisi.</p> : ( <div className="space-y-6"> {dataDivisi.map(div => ( <div key={div.id} className="bg-slate-50 border border-slate-200 p-4 rounded-lg"> <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2"> <h3 className="font-bold text-lg text-red-800">{div.namaDivisi}</h3> <button onClick={() => handleDelete("divisi_asrama", div.id)} className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">Hapus Divisi</button> </div> <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4"> {dataAnggota.filter(a => a.divisiId === div.id).map(anggota => ( <div key={anggota.id} className="bg-white p-3 border rounded flex flex-col items-center text-center relative group"> <img src={anggota.foto} className="w-12 h-12 rounded-lg object-cover mb-2 border border-slate-200" /> <span className="text-xs font-semibold leading-tight">{anggota.nama}</span> <span className="text-[10px] text-amber-600 font-bold mt-1">{anggota.peran || "Anggota"}</span> <button onClick={() => handleDelete("anggota_divisi", anggota.id)} className="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button> </div> ))} {dataAnggota.filter(a => a.divisiId === div.id).length === 0 && <p className="text-xs text-stone-500 col-span-full">Belum ada anggota.</p>} </div> </div> ))} </div> )} </div> </div> )}
         {activeTab === "status" && allowedTabs.includes("status") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Status Asrama</h2> <form onSubmit={handleSaveStatusAsrama} className="space-y-4"> <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> <div><label className="text-sm font-semibold mb-1 block">Jumlah Kamar</label><input type="number" required value={statusAsrama.kamar} onChange={(e) => setStatusAsrama({...statusAsrama, kamar: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div><label className="text-sm font-semibold mb-1 block">Jumlah Penghuni</label><input type="number" required value={statusAsrama.penghuni} onChange={(e) => setStatusAsrama({...statusAsrama, penghuni: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div> <label className="text-sm font-semibold mb-1 block">Ketersediaan</label> <select value={statusAsrama.ketersediaan} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaan: e.target.value})} className="w-full px-4 py-2 border rounded-md"> <option value="Tersedia">🟢 Tersedia</option> <option value="Penuh">🔴 Penuh</option> </select> </div> </div> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Perbarui Status</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Foto Brosur Penerimaan Warga Asrama</h2> <form onSubmit={handleSaveBrosur} className="space-y-4"> <div className="bg-slate-50 p-4 border rounded-lg flex items-center justify-between"> <input type="file" accept="image/*" onChange={(e) => setFileBrosur(e.target.files[0])} className="w-full text-sm cursor-pointer" /> {brosurUrl && <a href={brosurUrl} target="_blank" className="text-xs text-amber-600 font-bold ml-4 whitespace-nowrap">Lihat Brosur Saat Ini</a>} </div> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Unggah Brosur Baru</button> </form> </div> </div> )}
         {activeTab === "timeline" && allowedTabs.includes("timeline") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Timeline</h2> <form onSubmit={handleSubmitTimeline} className="space-y-4"> <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4"> <input type="text" required value={tahunTimeline} onChange={(e) => setTahunTimeline(e.target.value)} placeholder="Tahun" className="w-full px-4 py-2 border rounded-md" /> <input type="text" required value={judulTimeline} onChange={(e) => setJudulTimeline(e.target.value)} placeholder="Peristiwa" className="w-full px-4 py-2 border rounded-md" /> </div> <textarea required rows="2" value={deskripsiTimeline} onChange={(e) => setDeskripsiTimeline(e.target.value)} placeholder="Deskripsi..." className="w-full px-4 py-2 border rounded-md"></textarea> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Tambahkan</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Timeline</h3> <div className="space-y-4"> {dataTimeline.map(item => ( <div key={item.id} className="bg-slate-50 border rounded-lg p-4 flex justify-between"> <div> <span className="px-2 py-1 bg-amber-500 text-white text-xs rounded mb-2">{item.tahun}</span> <h4 className="font-bold">{item.judul}</h4> <p className="text-sm text-slate-600">{item.deskripsi}</p> </div> <button onClick={() => handleDelete("timeline_sejarah", item.id)} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded">Hapus</button> </div> ))} </div> </div> </div> )}
         {activeTab === "fotoprofil" && allowedTabs.includes("fotoprofil") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Foto Profil</h2> <form onSubmit={handleSubmitFotoProfil} className="space-y-4"> <textarea required rows="2" value={konteksFoto} onChange={(e) => setKonteksFoto(e.target.value)} placeholder="Konteks..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="file" multiple required accept="image/*" onChange={(e) => setFilesFotoProfil(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-slate-50" /> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Tambahkan</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Foto Profil</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {dataFotoProfil.map(item => { const imgUtama = Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar; return ( <div key={item.id} className="bg-slate-50 border rounded-lg flex gap-4 p-3"> <img src={imgUtama} className="w-24 h-24 object-cover rounded-md shrink-0" /> <div className="flex flex-col justify-between w-full"> <p className="text-xs text-slate-600">{item.konteks}</p> <button onClick={() => handleDelete("profil_galeri", item.id)} className="text-red-600 text-xs">Hapus</button> </div> </div> ); })} </div> </div> </div> )}
