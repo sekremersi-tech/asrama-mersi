@@ -38,15 +38,17 @@ export default function AdminDashboard() {
   const [brosurUrl, setBrosurUrl] = useState("");
   const [fileBrosur, setFileBrosur] = useState(null);
 
-  // STATE KEPENGURUSAN (DIPERBARUI DENGAN FOTO KEDUA)
+  // STATE KEPENGURUSAN
   const [pengurusInti, setPengurusInti] = useState({ ketuaNama: "", ketuaFoto: "", ketuaFoto2: "", sekreNama: "", sekreFoto: "", sekreFoto2: "", bendaharaNama: "", bendaharaFoto: "", bendaharaFoto2: "" });
   const [fileInti, setFileInti] = useState({ ketua: null, ketua2: null, sekretaris: null, sekretaris2: null, bendahara: null, bendahara2: null });
   const [dataDivisi, setDataDivisi] = useState([]);
   const [namaDivisiBaru, setNamaDivisiBaru] = useState("");
   const [dataAnggota, setDataAnggota] = useState([]);
-  const [formAnggota, setFormAnggota] = useState({ divisiId: "", nama: "" });
+  
+  // STATE TAMBAH ANGGOTA DIVISI (DENGAN PERAN)
+  const [formAnggota, setFormAnggota] = useState({ divisiId: "", nama: "", peran: "Anggota" });
   const [fileAnggota, setFileAnggota] = useState(null);
-  const [fileAnggota2, setFileAnggota2] = useState(null); // FOTO 2 ANGGOTA
+  const [fileAnggota2, setFileAnggota2] = useState(null);
 
   const [dataFotoProfil, setDataFotoProfil] = useState([]);
   const [konteksFoto, setKonteksFoto] = useState("");
@@ -165,7 +167,6 @@ export default function AdminDashboard() {
   const handleSaveStatusAsrama = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "statusAsrama"), statusAsrama); setStatus({ type: "success", message: "Status Asrama berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveBrosur = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { if (fileBrosur) { const url = await uploadToCloudinary(fileBrosur, "image"); await setDoc(doc(db, "pengaturan", "brosur"), { link: url }); setBrosurUrl(url); setFileBrosur(null); setStatus({ type: "success", message: "Brosur Pendaftaran berhasil diperbarui!" }); } } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   
-  // MENGATUR PENGURUS INTI (DUA FOTO SEKARANG)
   const handleSavePengurusInti = async (e) => {
     e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
     try {
@@ -185,18 +186,27 @@ export default function AdminDashboard() {
 
   const handleTambahDivisi = async (e) => { e.preventDefault(); setLoading(true); try { await addDoc(collection(db, "divisi_asrama"), { namaDivisi: namaDivisiBaru, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Divisi berhasil ditambahkan!" }); setNamaDivisiBaru(""); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   
-  // MENGATUR ANGGOTA DIVISI (DUA FOTO SEKARANG)
+  // TAMBAH ANGGOTA (DENGAN MENYERTAKAN PERAN)
   const handleTambahAnggota = async (e) => {
     e.preventDefault(); setLoading(true);
     try {
       let fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random";
       let fotoUrl2 = ""; 
       if (fileAnggota) { fotoUrl = await uploadToCloudinary(fileAnggota, "image"); }
-      if (fileAnggota2) { fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); } else { fotoUrl2 = fotoUrl; } // Fallback
+      if (fileAnggota2) { fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); } else { fotoUrl2 = fotoUrl; }
       
-      await addDoc(collection(db, "anggota_divisi"), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, foto: fotoUrl, foto2: fotoUrl2, createdAt: serverTimestamp() });
+      await addDoc(collection(db, "anggota_divisi"), { 
+        divisiId: formAnggota.divisiId, 
+        nama: formAnggota.nama, 
+        peran: formAnggota.peran, // MENYIMPAN PERAN KE DATABASE
+        foto: fotoUrl, 
+        foto2: fotoUrl2, 
+        createdAt: serverTimestamp() 
+      });
+      
       setStatus({ type: "success", message: "Anggota Divisi berhasil ditambahkan!" });
-      setFormAnggota({ ...formAnggota, nama: "" }); setFileAnggota(null); setFileAnggota2(null); fetchAllData();
+      setFormAnggota({ ...formAnggota, nama: "", peran: "Anggota" }); 
+      setFileAnggota(null); setFileAnggota2(null); fetchAllData();
     } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
   };
 
@@ -236,7 +246,6 @@ export default function AdminDashboard() {
               <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">1. Pengurus Inti Asrama</h2>
               <form onSubmit={handleSavePengurusInti} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* KETUA */}
                   <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm">
                     <label className="text-sm font-bold block mb-2 text-red-800">Ketua Asrama</label>
                     <input type="text" required value={pengurusInti.ketuaNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaNama: e.target.value})} placeholder="Nama Ketua..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" />
@@ -245,7 +254,6 @@ export default function AdminDashboard() {
                     <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label>
                     <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" />
                   </div>
-                  {/* SEKRETARIS */}
                   <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm">
                     <label className="text-sm font-bold block mb-2 text-red-800">Sekretaris</label>
                     <input type="text" required value={pengurusInti.sekreNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreNama: e.target.value})} placeholder="Nama Sekretaris..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" />
@@ -254,7 +262,6 @@ export default function AdminDashboard() {
                     <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang saat Diklik)</label>
                     <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" />
                   </div>
-                  {/* BENDAHARA */}
                   <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm">
                     <label className="text-sm font-bold block mb-2 text-red-800">Bendahara</label>
                     <input type="text" required value={pengurusInti.bendaharaNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaNama: e.target.value})} placeholder="Nama Bendahara..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" />
@@ -290,10 +297,22 @@ export default function AdminDashboard() {
                       {dataDivisi.map(div => <option key={div.id} value={div.id}>{div.namaDivisi}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold mb-1 block">Nama Anggota</label>
-                    <input type="text" required value={formAnggota.nama} onChange={(e) => setFormAnggota({...formAnggota, nama: e.target.value})} placeholder="Nama Anggota..." className="w-full px-4 py-2 border rounded-md" />
+                  
+                  {/* PENAMBAHAN KOLOM PERAN/JABATAN */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-semibold mb-1 block">Nama Anggota</label>
+                      <input type="text" required value={formAnggota.nama} onChange={(e) => setFormAnggota({...formAnggota, nama: e.target.value})} placeholder="Nama Anggota..." className="w-full px-4 py-2 border rounded-md" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold mb-1 block">Peran / Jabatan</label>
+                      <select required value={formAnggota.peran} onChange={(e) => setFormAnggota({...formAnggota, peran: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white text-stone-800">
+                        <option value="Anggota">Anggota</option>
+                        <option value="Koordinator">Koordinator</option>
+                      </select>
+                    </div>
                   </div>
+
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Depan)</label>
@@ -321,9 +340,11 @@ export default function AdminDashboard() {
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
                         {dataAnggota.filter(a => a.divisiId === div.id).map(anggota => (
-                          <div key={anggota.id} className="bg-white p-2 border rounded flex flex-col items-center text-center relative group">
+                          <div key={anggota.id} className="bg-white p-3 border rounded flex flex-col items-center text-center relative group">
                             <img src={anggota.foto} className="w-12 h-12 rounded-lg object-cover mb-2 border border-slate-200" />
                             <span className="text-xs font-semibold leading-tight">{anggota.nama}</span>
+                            {/* Menampilkan Status Koordinator di Admin */}
+                            <span className="text-[10px] text-amber-600 font-bold mt-1">{anggota.peran || "Anggota"}</span>
                             <button onClick={() => handleDelete("anggota_divisi", anggota.id)} className="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
                           </div>
                         ))}
