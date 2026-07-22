@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link"; // INI BARIS YANG SEBELUMNYA TERLEWAT
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, limit, doc, getDoc, addDoc, serverTimestamp, where } from "firebase/firestore";
 
@@ -38,7 +39,7 @@ export default function FasilitasAsrama() {
   const [bgFasilitas, setBgFasilitas] = useState([]);
   const [dataFasilitas, setDataFasilitas] = useState([]);
   const [dataPenyewaan, setDataPenyewaan] = useState([]); 
-  const [kabarTerbaru, setKabarTerbaru] = useState([]); // Menambah State Kabar Terbaru
+  const [kabarTerbaru, setKabarTerbaru] = useState([]); 
   const [kontak, setKontak] = useState({ noTelpon: "-" });
   const [loading, setLoading] = useState(true);
   const [statusAsrama, setStatusAsrama] = useState({ kamar: "0", penghuni: "0", ketersediaan: "Penuh" });
