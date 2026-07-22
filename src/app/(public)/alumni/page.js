@@ -68,7 +68,6 @@ export default function JejakPrestasi() {
         // MENGAMBIL PRESTASI DARI KOLEKSI KEHIDUPAN (MEDIA PUBLIKASI)
         const berSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
         const allBerita = berSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        // Filter di sisi klien untuk mencegah error Indexing Firestore
         const prestasiData = allBerita.filter(item => item.kategori === "PRESTASI");
         setDataPrestasi(prestasiData);
 
@@ -89,7 +88,7 @@ export default function JejakPrestasi() {
       setTimeout(() => {
         setCurrentPage(newIndex);
         setIsAnimating(false);
-      }, 400); // Waktu yang sama dengan durasi CSS animasi
+      }, 400); 
     }
   };
 
@@ -145,7 +144,6 @@ export default function JejakPrestasi() {
   const nextModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev + 1) % modalImages.length); };
   const prevModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev - 1 + modalImages.length) % modalImages.length); };
 
-  // DATA LIST PRESTASI SAAT INI
   const totalPages = Math.ceil(dataPrestasi.length / itemsPerPage);
   const currentDataPrestasi = dataPrestasi.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
@@ -162,7 +160,7 @@ export default function JejakPrestasi() {
         @keyframes slidePrevIn { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
       `}</style>
 
-      {/* MODAL POP-UP PRESTASI (SAMA SEPERTI DI MEDIA) */}
+      {/* MODAL POP-UP PRESTASI */}
       {selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={closeModal}>
           <button onClick={closeModal} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-black/50 p-2 rounded-full z-50"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
@@ -248,11 +246,9 @@ export default function JejakPrestasi() {
         
         {loading ? <p className="text-center text-stone-500">Memuat data prestasi...</p> : dataPrestasi.length === 0 ? <p className="text-center text-stone-500 bg-white p-12 border border-[#e8e4db] rounded-sm shadow-sm">Belum ada catatan prestasi.</p> : (
           <div className="relative mt-12 perspective-1000">
-            {/* Kertas Latar (Tumpukan) */}
             <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-4 -rotate-1 rounded-sm shadow-md"></div>
             <div className="absolute inset-0 bg-[#f4f2ec] transform translate-y-2 rotate-1 rounded-sm shadow-md"></div>
             
-            {/* Kertas Utama & Animasi */}
             <div className={`relative bg-[#fcfbf9] p-8 md:p-14 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[500px] ${isAnimating ? (animDirection === 'next' ? 'slide-next-out' : 'slide-prev-out') : (animDirection === 'next' ? 'slide-next-in' : (animDirection === 'prev' ? 'slide-prev-in' : ''))}`}>
               
               <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
@@ -260,17 +256,12 @@ export default function JejakPrestasi() {
                 <h3 className="text-2xl font-bold text-stone-900 font-playfair">Catatan Prestasi</h3>
               </div>
               
-              {/* List Item Prestasi */}
               <div className="flex-grow">
                 <ul className="divide-y divide-stone-200 border-b border-stone-200">
                   {currentDataPrestasi.map((item, idx) => {
                     const noUrut = (currentPage * itemsPerPage) + idx + 1;
                     return (
-                      <li 
-                        key={item.id} 
-                        onClick={() => openModal(item)}
-                        className="py-5 px-4 md:px-6 hover:bg-white group cursor-pointer transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
-                      >
+                      <li key={item.id} onClick={() => openModal(item)} className="py-5 px-4 md:px-6 hover:bg-white group cursor-pointer transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex gap-4 md:gap-6 items-start md:items-center w-full">
                           <span className="font-playfair text-xl md:text-2xl text-stone-300 font-bold min-w-[30px]">{noUrut}.</span>
                           <div className="flex-grow">
@@ -287,7 +278,6 @@ export default function JejakPrestasi() {
                 </ul>
               </div>
 
-              {/* Navigasi Paginasi */}
               <div className="mt-12 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase">
                 <button onClick={() => changePage(currentPage - 1, 'prev')} disabled={currentPage === 0 || isAnimating} className={`flex items-center gap-2 transition-colors ${currentPage === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-500 hover:text-red-800'}`}>← Lembar Sebelumnya</button>
                 <span className="text-stone-400 font-serif italic text-base lowercase">{currentPage + 1} / {totalPages || 1}</span>
@@ -298,28 +288,35 @@ export default function JejakPrestasi() {
         )}
       </div>
 
-      {/* 3. REPOSITORI SKRIPSI */}
-      <div id="repositori" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="flex items-center gap-4 mb-10 border-t border-[#e8e4db] pt-16">
-          <div className="w-14 h-14 bg-red-800 rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></div>
-          <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Repositori Skripsi</h2><p className="text-stone-500 text-sm mt-1">Karya tulis ilmiah warga dan alumni asrama.</p></div>
+      {/* 3. REPOSITORI SKRIPSI DENGAN DESAIN KLASIK & ELEGAN SEPERTI GAMBAR */}
+      <div id="repositori" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-32 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        
+        {/* Header Desain Kotak Merah */}
+        <div className="flex items-center gap-5 mb-12">
+          <div className="w-16 h-16 bg-red-800 rounded-md flex items-center justify-center text-white shrink-0 shadow-sm">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          </div>
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair mb-1">Repositori Skripsi</h2>
+            <p className="text-stone-500 text-sm md:text-base">Karya tulis ilmiah warga dan alumni asrama.</p>
+          </div>
         </div>
         
-        {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat repositori...</p> : dataSkripsi.length === 0 ? <div className="bg-white p-12 rounded-sm border border-[#e8e4db] text-stone-500 text-center shadow-sm w-full">Belum ada data skripsi.</div> : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat repositori...</p> : dataSkripsi.length === 0 ? <div className="bg-white p-12 rounded-sm border border-stone-200 text-stone-500 text-center shadow-sm w-full">Belum ada data skripsi.</div> : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {dataSkripsi.map(item => (
-              <div key={item.id} className="bg-white p-6 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col group hover:-translate-y-1 transition-transform duration-300">
-                <div className="flex justify-between items-start mb-4">
+              <div key={item.id} className="bg-white p-8 rounded-sm shadow-md border border-stone-100 flex flex-col group hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h4 className="font-bold text-stone-900 text-lg mb-1">{item.nama}</h4>
-                    <p className="text-xs text-stone-500 font-sans uppercase tracking-widest">{item.jurusan}</p>
+                    <h4 className="font-bold text-stone-900 text-lg uppercase tracking-wide font-serif mb-1">{item.nama}</h4>
+                    <p className="text-[11px] text-stone-500 font-sans uppercase tracking-widest">{item.jurusan}</p>
                   </div>
-                  <span className="bg-stone-100 text-stone-600 text-xs font-bold px-2 py-1 rounded-sm">{item.tahun}</span>
+                  <span className="bg-stone-100 text-stone-600 text-xs font-medium px-3 py-1 rounded-sm">{item.tahun}</span>
                 </div>
-                <h3 className="text-base font-serif text-stone-800 leading-snug mb-6 flex-grow italic">"{item.judul}"</h3>
-                <button onClick={() => { setSelectedSkripsi(item); setShowSkripsiModal(true); document.body.style.overflow = "hidden"; }} className="w-full bg-[#171412] hover:bg-red-800 text-white py-3 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2 font-sans">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                  Akses PDF
+                <h3 className="text-[17px] font-serif text-stone-800 leading-relaxed mb-8 flex-grow italic">"{item.judul}"</h3>
+                <button onClick={() => { setSelectedSkripsi(item); setShowSkripsiModal(true); document.body.style.overflow = "hidden"; }} className="w-full bg-[#171412] hover:bg-stone-800 text-white py-3.5 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2 font-sans shadow-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  AKSES PDF
                 </button>
               </div>
             ))}
