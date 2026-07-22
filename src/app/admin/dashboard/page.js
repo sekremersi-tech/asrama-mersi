@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, where } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, where, updateDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
 const TAB_ROLES = {
@@ -38,10 +38,11 @@ export default function AdminDashboard() {
   const [brosurUrl, setBrosurUrl] = useState("");
   const [fileBrosur, setFileBrosur] = useState(null);
 
-  // STATE MANAJEMEN BUKU SEJARAH (BARU)
+  // STATE MANAJEMEN BUKU SEJARAH (TAMBAH STATE EDIT)
   const [dataSejarah, setDataSejarah] = useState([]);
   const [judulSejarah, setJudulSejarah] = useState("");
   const [isiSejarah, setIsiSejarah] = useState("");
+  const [editSejarahId, setEditSejarahId] = useState(null); // State untuk mendeteksi mode Edit
 
   const [pengurusInti, setPengurusInti] = useState({ ketuaNama: "", ketuaFoto: "", ketuaFoto2: "", sekreNama: "", sekreFoto: "", sekreFoto2: "", bendaharaNama: "", bendaharaFoto: "", bendaharaFoto2: "" });
   const [fileInti, setFileInti] = useState({ ketua: null, ketua2: null, sekretaris: null, sekretaris2: null, bendahara: null, bendahara2: null });
@@ -123,7 +124,6 @@ export default function AdminDashboard() {
     const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
     if (docBrosur.exists()) setBrosurUrl(docBrosur.data().link);
 
-    // FETCH DATA BUKU SEJARAH
     const sejSnap = await getDocs(query(collection(db, "sejarah_asrama"), orderBy("createdAt", "asc")));
     setDataSejarah(sejSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
@@ -161,14 +161,36 @@ export default function AdminDashboard() {
 
   const uploadToCloudinary = async (file, resourceType = "image") => { const formData = new FormData(); formData.append("file", file); formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: "POST", body: formData }); const data = await res.json(); if (data.error) throw new Error(data.error.message); return data.secure_url; };
   
-  // HANDLER SUBMIT BUKU SEJARAH BARU
+  // HANDLER SUBMIT BUKU SEJARAH (DENGAN LOGIKA EDIT)
   const handleSubmitSejarah = async (e) => {
     e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" });
     try {
-      await addDoc(collection(db, "sejarah_asrama"), { judul: judulSejarah, isi: isiSejarah, createdAt: serverTimestamp() });
-      setStatus({ type: "success", message: "Halaman sejarah ditambahkan!" });
-      setJudulSejarah(""); setIsiSejarah(""); fetchAllData();
+      if (editSejarahId) {
+        // Mode Update
+        await updateDoc(doc(db, "sejarah_asrama", editSejarahId), { 
+          judul: judulSejarah, 
+          isi: isiSejarah 
+        });
+        setStatus({ type: "success", message: "Halaman sejarah berhasil diperbarui!" });
+      } else {
+        // Mode Tambah Baru
+        await addDoc(collection(db, "sejarah_asrama"), { 
+          judul: judulSejarah, 
+          isi: isiSejarah, 
+          createdAt: serverTimestamp() 
+        });
+        setStatus({ type: "success", message: "Halaman sejarah baru ditambahkan!" });
+      }
+      setJudulSejarah(""); setIsiSejarah(""); setEditSejarahId(null); fetchAllData();
     } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); }
+  };
+
+  // TRIGGER KLIK TOMBOL EDIT SEJARAH
+  const handleEditSejarahClick = (item) => {
+    setEditSejarahId(item.id);
+    setJudulSejarah(item.judul);
+    setIsiSejarah(item.isi);
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Opsional: scroll ke atas form
   };
 
   const handleSaveTampilan = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newUrls = { ...tampilanUrls }; const keys = ["hero", "profil", "fasilitas", "kehidupan", "alumni", "gateway"]; for (let key of keys) { if (tampilanFiles[key] && tampilanFiles[key].length > 0) { let urls = []; for (const file of tampilanFiles[key]) { urls.push(await uploadToCloudinary(file, "image")); } newUrls[key] = urls; } } if (tampilanFiles.gateway && tampilanFiles.gateway.length > 0) { delete newUrls.gateway1; delete newUrls.gateway2; delete newUrls.gateway3; } await setDoc(doc(db, "pengaturan", "tampilan"), newUrls, { merge: true }); setTampilanUrls(newUrls); setTampilanFiles({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] }); setStatus({ type: "success", message: "Semua foto latar berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
@@ -223,7 +245,7 @@ export default function AdminDashboard() {
                   </form> 
                 </div> 
 
-                {/* MANAJEMEN SEJARAH (BUKU) */}
+                {/* MANAJEMEN SEJARAH DENGAN FITUR EDIT */}
                 <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
                   <h2 className="text-lg font-bold mb-4 border-b pb-2">Manajemen Catatan Sejarah (Buku)</h2>
                   <form onSubmit={handleSubmitSejarah} className="space-y-4 mb-6">
@@ -237,18 +259,35 @@ export default function AdminDashboard() {
                         <textarea required rows="3" value={isiSejarah} onChange={(e) => setIsiSejarah(e.target.value)} placeholder="Tuliskan cerita sejarah untuk lembaran ini..." className="w-full px-4 py-2 border border-slate-300 rounded-md bg-slate-50 text-sm"></textarea>
                       </div>
                     </div>
-                    <button type="submit" disabled={loading} className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-md font-semibold w-full md:w-auto">Tambah Lembaran</button>
+                    
+                    {/* Tombol Berubah Sesuai Mode (Edit / Tambah) */}
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <button type="submit" disabled={loading} className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-md font-semibold w-full md:w-auto">
+                        {editSejarahId ? "Simpan Perubahan" : "Tambah Lembaran"}
+                      </button>
+                      {editSejarahId && (
+                        <button type="button" onClick={() => { setEditSejarahId(null); setJudulSejarah(""); setIsiSejarah(""); }} className="bg-stone-500 hover:bg-stone-600 text-white px-6 py-2 rounded-md font-semibold w-full md:w-auto">
+                          Batal Edit
+                        </button>
+                      )}
+                    </div>
                   </form>
+                  
                   <h3 className="font-bold text-sm text-slate-500 uppercase tracking-widest mb-3">Daftar Lembaran (Urut dari terlama ke terbaru)</h3>
                   {dataSejarah.length === 0 ? <p className="text-sm italic text-stone-400">Belum ada lembar sejarah.</p> : (
                     <div className="space-y-3">
                       {dataSejarah.map((item) => (
-                        <div key={item.id} className="flex justify-between items-center p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                        <div key={item.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-slate-50 border border-slate-200 rounded-lg gap-4">
                           <div>
                             <div className="font-bold text-amber-700 text-sm mb-1">{item.judul}</div>
                             <div className="text-xs text-slate-500 line-clamp-1 pr-4">{item.isi}</div>
                           </div>
-                          <button type="button" onClick={() => handleDelete("sejarah_asrama", item.id)} className="text-red-500 text-xs font-bold border border-red-200 bg-white px-3 py-1.5 rounded hover:bg-red-50">Hapus</button>
+                          
+                          {/* Tambahan Tombol Edit di Samping Hapus */}
+                          <div className="flex gap-2 shrink-0 w-full md:w-auto justify-end">
+                            <button type="button" onClick={() => handleEditSejarahClick(item)} className="text-amber-600 text-xs font-bold border border-amber-200 bg-white px-3 py-1.5 rounded hover:bg-amber-50">Edit</button>
+                            <button type="button" onClick={() => handleDelete("sejarah_asrama", item.id)} className="text-red-500 text-xs font-bold border border-red-200 bg-white px-3 py-1.5 rounded hover:bg-red-50">Hapus</button>
+                          </div>
                         </div>
                       ))}
                     </div>
