@@ -1,7 +1,7 @@
 export default function sitemap() {
   // GANTI URL DI BAWAH INI DENGAN DOMAIN NETLIFY / DOMAIN ASLI ANDA
   // Contoh: 'https://asramamersijogja.netlify.app' atau 'https://asramamersi.com'
-  const baseUrl = 'https://asramamersi.netlify.app/'; 
+  const baseUrl = 'https://asramamersi.netlify.app'; 
 
   return [
     {
