@@ -38,14 +38,20 @@ export default function FasilitasAsrama() {
   const [bgFasilitas, setBgFasilitas] = useState([]);
   const [dataFasilitas, setDataFasilitas] = useState([]);
   const [dataPenyewaan, setDataPenyewaan] = useState([]); 
-  const [kontak, setKontak] = useState({ noTelpon: "-" });
+  const [kontak, setKontak] = useState({ noTelpon: "-", noHumas: "-" });
   const [loading, setLoading] = useState(true);
   const [statusAsrama, setStatusAsrama] = useState({ kamar: "0", penghuni: "0", ketersediaan: "Penuh" });
+  
+  // STATE PENDAFTARAN BARU BERBASIS FILE
   const [brosurUrl, setBrosurUrl] = useState("");
-
+  const [linkFormulir, setLinkFormulir] = useState("");
   const [showDaftarModal, setShowDaftarModal] = useState(false);
-  const [formDaftar, setFormDaftar] = useState({ nama: "", asal: "", kuliah: "", jurusan: "", email: "", noHp: "", suku: "" });
   const [isSubmittingDaftar, setIsSubmittingDaftar] = useState(false);
+  
+  const [formDaftar, setFormDaftar] = useState({ 
+    noHp: "", email: "", nama: "", 
+    fileFormulir: null, fileFoto: null, fileKtp: null 
+  });
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalType, setModalType] = useState(""); 
@@ -59,12 +65,19 @@ export default function FasilitasAsrama() {
       try {
         const snapFoto = await getDoc(doc(db, "pengaturan", "tampilan"));
         if (snapFoto.exists() && snapFoto.data().fasilitas) setBgFasilitas(snapFoto.data().fasilitas);
+        
         const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
         if (docKontak.exists()) setKontak(docKontak.data());
+        
         const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
         if (docStatus.exists()) setStatusAsrama(docStatus.data());
+        
+        // AMBIL BROSUR DAN LINK FORMULIR
         const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
-        if (docBrosur.exists()) setBrosurUrl(docBrosur.data().link);
+        if (docBrosur.exists()) {
+          setBrosurUrl(docBrosur.data().link || "");
+          setLinkFormulir(docBrosur.data().linkFormulir || "");
+        }
 
         const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "asc")));
         setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -113,49 +126,144 @@ export default function FasilitasAsrama() {
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
 
-  const handleSubmitDaftar = async (e) => {
-    e.preventDefault();
-    if (!formDaftar.noHp.startsWith("08")) return alert("Nomor HP harus diawali dengan angka 08");
-    if (formDaftar.noHp.length < 11) return alert("Nomor HP tidak valid.");
-    setIsSubmittingDaftar(true);
-    try {
-      await addDoc(collection(db, "pendaftaran_asrama"), { ...formDaftar, waktuDaftar: serverTimestamp() });
-      alert("Pendaftaran Berhasil! Data Anda telah masuk. Silakan tunggu informasi dari pengurus asrama.");
-      closeDaftarModal();
-      setFormDaftar({ nama: "", asal: "", kuliah: "", jurusan: "", email: "", noHp: "", suku: "" });
-    } catch (error) { alert("Pendaftaran Gagal."); } finally { setIsSubmittingDaftar(false); }
+  const uploadToCloudinary = async (file) => { 
+    if (!file) return "";
+    const formData = new FormData(); 
+    formData.append("file", file); 
+    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); 
+    // Menggunakan /auto/upload agar aman untuk file PDF maupun Gambar
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`, { method: "POST", body: formData }); 
+    const data = await res.json(); 
+    if (data.error) throw new Error(data.error.message); 
+    return data.secure_url; 
   };
 
-  const formatWhatsAppLink = (nomor, namaSewa) => {
+  // LOGIKA PENDAFTARAN DENGAN UPLOAD FILE
+  const handleSubmitDaftar = async (e) => {
+    e.preventDefault();
+    
+    if (!formDaftar.noHp.startsWith("08")) return alert("Nomor HP harus diawali dengan angka 08");
+    if (formDaftar.noHp.length < 11) return alert("Nomor HP tidak valid. Minimal harus 11 angka.");
+    if (!formDaftar.email.includes("@")) return alert("Format email tidak valid.");
+    if (!formDaftar.fileFormulir || !formDaftar.fileFoto || !formDaftar.fileKtp) return alert("Mohon unggah semua dokumen yang diminta (Formulir, Foto, dan KTP).");
+
+    setIsSubmittingDaftar(true);
+    try {
+      // 1. Upload semua file ke Cloudinary
+      const urlFormulir = await uploadToCloudinary(formDaftar.fileFormulir);
+      const urlFoto = await uploadToCloudinary(formDaftar.fileFoto);
+      const urlKtp = await uploadToCloudinary(formDaftar.fileKtp);
+
+      // 2. Simpan URL beserta data ke Firestore
+      await addDoc(collection(db, "pendaftaran_asrama"), { 
+        nama: formDaftar.nama,
+        email: formDaftar.email,
+        noHp: formDaftar.noHp,
+        urlFormulir: urlFormulir,
+        urlFoto: urlFoto,
+        urlKtp: urlKtp,
+        waktuDaftar: serverTimestamp() 
+      });
+
+      alert("Pendaftaran Berhasil! Data dan dokumen Anda telah kami terima. Silakan tunggu informasi selanjutnya via WhatsApp.");
+      closeDaftarModal();
+      setFormDaftar({ noHp: "", email: "", nama: "", fileFormulir: null, fileFoto: null, fileKtp: null });
+    } catch (error) { 
+      alert("Gagal mengunggah dokumen. Pastikan ukuran file tidak terlalu besar."); 
+    } finally { 
+      setIsSubmittingDaftar(false); 
+    }
+  };
+
+  const formatWhatsAppLink = (nomor, namaSewa = null) => {
     if (!nomor || nomor === "-") return "#";
     let bersihkanNomor = nomor.replace(/\D/g, '');
     if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
-    const pesan = `Halo Uda/Uni, saya pengunjung website Asrama Merapi Singgalang. Saya ingin bertanya tentang penyewaan *${namaSewa}*.`;
+    
+    let pesan = "Halo Kak, saya pengunjung website Asrama Merapi Singgalang.";
+    if (namaSewa) pesan = `Halo Kak, saya pengunjung website Asrama Merapi Singgalang. Saya ingin bertanya tentang penyewaan *${namaSewa}*.`;
+    
     return `https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(pesan)}`;
   };
 
   return (
     <div className="bg-[#f9f8f6] pb-24 min-h-screen text-left font-lora overflow-x-hidden relative">
       
+      {/* MODAL POP-UP PENDAFTARAN WARGA */}
       {showDaftarModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={closeDaftarModal}>
           <button onClick={closeDaftarModal} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-black/50 p-2 rounded-full z-50"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-          <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="relative w-full md:w-1/2 bg-stone-900 h-64 md:h-[80vh] flex flex-col items-center justify-center shrink-0">
-              {brosurUrl ? <img src={brosurUrl} className="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Brosur Asrama" /> : <div className="text-white text-center p-8"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-4 text-stone-600"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><p className="text-stone-400">Brosur belum diunggah admin.</p></div>}
+          
+          <div className="bg-white w-full max-w-6xl max-h-[95vh] rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl" onClick={e => e.stopPropagation()}>
+            
+            {/* Kiri: Brosur */}
+            <div className="relative w-full md:w-1/2 bg-stone-900 h-64 md:h-[95vh] flex flex-col items-center justify-center shrink-0 p-4">
+              {brosurUrl ? (
+                <img src={brosurUrl} className="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Brosur Asrama" />
+              ) : (
+                <div className="text-white text-center p-8"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-4 text-stone-600"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><p className="text-stone-400">Brosur belum tersedia.</p></div>
+              )}
             </div>
-            <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col bg-[#fcfbf9] overflow-y-auto max-h-[50vh] md:max-h-[80vh]">
+
+            {/* Kanan: Form Upload Dokumen */}
+            <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col bg-[#fcfbf9] overflow-y-auto max-h-[60vh] md:max-h-[95vh]">
               <div className="flex flex-col h-full">
                 <h2 className="text-2xl md:text-3xl font-bold font-playfair text-stone-900 mb-2 leading-snug">Pendaftaran Warga</h2>
-                <div className="mb-6 pb-4 border-b border-[#e8e4db]"><p className="text-stone-600 text-sm mb-2">Pastikan Anda membaca syarat dan ketentuan pendaftaran warga baru yang tertera pada brosur sebelum mengisi formulir di bawah ini.</p></div>
-                <form onSubmit={handleSubmitDaftar} className="space-y-4 font-sans">
-                  <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nama Lengkap</label><input type="text" required value={formDaftar.nama} onChange={(e) => setFormDaftar({...formDaftar, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Hanya huruf..." /></div>
-                  <div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Daerah Asal</label><input type="text" required value={formDaftar.asal} onChange={(e) => setFormDaftar({...formDaftar, asal: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Cth: Padang..." /></div><div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Suku</label><input type="text" required value={formDaftar.suku} onChange={(e) => setFormDaftar({...formDaftar, suku: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Cth: Minang..." /></div></div>
-                  <div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Kampus / Univ</label><input type="text" required value={formDaftar.kuliah} onChange={(e) => setFormDaftar({...formDaftar, kuliah: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Singkatan..." /></div><div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Jurusan / Prodi</label><input type="text" required value={formDaftar.jurusan} onChange={(e) => setFormDaftar({...formDaftar, jurusan: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Jurusan..." /></div></div>
-                  <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Email Aktif</label><input type="email" required value={formDaftar.email} onChange={(e) => setFormDaftar({...formDaftar, email: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="email@contoh.com" /></div>
-                  <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nomor HP / WhatsApp</label><input type="tel" required value={formDaftar.noHp} onChange={(e) => setFormDaftar({...formDaftar, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Awali dengan 08..." maxLength={14} /></div>
-                  <button type="submit" disabled={isSubmittingDaftar} className="w-full bg-[#171412] hover:bg-amber-600 text-white font-playfair font-bold text-lg py-3 rounded transition-colors mt-2">{isSubmittingDaftar ? "Mengirim Data..." : "Kirim Pendaftaran"}</button>
+                <div className="mb-6 pb-4 border-b border-[#e8e4db]">
+                  <p className="text-stone-600 text-sm mb-4">Pastikan Anda membaca syarat dan ketentuan pada brosur. Silakan unduh templat formulir di bawah ini, isi dengan lengkap, lalu unggah kembali beserta dokumen persyaratan lainnya.</p>
+                  
+                  {/* Tombol Download Template Formulir */}
+                  <a href={linkFormulir || "#"} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center justify-center gap-2 w-full py-2.5 rounded text-sm font-bold uppercase tracking-widest font-sans transition-all ${linkFormulir ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300' : 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200'}`}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    {linkFormulir ? "1. Unduh Templat Formulir" : "Formulir Belum Tersedia"}
+                  </a>
+                </div>
+                
+                <form onSubmit={handleSubmitDaftar} className="space-y-4 font-sans flex-grow">
+                  <div>
+                    <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nama Lengkap</label>
+                    <input type="text" required value={formDaftar.nama} onChange={(e) => setFormDaftar({...formDaftar, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-300 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Hanya huruf..." />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Email Aktif</label>
+                    <input type="email" required value={formDaftar.email} onChange={(e) => setFormDaftar({...formDaftar, email: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-300 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="contoh@gmail.com" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nomor HP / WhatsApp Aktif</label>
+                    <input type="tel" required maxLength={14} value={formDaftar.noHp} onChange={(e) => setFormDaftar({...formDaftar, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-300 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Awali dengan 08..." />
+                  </div>
+                  
+                  <div className="pt-2">
+                    <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">2. Unggah Formulir Pendaftaran (Sudah Diisi)</label>
+                    <input type="file" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={(e) => setFormDaftar({...formDaftar, fileFormulir: e.target.files[0]})} className="w-full text-xs p-2 border border-stone-300 rounded bg-white text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-800 hover:file:bg-red-100 cursor-pointer" />
+                  </div>
+                  <div className="pt-2">
+                    <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">3. Unggah Pas Foto Berwarna</label>
+                    <input type="file" required accept="image/*" onChange={(e) => setFormDaftar({...formDaftar, fileFoto: e.target.files[0]})} className="w-full text-xs p-2 border border-stone-300 rounded bg-white text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-800 hover:file:bg-amber-100 cursor-pointer" />
+                  </div>
+                  <div className="pt-2">
+                    <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">4. Unggah Scan KTP Asli</label>
+                    <input type="file" required accept="image/*,.pdf" onChange={(e) => setFormDaftar({...formDaftar, fileKtp: e.target.files[0]})} className="w-full text-xs p-2 border border-stone-300 rounded bg-white text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer" />
+                  </div>
+
+                  <button type="submit" disabled={isSubmittingDaftar} className="w-full bg-[#171412] hover:bg-red-800 text-white font-playfair font-bold text-lg py-3 rounded transition-colors mt-4">{isSubmittingDaftar ? "Mengunggah Dokumen..." : "Kirim Berkas Pendaftaran"}</button>
                 </form>
+
+                {/* Footer Kontak Bantuan */}
+                <div className="mt-8 pt-6 border-t border-stone-200 font-sans">
+                  <p className="text-xs text-stone-500 font-bold mb-3 uppercase tracking-widest">Butuh Bantuan Pendaftaran?</p>
+                  <div className="flex flex-col gap-2">
+                    <a href={formatWhatsAppLink(kontak.noTelpon)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-stone-600 hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                      Ketua Asrama ({kontak.noTelpon || "-"})
+                    </a>
+                    <a href={formatWhatsAppLink(kontak.noHumas)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-stone-600 hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                      Humas Asrama ({kontak.noHumas || "-"})
+                    </a>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
@@ -233,12 +341,13 @@ export default function FasilitasAsrama() {
         </div>
       </div>
 
+      {/* INFO PENDAFTARAN */}
       <div id="pendaftaran" className="max-w-3xl mx-auto px-4 mt-28 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-12"><h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Informasi Pendaftaran</h4><h2 className="text-4xl font-bold text-stone-900 font-playfair mb-4">Penerimaan Warga Baru</h2><p className="text-stone-600 max-w-2xl mx-auto">Kami membuka kesempatan bagi mahasiswa perantau untuk bergabung dan menjadi bagian dari keluarga besar Asrama Mahasiswa Merapi Singgalang.</p></div>
         <div className="bg-white border border-[#e8e4db] p-8 md:p-12 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] text-center flex flex-col items-center">
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-800 border border-red-100 mb-6"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5c-1.3 0-2 .7-2 2v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></div>
           <h3 className="font-playfair text-2xl md:text-3xl font-bold text-stone-900 mb-4">Mari Bergabung Bersama Kami!</h3>
-          <p className="text-stone-600 text-sm md:text-base leading-relaxed mb-8 max-w-lg">Klik tombol di bawah ini untuk melihat persyaratan pendaftaran melalui brosur resmi dan mengisi formulir data diri Anda secara daring.</p>
+          <p className="text-stone-600 text-sm md:text-base leading-relaxed mb-8 max-w-lg">Pastikan Anda telah mengunduh, membaca, dan mengisi formulir pendaftaran secara lengkap sebelum mengirimkan berkas.</p>
           <button onClick={openDaftarModal} className="inline-flex items-center justify-center gap-3 bg-red-800 hover:bg-amber-600 text-white px-8 py-4 rounded-sm text-sm font-bold uppercase tracking-widest transition-all font-sans shadow-md hover:-translate-y-1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Buka Form Pendaftaran</button>
         </div>
       </div>
