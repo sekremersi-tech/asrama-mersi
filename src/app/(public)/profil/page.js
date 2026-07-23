@@ -232,7 +232,7 @@ export default function ProfilAsrama() {
         </div>
       </div>
 
-      {/* 2. DOKUMENTASI (FOTO PROFIL BERTUMPUK) */}
+      {/* 2. DOKUMENTASI */}
       {dataFotoProfil.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-32 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
           <div className="text-center mb-12">
@@ -305,18 +305,12 @@ export default function ProfilAsrama() {
           <div>
             <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10">Divisi & Anggota</h3>
             
-            {/* LOGIKA PERUBAHAN GRID DIVISI (MENENGAHKAN ELEMEN GANJIL TERAKHIR) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:[&>*:nth-child(odd):last-child]:col-span-2 lg:[&>*:nth-child(odd):last-child]:max-w-2xl lg:[&>*:nth-child(odd):last-child]:mx-auto lg:[&>*:nth-child(odd):last-child]:w-full">
               {dataDivisi.map(div => {
-                const anggotaList = dataAnggota
-                  .filter(a => a.divisiId === div.id)
-                  .sort((a, b) => {
-                    const roleA = a.peran || "Anggota";
-                    const roleB = b.peran || "Anggota";
-                    if (roleA === "Koordinator" && roleB !== "Koordinator") return -1;
-                    if (roleA !== "Koordinator" && roleB === "Koordinator") return 1;
-                    return 0;
-                  });
+                // MEMISAHKAN KOORDINATOR DAN ANGGOTA
+                const anggotaDivisiIni = dataAnggota.filter(a => a.divisiId === div.id);
+                const koordinators = anggotaDivisiIni.filter(a => a.peran === "Koordinator");
+                const anggotas = anggotaDivisiIni.filter(a => a.peran !== "Koordinator");
 
                 return (
                   <div key={div.id} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300 w-full">
@@ -324,16 +318,37 @@ export default function ProfilAsrama() {
                       <h4 className="text-white font-bold tracking-wider font-sans uppercase">{div.namaDivisi}</h4>
                     </div>
                     <div className="p-8 flex-grow">
-                      {anggotaList.length === 0 ? <p className="text-sm text-stone-400 text-center italic">Belum ada anggota</p> : (
-                        <div className="grid grid-cols-2 gap-8 justify-items-center">
-                          {anggotaList.map(anggota => (
-                            <MemberCard 
-                              key={anggota.id} 
-                              member={{ nama: anggota.nama, foto1: anggota.foto, foto2: anggota.foto2 }} 
-                              role={anggota.peran || "Anggota"} 
-                              isMain={false} 
-                            />
-                          ))}
+                      {anggotaDivisiIni.length === 0 ? <p className="text-sm text-stone-400 text-center italic">Belum ada anggota</p> : (
+                        <div className="flex flex-col gap-10">
+                          
+                          {/* BARIS KOORDINATOR (SELALU DI ATAS & DI TENGAH) */}
+                          {koordinators.length > 0 && (
+                            <div className="flex justify-center flex-wrap gap-8">
+                              {koordinators.map(koor => (
+                                <MemberCard 
+                                  key={koor.id} 
+                                  member={{ nama: koor.nama, foto1: koor.foto, foto2: koor.foto2 }} 
+                                  role={koor.peran} 
+                                  isMain={false} 
+                                />
+                              ))}
+                            </div>
+                          )}
+
+                          {/* BARIS ANGGOTA (DI BAWAH, FORMAT GRID 2 KOLOM) */}
+                          {anggotas.length > 0 && (
+                            <div className="grid grid-cols-2 gap-8 justify-items-center">
+                              {anggotas.map(anggota => (
+                                <MemberCard 
+                                  key={anggota.id} 
+                                  member={{ nama: anggota.nama, foto1: anggota.foto, foto2: anggota.foto2 }} 
+                                  role={anggota.peran || "Anggota"} 
+                                  isMain={false} 
+                                />
+                              ))}
+                            </div>
+                          )}
+
                         </div>
                       )}
                     </div>
