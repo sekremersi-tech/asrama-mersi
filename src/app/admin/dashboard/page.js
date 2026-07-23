@@ -6,11 +6,11 @@ import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, where, updateDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
-// AKSES LOG DITAMBAHKAN UNTUK HUMAS, PUKI, DAN TENDOR
+// UBAH PUKI MENJADI PUBLIKASI
 const TAB_ROLES = {
   sekre: ["tampilan", "status", "kepengurusan", "timeline", "fotoprofil", "fasilitas", "penyewaan", "galeri", "kehidupan", "skripsi", "log"],
   humas: ["status", "fotoprofil", "galeri", "kehidupan", "log"],
-  puki: ["tampilan", "fotoprofil", "galeri", "kehidupan", "log"],
+  publikasi: ["tampilan", "fotoprofil", "galeri", "kehidupan", "log"], 
   perkap: ["fasilitas", "fotoprofil", "galeri", "kehidupan"],
   tendor: ["fotoprofil", "galeri", "kehidupan", "penyewaan", "log"], 
   klh: ["fotoprofil", "galeri", "kehidupan"],
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
         let currRole = "sekre"; 
         
         if (email.startsWith("humas")) currRole = "humas";
-        else if (email.startsWith("puki")) currRole = "puki";
+        else if (email.startsWith("publikasi")) currRole = "publikasi"; // UBAH PUKI MENJADI PUBLIKASI
         else if (email.startsWith("perkap")) currRole = "perkap";
         else if (email.startsWith("tendor")) currRole = "tendor";
         else if (email.startsWith("klh")) currRole = "klh";
@@ -192,8 +192,7 @@ export default function AdminDashboard() {
       <nav className="bg-slate-900 text-white shadow-md sticky top-0 z-50 p-4 px-8 flex justify-between items-center">
         <div className="font-serif font-bold text-xl flex items-center gap-2">
           <img src="/mersi.png" alt="Logo" className="w-6 h-6 object-contain" /> Admin Mersi 
-          {/* UBAH LABEL PUKI MENJADI PUBLIKASI */}
-          <span className="text-xs bg-red-800 px-2 py-0.5 rounded-full ml-2 font-sans font-normal uppercase tracking-wider">{role === "puki" ? "PUBLIKASI" : role}</span>
+          <span className="text-xs bg-red-800 px-2 py-0.5 rounded-full ml-2 font-sans font-normal uppercase tracking-wider">{role}</span>
         </div>
         <button onClick={() => {signOut(auth); router.push("/admin/login")}} className="bg-red-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700">Logout</button>
       </nav>
@@ -396,7 +395,7 @@ export default function AdminDashboard() {
           </div> 
         )}
 
-        {/* TAB 2 S.D 11 LAINNYA TETAP SAMA SEPERTI SEBELUMNYA */}
+        {/* TAB LAINNYA TETAP SAMA */}
         {activeTab === "status" && allowedTabs.includes("status") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Status Asrama</h2> <form onSubmit={handleSaveStatusAsrama} className="space-y-4"> <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> <div><label className="text-sm font-semibold mb-1 block">Jumlah Kamar</label><input type="number" required value={statusAsrama.kamar} onChange={(e) => setStatusAsrama({...statusAsrama, kamar: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div><label className="text-sm font-semibold mb-1 block">Jumlah Penghuni</label><input type="number" required value={statusAsrama.penghuni} onChange={(e) => setStatusAsrama({...statusAsrama, penghuni: e.target.value})} className="w-full px-4 py-2 border rounded-md" /></div> <div> <label className="text-sm font-semibold mb-1 block">Ketersediaan</label> <select value={statusAsrama.ketersediaan} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaan: e.target.value})} className="w-full px-4 py-2 border rounded-md"> <option value="Tersedia">🟢 Tersedia</option> <option value="Penuh">🔴 Penuh</option> </select> </div> </div> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Perbarui Status</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Pengaturan Brosur & Formulir Pendaftaran</h2> <form onSubmit={handleSaveBrosur} className="space-y-6"> <div> <label className="text-sm font-semibold mb-1 block text-stone-700">Link Google Drive Formulir (Kosong)</label> <input type="url" value={linkFormulir} onChange={(e) => setLinkFormulir(e.target.value)} placeholder="https://drive.google.com/..." className="w-full px-4 py-2 border border-slate-300 bg-slate-50 rounded-md text-sm" /> <p className="text-[10px] text-stone-500 mt-1">Link ini akan digunakan pada tombol "Unduh Formulir" di pop-up pendaftaran.</p> </div> <div> <label className="text-sm font-semibold mb-1 block text-stone-700">Upload Gambar Brosur Baru</label> <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4"> <input type="file" accept="image/*" onChange={(e) => setFileBrosur(e.target.files[0])} className="w-full text-sm cursor-pointer" /> {brosurUrl && <a href={brosurUrl} target="_blank" className="text-xs text-amber-600 font-bold whitespace-nowrap bg-amber-50 px-3 py-1.5 border border-amber-200 rounded">Lihat Brosur Saat Ini</a>} </div> </div> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2.5 rounded-md font-bold">Simpan Pengaturan Pendaftaran</button> </form> </div> </div> )}
         {activeTab === "timeline" && allowedTabs.includes("timeline") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Timeline</h2> <form onSubmit={handleSubmitTimeline} className="space-y-4"> <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4"> <input type="text" required value={tahunTimeline} onChange={(e) => setTahunTimeline(e.target.value)} placeholder="Tahun" className="w-full px-4 py-2 border rounded-md" /> <input type="text" required value={judulTimeline} onChange={(e) => setJudulTimeline(e.target.value)} placeholder="Peristiwa" className="w-full px-4 py-2 border rounded-md" /> </div> <textarea required rows="2" value={deskripsiTimeline} onChange={(e) => setDeskripsiTimeline(e.target.value)} placeholder="Deskripsi..." className="w-full px-4 py-2 border rounded-md"></textarea> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Tambahkan</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Timeline</h3> <div className="space-y-4"> {dataTimeline.map(item => ( <div key={item.id} className="bg-slate-50 border rounded-lg p-4 flex justify-between"> <div> <span className="px-2 py-1 bg-amber-500 text-white text-xs rounded mb-2">{item.tahun}</span> <h4 className="font-bold">{item.judul}</h4> <p className="text-sm text-slate-600">{item.deskripsi}</p> </div> <button onClick={() => handleDelete("timeline_sejarah", item.id)} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded">Hapus</button> </div> ))} </div> </div> </div> )}
         {activeTab === "fotoprofil" && allowedTabs.includes("fotoprofil") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Foto Profil</h2> <form onSubmit={handleSubmitFotoProfil} className="space-y-4"> <textarea required rows="2" value={konteksFoto} onChange={(e) => setKonteksFoto(e.target.value)} placeholder="Konteks..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="file" multiple required accept="image/*" onChange={(e) => setFilesFotoProfil(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-slate-50" /> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Tambahkan</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Foto Profil</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {dataFotoProfil.map(item => { const imgUtama = Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar; return ( <div key={item.id} className="bg-slate-50 border rounded-lg flex gap-4 p-3"> <img src={imgUtama} className="w-24 h-24 object-cover rounded-md shrink-0" /> <div className="flex flex-col justify-between w-full"> <p className="text-xs text-slate-600">{item.konteks}</p> <button onClick={() => handleDelete("profil_galeri", item.id)} className="text-red-600 text-xs">Hapus</button> </div> </div> ); })} </div> </div> </div> )}
@@ -406,7 +405,7 @@ export default function AdminDashboard() {
         {activeTab === "kehidupan" && allowedTabs.includes("kehidupan") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Publikasi Baru</h2> <form onSubmit={handleSubmitKehidupan} className="space-y-4"> <input type="text" required value={judulKonten} onChange={(e) => setJudulKonten(e.target.value)} placeholder="Judul Berita/Lomba..." className="w-full px-4 py-2 border rounded-md" /> <select value={kategori} onChange={(e) => setKategori(e.target.value)} className="w-full px-4 py-2 border rounded-md font-bold text-stone-800"> <option value="PRESTASI">Prestasi</option> <option value="MERSI X BK">MERSI X BK</option> <option value="LOMBA TERBUKA">Lomba Terbuka</option> <option value="LAINNYA">Lainnya... (Isi Manual)</option> </select> {kategori === "LAINNYA" && ( <input type="text" required value={customKategori} onChange={(e) => setCustomKategori(e.target.value)} placeholder="Tuliskan nama kategori di sini..." className="w-full px-4 py-2 border border-amber-500 bg-amber-50 rounded-md focus:outline-none" /> )} <textarea required rows="4" value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)} placeholder="Isi Berita/Keterangan..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="file" multiple required accept="image/*" onChange={(e) => setFilesGambar(Array.from(e.target.files))} className="w-full text-sm cursor-pointer border p-2 rounded bg-slate-50" /> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Publikasikan Berita</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Publikasi</h3> <div className="space-y-3"> {dataKehidupan.map(item => ( <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 border rounded-lg"> <div> <div className="font-semibold text-sm">{item.judul} <span className="text-red-600 text-xs">({item.kategori})</span></div> <div className="text-xs text-slate-500">{Array.isArray(item.linkGambar) ? `${item.linkGambar.length} Foto` : '1 Foto'}</div> </div> <button onClick={() => handleDelete("kehidupan", item.id)} className="text-red-500 text-xs font-semibold">Hapus</button> </div> ))} </div> </div> </div> )}
         {activeTab === "skripsi" && allowedTabs.includes("skripsi") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">Tambah Skripsi</h2> <form onSubmit={handleSubmitSkripsi} className="space-y-4"> <input type="text" required value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama Penulis..." className="w-full px-4 py-2 border rounded-md" /> <input type="text" required value={jurusan} onChange={(e) => setJurusan(e.target.value)} placeholder="Jurusan..." className="w-full px-4 py-2 border rounded-md" /> <textarea required rows="1" value={judulSkripsi} onChange={(e) => setJudulSkripsi(e.target.value)} placeholder="Judul Skripsi..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="number" required value={tahun} onChange={(e) => setTahun(e.target.value)} placeholder="Tahun..." className="w-full px-4 py-2 border rounded-md" /> <input type="file" accept=".pdf" onChange={(e) => setFilePDF(e.target.files[0])} className="w-full text-sm" /> <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Simpan Skripsi</button> </form> </div> <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> <h3 className="font-bold mb-4 border-b pb-2">Kelola Skripsi</h3> <div className="space-y-3"> {dataSkripsi.map(item => ( <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 border rounded-lg"> <div><div className="font-semibold text-sm">{item.nama} - {item.tahun}</div><div className="text-xs line-clamp-1">{item.judul}</div></div> <button onClick={() => handleDelete("skripsi", item.id)} className="text-red-500 text-xs font-semibold">Hapus</button> </div> ))} </div> </div> </div> )}
         
-        {/* TAB LOG DATA - PENYESUAIAN TAMPILAN TABEL WARGA BARU */}
+        {/* TAB LOG DATA - PENYESUAIAN HAK AKSES */}
         {activeTab === "log" && allowedTabs.includes("log") && ( 
           <div className="space-y-6"> 
             
@@ -432,8 +431,6 @@ export default function AdminDashboard() {
                           <tr key={item.id}> 
                             <td className="p-3 text-xs">{item.waktuDaftar ? new Date(item.waktuDaftar.toDate()).toLocaleString('id-ID') : '-'}</td> 
                             <td className="p-3"><b>{item.nama}</b><br/><span className="text-xs text-stone-500">{item.noHp} | {item.email}</span></td> 
-                            
-                            {/* Menampilkan Link Dokumen Upload */}
                             <td className="p-3">
                               <div className="flex flex-wrap gap-2 text-[10px] font-bold mt-1"> 
                                 {item.urlFormulir && <a href={item.urlFormulir} target="_blank" className="bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">Buka Formulir</a>} 
@@ -441,7 +438,6 @@ export default function AdminDashboard() {
                                 {item.urlKtp && <a href={item.urlKtp} target="_blank" className="bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200">Lihat KTP</a>} 
                               </div> 
                             </td> 
-                            
                             <td className="p-3 text-center"><button onClick={() => handleDelete("pendaftaran_asrama", item.id)} className="text-red-500 text-xs font-semibold">Hapus</button></td> 
                           </tr> 
                         )) 
@@ -487,7 +483,7 @@ export default function AdminDashboard() {
               </div> 
             )}
 
-            {(role === "sekre" || role === "puki") && (
+            {(role === "sekre" || role === "publikasi") && (
               <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6 border-l-4 border-l-amber-500"> 
                 <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2"> 
                   <h2 className="text-lg font-bold text-slate-900">Log Komentar Pengunjung</h2> 
