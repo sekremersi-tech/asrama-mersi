@@ -134,7 +134,6 @@ export default function ProfilAsrama() {
   const [dataDivisi, setDataDivisi] = useState([]);
   const [dataAnggota, setDataAnggota] = useState([]);
 
-  // STATE BUKU SEJARAH (DARI KOLEKSI BARU)
   const [halamanSejarah, setHalamanSejarah] = useState([]);
   const [halAktif, setHalAktif] = useState(0);
   const [isAnimasiFlip, setIsAnimasiFlip] = useState(false);
@@ -151,7 +150,6 @@ export default function ProfilAsrama() {
           setProfilText(snapText.data());
         }
 
-        // MENGAMBIL DATA SEJARAH BUKU
         const sejSnap = await getDocs(query(collection(db, "sejarah_asrama"), orderBy("createdAt", "asc")));
         const sejData = sejSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         if (sejData.length > 0) {
@@ -208,7 +206,7 @@ export default function ProfilAsrama() {
 
       <HeroSlider images={bgProfil} title="Profil Asrama" />
 
-      {/* 1. SEJARAH (DINAMIS DARI DATABASE) */}
+      {/* 1. SEJARAH */}
       <div id="sejarah" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-10"><div className="w-12 h-1 bg-red-800 mx-auto rounded-full mb-6"></div></div>
         <div className="relative mt-8 perspective-1000">
@@ -217,12 +215,10 @@ export default function ProfilAsrama() {
           
           <div className={`relative bg-[#fcfbf9] p-8 md:p-14 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[400px] ${isAnimasiFlip ? (arahFlip === 'next' ? 'flip-next' : 'flip-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500'}`}>
             <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
-              {/* Menampilkan Judul Dinamis dari Admin */}
               <span className="text-amber-600 font-bold italic font-serif text-lg">{halamanSejarah[halAktif]?.judul}</span>
               <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair">Catatan Sejarah</h2>
             </div>
             <div className="flex-grow flex items-center overflow-hidden">
-              {/* Menampilkan Isi Dinamis dari Admin */}
               <p className="text-stone-700 leading-relaxed text-lg md:text-xl text-justify whitespace-pre-line font-lora">
                 {loading ? "Memuat catatan lembar sejarah..." : halamanSejarah[halAktif]?.isi}
               </p>
@@ -308,7 +304,9 @@ export default function ProfilAsrama() {
         {dataDivisi.length > 0 && (
           <div>
             <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10">Divisi & Anggota</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            {/* LOGIKA PERUBAHAN GRID DIVISI (MENENGAHKAN ELEMEN GANJIL TERAKHIR) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:[&>*:nth-child(odd):last-child]:col-span-2 lg:[&>*:nth-child(odd):last-child]:max-w-2xl lg:[&>*:nth-child(odd):last-child]:mx-auto lg:[&>*:nth-child(odd):last-child]:w-full">
               {dataDivisi.map(div => {
                 const anggotaList = dataAnggota
                   .filter(a => a.divisiId === div.id)
@@ -321,7 +319,7 @@ export default function ProfilAsrama() {
                   });
 
                 return (
-                  <div key={div.id} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300">
+                  <div key={div.id} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300 w-full">
                     <div className="bg-[#171412] py-4 px-6 text-center border-b-2 border-red-800">
                       <h4 className="text-white font-bold tracking-wider font-sans uppercase">{div.namaDivisi}</h4>
                     </div>
