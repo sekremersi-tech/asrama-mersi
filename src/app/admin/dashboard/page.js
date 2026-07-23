@@ -6,15 +6,16 @@ import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, where, updateDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
+// PENGATURAN HAK AKSES MENU (DITAMBAH PENYEWAAN UNTUK TENDOR & SENBUD)
 const TAB_ROLES = {
   sekre: ["tampilan", "status", "kepengurusan", "timeline", "fotoprofil", "fasilitas", "penyewaan", "galeri", "kehidupan", "skripsi", "log"],
   humas: ["status", "fotoprofil", "galeri", "kehidupan"],
   puki: ["tampilan", "fotoprofil", "galeri", "kehidupan"],
   perkap: ["fasilitas", "fotoprofil", "galeri", "kehidupan"],
-  tendor: ["fotoprofil", "galeri", "kehidupan"],
+  tendor: ["fotoprofil", "galeri", "kehidupan", "penyewaan"], // Akses Penyewaan ditambahkan
   klh: ["fotoprofil", "galeri", "kehidupan"],
-  rohani: ["fotoprofil", "galeri", "kehidupan"], // AKUN BARU
-  senbud: ["fotoprofil", "galeri", "kehidupan"]  // AKUN BARU
+  rohani: ["fotoprofil", "galeri", "kehidupan"],
+  senbud: ["fotoprofil", "galeri", "kehidupan", "penyewaan"]  // Akses Penyewaan ditambahkan
 };
 
 const TAB_NAMES = {
@@ -103,7 +104,6 @@ export default function AdminDashboard() {
         const email = user.email || "";
         let currRole = "sekre"; 
         
-        // Pengecekan nama divisi berdasarkan awalan email
         if (email.startsWith("humas")) currRole = "humas";
         else if (email.startsWith("puki")) currRole = "puki";
         else if (email.startsWith("perkap")) currRole = "perkap";
