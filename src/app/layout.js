@@ -13,9 +13,36 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "Asrama Mahasiswa Merapi Singgalang",
-  description: "Website resmi dan repositori publikasi Asrama Mahasiswa Merapi Singgalang Yogyakarta.",
+  description: "Website resmi, informasi pendaftaran, dan repositori publikasi Asrama Mahasiswa Merapi Singgalang (Mersi) di Daerah Istimewa Yogyakarta.",
+  // KATA KUNCI UNTUK PENCARIAN GOOGLE
+  keywords: [
+    "Asrama Merapi Singgalang", 
+    "Asrama Minang Jogja", 
+    "Asrama Mahasiswa Padang di Yogyakarta", 
+    "Pendaftaran Asrama Mersi", 
+    "Mahasiswa Perantau Minang", 
+    "Asrama Sumatera Barat Jogja"
+  ],
+  authors: [{ name: "Asrama Merapi Singgalang" }],
   icons: {
     icon: "/mersi.png", 
+  },
+  // PENGATURAN TAMPILAN SAAT LINK DIBAGIKAN KE WA/SOSMED
+  openGraph: {
+    title: 'Asrama Mahasiswa Merapi Singgalang',
+    description: 'Rumah Gadang Perantau Minang di Yogyakarta. Temukan informasi pendaftaran, fasilitas, dan jejak prestasi warga asrama.',
+    // PENTING: GANTI TULISAN DI BAWAH INI DENGAN LINK NETLIFY ANDA
+    url: 'https://asramamersi.netlify.app', 
+    siteName: 'Asrama Merapi Singgalang',
+    images: [
+      {
+        url: '/mersi.png', 
+        width: 800,
+        height: 600,
+      },
+    ],
+    locale: 'id_ID',
+    type: 'website',
   },
 };
 
