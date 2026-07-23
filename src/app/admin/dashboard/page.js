@@ -12,7 +12,9 @@ const TAB_ROLES = {
   puki: ["tampilan", "fotoprofil", "galeri", "kehidupan"],
   perkap: ["fasilitas", "fotoprofil", "galeri", "kehidupan"],
   tendor: ["fotoprofil", "galeri", "kehidupan"],
-  klh: ["fotoprofil", "galeri", "kehidupan"]
+  klh: ["fotoprofil", "galeri", "kehidupan"],
+  rohani: ["fotoprofil", "galeri", "kehidupan"], // AKUN BARU
+  senbud: ["fotoprofil", "galeri", "kehidupan"]  // AKUN BARU
 };
 
 const TAB_NAMES = {
@@ -49,7 +51,6 @@ export default function AdminDashboard() {
   const [namaDivisiBaru, setNamaDivisiBaru] = useState("");
   const [dataAnggota, setDataAnggota] = useState([]);
   
-  // STATE MANAJEMEN ANGGOTA DIVISI (DITAMBAH STATE EDIT)
   const [formAnggota, setFormAnggota] = useState({ divisiId: "", nama: "", peran: "Anggota" });
   const [fileAnggota, setFileAnggota] = useState(null);
   const [fileAnggota2, setFileAnggota2] = useState(null);
@@ -101,11 +102,15 @@ export default function AdminDashboard() {
         if (!user) { router.push("/admin/login"); return; }
         const email = user.email || "";
         let currRole = "sekre"; 
+        
+        // Pengecekan nama divisi berdasarkan awalan email
         if (email.startsWith("humas")) currRole = "humas";
         else if (email.startsWith("puki")) currRole = "puki";
         else if (email.startsWith("perkap")) currRole = "perkap";
         else if (email.startsWith("tendor")) currRole = "tendor";
         else if (email.startsWith("klh")) currRole = "klh";
+        else if (email.startsWith("rohani")) currRole = "rohani";
+        else if (email.startsWith("senibudaya") || email.startsWith("senbud")) currRole = "senbud";
 
         const tabsForRole = TAB_ROLES[currRole] || [];
         setRole(currRole); setAllowedTabs(tabsForRole); setActiveTab(tabsForRole[0]); setAuthReady(true);
@@ -172,7 +177,6 @@ export default function AdminDashboard() {
   const handleSavePengurusInti = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newData = { ...pengurusInti }; if (fileInti.ketua) newData.ketuaFoto = await uploadToCloudinary(fileInti.ketua, "image"); if (fileInti.ketua2) newData.ketuaFoto2 = await uploadToCloudinary(fileInti.ketua2, "image"); if (fileInti.sekretaris) newData.sekreFoto = await uploadToCloudinary(fileInti.sekretaris, "image"); if (fileInti.sekretaris2) newData.sekreFoto2 = await uploadToCloudinary(fileInti.sekretaris2, "image"); if (fileInti.bendahara) newData.bendaharaFoto = await uploadToCloudinary(fileInti.bendahara, "image"); if (fileInti.bendahara2) newData.bendaharaFoto2 = await uploadToCloudinary(fileInti.bendahara2, "image"); await setDoc(doc(db, "pengaturan", "pengurus_inti"), newData); setPengurusInti(newData); setFileInti({ ketua: null, ketua2: null, sekretaris: null, sekretaris2: null, bendahara: null, bendahara2: null }); setStatus({ type: "success", message: "Pengurus Inti berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleTambahDivisi = async (e) => { e.preventDefault(); setLoading(true); try { await addDoc(collection(db, "divisi_asrama"), { namaDivisi: namaDivisiBaru, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Divisi berhasil ditambahkan!" }); setNamaDivisiBaru(""); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   
-  // HANDLER KLIK EDIT ANGGOTA
   const handleEditAnggotaClick = (anggota) => {
     setEditAnggotaId(anggota.id);
     setFormAnggota({
@@ -185,7 +189,6 @@ export default function AdminDashboard() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // HANDLER SUBMIT ANGGOTA (BISA TAMBAH BARU / SIMPAN PERUBAHAN EDIT)
   const handleTambahAnggota = async (e) => {
     e.preventDefault(); setLoading(true);
     try {
@@ -193,16 +196,14 @@ export default function AdminDashboard() {
       let fotoUrl2 = ""; 
       
       if (editAnggotaId) {
-        // --- MODE EDIT ANGGOTA ---
         const existing = dataAnggota.find(a => a.id === editAnggotaId);
         fotoUrl = existing.foto;
         fotoUrl2 = existing.foto2 || existing.foto;
 
         if (fileAnggota) { fotoUrl = await uploadToCloudinary(fileAnggota, "image"); }
         if (fileAnggota2) { fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); }
-        else if (fileAnggota) { fotoUrl2 = fotoUrl; } // Fallback
+        else if (fileAnggota) { fotoUrl2 = fotoUrl; } 
 
-        // Perbarui Avatar Otomatis jika nama berubah dan belum pernah upload foto asli
         if (!fileAnggota && fotoUrl.includes("ui-avatars.com") && existing.nama !== formAnggota.nama) {
           fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random";
           if (!existing.foto2 || existing.foto2.includes("ui-avatars.com")) { fotoUrl2 = fotoUrl; }
@@ -218,7 +219,6 @@ export default function AdminDashboard() {
         setStatus({ type: "success", message: "Data Anggota berhasil diperbarui!" });
 
       } else {
-        // --- MODE TAMBAH BARU ANGGOTA ---
         fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random";
         if (fileAnggota) { fotoUrl = await uploadToCloudinary(fileAnggota, "image"); }
         if (fileAnggota2) { fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); } else { fotoUrl2 = fotoUrl; }
@@ -234,11 +234,9 @@ export default function AdminDashboard() {
         setStatus({ type: "success", message: "Anggota Divisi berhasil ditambahkan!" });
       }
       
-      // Reset Form
       setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); 
       setFileAnggota(null); setFileAnggota2(null); setEditAnggotaId(null); fetchAllData();
       
-      // Mengosongkan tampilan input file secara visual
       if(document.getElementById('foto1Anggota')) document.getElementById('foto1Anggota').value = "";
       if(document.getElementById('foto2Anggota')) document.getElementById('foto2Anggota').value = "";
       
@@ -363,7 +361,6 @@ export default function AdminDashboard() {
               </div> 
 
               <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
-                {/* JUDUL FORM DINAMIS (EDIT/TAMBAH) */}
                 <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">
                   {editAnggotaId ? "Edit Data Anggota" : "3. Tambah Anggota Divisi"}
                 </h2> 
@@ -400,7 +397,6 @@ export default function AdminDashboard() {
                     </div> 
                   </div> 
                   
-                  {/* TOMBOL DINAMIS */}
                   <div className="flex flex-col sm:flex-row gap-2 mt-2">
                     <button type="submit" disabled={loading || !formAnggota.divisiId} className="w-full bg-red-800 hover:bg-red-900 text-white px-4 py-2.5 rounded-md font-bold">
                       {editAnggotaId ? "Simpan Perubahan" : "Tambah Anggota"}
@@ -439,7 +435,6 @@ export default function AdminDashboard() {
                             <span className="text-xs font-semibold leading-tight">{anggota.nama}</span> 
                             <span className="text-[10px] text-amber-600 font-bold mt-1">{anggota.peran || "Anggota"}</span> 
                             
-                            {/* TOMBOL EDIT & HAPUS PADA KARTU ANGGOTA */}
                             <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => handleEditAnggotaClick(anggota)} className="bg-amber-500 hover:bg-amber-600 text-white w-6 h-6 rounded-full text-[12px] flex items-center justify-center shadow-md">✎</button>
                               <button onClick={() => handleDelete("anggota_divisi", anggota.id)} className="bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full text-[10px] flex items-center justify-center shadow-md">✕</button>
