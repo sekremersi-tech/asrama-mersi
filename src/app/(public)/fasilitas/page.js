@@ -42,17 +42,12 @@ export default function FasilitasAsrama() {
   const [loading, setLoading] = useState(true);
   const [statusAsrama, setStatusAsrama] = useState({ kamar: "0", penghuni: "0", ketersediaan: "Penuh" });
   
-  // STATE PENDAFTARAN BARU BERBASIS FILE
   const [brosurUrl, setBrosurUrl] = useState("");
   const [linkFormulir, setLinkFormulir] = useState("");
   const [showDaftarModal, setShowDaftarModal] = useState(false);
   const [isSubmittingDaftar, setIsSubmittingDaftar] = useState(false);
   
-  const [formDaftar, setFormDaftar] = useState({ 
-    noHp: "", email: "", nama: "", 
-    fileFormulir: null, fileFoto: null, fileKtp: null 
-  });
-
+  const [formDaftar, setFormDaftar] = useState({ noHp: "", email: "", nama: "", fileFormulir: null, fileFoto: null, fileKtp: null });
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalType, setModalType] = useState(""); 
   const [modalImageIdx, setModalImageIdx] = useState(0);
@@ -65,26 +60,16 @@ export default function FasilitasAsrama() {
       try {
         const snapFoto = await getDoc(doc(db, "pengaturan", "tampilan"));
         if (snapFoto.exists() && snapFoto.data().fasilitas) setBgFasilitas(snapFoto.data().fasilitas);
-        
         const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
         if (docKontak.exists()) setKontak(docKontak.data());
-        
         const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
         if (docStatus.exists()) setStatusAsrama(docStatus.data());
-        
-        // AMBIL BROSUR DAN LINK FORMULIR
         const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
-        if (docBrosur.exists()) {
-          setBrosurUrl(docBrosur.data().link || "");
-          setLinkFormulir(docBrosur.data().linkFormulir || "");
-        }
-
+        if (docBrosur.exists()) { setBrosurUrl(docBrosur.data().link || ""); setLinkFormulir(docBrosur.data().linkFormulir || ""); }
         const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "asc")));
         setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        
         const sewaSnap = await getDocs(query(collection(db, "daftar_penyewaan"), orderBy("createdAt", "desc")));
         setDataPenyewaan(sewaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
       } catch (error) { console.error(error); } finally { setLoading(false); }
     };
     fetchData();
@@ -102,7 +87,6 @@ export default function FasilitasAsrama() {
         const q = query(collection(db, "komentar_publikasi"), where("postId", "==", targetId));
         const snap = await getDocs(q);
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        // PERUBAHAN: Menampilkan komentar terbaru di paling atas
         comments.sort((a, b) => (b.waktu?.toMillis() || 0) - (a.waktu?.toMillis() || 0));
         setKomentarList(comments);
       } catch(e) { console.error(e); }
@@ -120,57 +104,34 @@ export default function FasilitasAsrama() {
     setIsSubmittingKomen(true);
     try {
       const targetId = String(selectedItem.id); 
-      // Menangkap judul agar Admin tahu ini dari postingan mana
       const judulPostingan = selectedItem.judul || selectedItem.nama || "Penyewaan / Fasilitas";
-      
-      const newKomen = { 
-        postId: targetId, 
-        postJudul: judulPostingan,
-        nama: formKomen.nama.trim() || "Anonim", 
-        isi: formKomen.isi.trim(), 
-        likes: 0,
-        waktu: serverTimestamp() 
-      };
+      const newKomen = { postId: targetId, postJudul: judulPostingan, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), likes: 0, waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
-      // PERUBAHAN: Menambahkan komentar baru langsung ke urutan PALING ATAS
       setKomentarList([{id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }, ...komentarList]);
       setFormKomen({nama: "", isi: ""});
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
 
-  // TAMBAHAN: FUNGSI TOMBOL LIKE
   const handleLikeKomentar = async (komenId, currentLikes) => {
     const liked = localStorage.getItem(`liked_${komenId}`);
     if (liked) return;
-
     try {
       const newLikes = (currentLikes || 0) + 1;
       await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: newLikes });
       localStorage.setItem(`liked_${komenId}`, 'true');
-
-      // Update angka secara instan di layar
       setKomentarList(prev => prev.map(k => k.id === komenId ? { ...k, likes: newLikes } : k));
-    } catch (e) {
-      console.error("Gagal menyukai komentar:", e);
-    }
+    } catch (e) { console.error("Gagal menyukai komentar:", e); }
   };
 
   const uploadToCloudinary = async (file) => { 
     if (!file) return "";
-    const formData = new FormData(); 
-    formData.append("file", file); 
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); 
-    // Menggunakan /auto/upload agar aman untuk file PDF maupun Gambar
+    const formData = new FormData(); formData.append("file", file); formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); 
     const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`, { method: "POST", body: formData }); 
-    const data = await res.json(); 
-    if (data.error) throw new Error(data.error.message); 
-    return data.secure_url; 
+    const data = await res.json(); if (data.error) throw new Error(data.error.message); return data.secure_url; 
   };
 
-  // LOGIKA PENDAFTARAN DENGAN UPLOAD FILE
   const handleSubmitDaftar = async (e) => {
     e.preventDefault();
-    
     if (!formDaftar.noHp.startsWith("08")) return alert("Nomor HP harus diawali dengan angka 08");
     if (formDaftar.noHp.length < 11) return alert("Nomor HP tidak valid. Minimal harus 11 angka.");
     if (!formDaftar.email.includes("@")) return alert("Format email tidak valid.");
@@ -178,70 +139,50 @@ export default function FasilitasAsrama() {
 
     setIsSubmittingDaftar(true);
     try {
-      // 1. Upload semua file ke Cloudinary
       const urlFormulir = await uploadToCloudinary(formDaftar.fileFormulir);
       const urlFoto = await uploadToCloudinary(formDaftar.fileFoto);
       const urlKtp = await uploadToCloudinary(formDaftar.fileKtp);
-
-      // 2. Simpan URL beserta data ke Firestore
-      await addDoc(collection(db, "pendaftaran_asrama"), { 
-        nama: formDaftar.nama,
-        email: formDaftar.email,
-        noHp: formDaftar.noHp,
-        urlFormulir: urlFormulir,
-        urlFoto: urlFoto,
-        urlKtp: urlKtp,
-        waktuDaftar: serverTimestamp() 
-      });
-
+      await addDoc(collection(db, "pendaftaran_asrama"), { nama: formDaftar.nama, email: formDaftar.email, noHp: formDaftar.noHp, urlFormulir: urlFormulir, urlFoto: urlFoto, urlKtp: urlKtp, waktuDaftar: serverTimestamp() });
       alert("Pendaftaran Berhasil! Data dan dokumen Anda telah kami terima. Silakan tunggu informasi selanjutnya via WhatsApp.");
       closeDaftarModal();
       setFormDaftar({ noHp: "", email: "", nama: "", fileFormulir: null, fileFoto: null, fileKtp: null });
-    } catch (error) { 
-      alert("Gagal mengunggah dokumen. Pastikan ukuran file tidak terlalu besar."); 
-    } finally { 
-      setIsSubmittingDaftar(false); 
-    }
+    } catch (error) { alert("Gagal mengunggah dokumen. Pastikan ukuran file tidak terlalu besar."); } finally { setIsSubmittingDaftar(false); }
   };
 
   const formatWhatsAppLink = (nomor, namaSewa = null) => {
     if (!nomor || nomor === "-") return "#";
     let bersihkanNomor = nomor.replace(/\D/g, '');
     if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
-    
     let pesan = "Halo Kak, saya pengunjung website Asrama Merapi Singgalang.";
     if (namaSewa) pesan = `Halo Kak, saya pengunjung website Asrama Merapi Singgalang. Saya ingin bertanya tentang penyewaan *${namaSewa}*.`;
-    
     return `https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(pesan)}`;
   };
 
   return (
     <div className="bg-[#f9f8f6] pb-24 min-h-screen text-left font-lora overflow-x-hidden relative">
       
-      {/* MODAL POP-UP PENDAFTARAN WARGA */}
+      {/* MODAL PENDAFTARAN WARGA */}
       {showDaftarModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={closeDaftarModal}>
           <button onClick={closeDaftarModal} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-black/50 p-2 rounded-full z-50"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
           
-          <div className="bg-white w-full max-w-6xl max-h-[95vh] rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white w-full max-w-6xl md:w-fit rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[95vh]" onClick={e => e.stopPropagation()}>
             
             {/* Kiri: Brosur */}
-            <div className="relative w-full md:w-1/2 bg-stone-900 h-64 md:h-[95vh] flex flex-col items-center justify-center shrink-0 p-4">
+            <div className="relative w-full md:w-auto bg-stone-900 flex items-center justify-center shrink-0 md:pr-[400px] lg:pr-[500px] md:min-h-[500px]">
               {brosurUrl ? (
-                <img src={brosurUrl} className="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Brosur Asrama" />
+                <img src={brosurUrl} className="w-full md:w-auto md:max-w-[50vw] max-h-[50vh] md:max-h-[95vh] object-contain block" alt="Brosur Asrama" />
               ) : (
                 <div className="text-white text-center p-8"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-4 text-stone-600"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><p className="text-stone-400">Brosur belum tersedia.</p></div>
               )}
             </div>
 
             {/* Kanan: Form Upload Dokumen */}
-            <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col bg-[#fcfbf9] overflow-y-auto max-h-[60vh] md:max-h-[95vh]">
-              <div className="flex flex-col h-full">
-                <h2 className="text-2xl md:text-3xl font-bold font-playfair text-stone-900 mb-2 leading-snug">Pendaftaran Warga</h2>
+            <div className="w-full md:w-[400px] lg:w-[500px] md:absolute md:right-0 md:top-0 md:bottom-0 bg-[#fcfbf9] overflow-y-auto border-l border-stone-200">
+              <div className="p-6 md:p-10 flex flex-col h-max min-h-full">
+                <h2 className="text-2xl md:text-3xl font-bold font-playfair text-[#1c1917] mb-2 leading-snug">Pendaftaran Warga</h2>
                 <div className="mb-6 pb-4 border-b border-[#e8e4db]">
-                  <p className="text-stone-600 text-sm mb-4">Pastikan Anda membaca syarat dan ketentuan pada brosur. Silakan unduh templat formulir di bawah ini, isi dengan lengkap, lalu unggah kembali beserta dokumen persyaratan lainnya.</p>
-                  
-                  {/* Tombol Download Template Formulir */}
+                  <p className="text-[#44403c] text-sm mb-4">Pastikan Anda membaca syarat dan ketentuan pada brosur. Silakan unduh templat formulir di bawah ini, isi dengan lengkap, lalu unggah kembali beserta dokumen persyaratan lainnya.</p>
                   <a href={linkFormulir || "#"} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center justify-center gap-2 w-full py-2.5 rounded text-sm font-bold uppercase tracking-widest font-sans transition-all ${linkFormulir ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300' : 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200'}`}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     {linkFormulir ? "1. Unduh Templat Formulir" : "Formulir Belum Tersedia"}
@@ -251,19 +192,19 @@ export default function FasilitasAsrama() {
                 <form onSubmit={handleSubmitDaftar} className="space-y-4 font-sans flex-grow">
                   <div>
                     <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nama Lengkap</label>
-                    <input type="text" required value={formDaftar.nama} onChange={(e) => setFormDaftar({...formDaftar, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-300 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Hanya huruf..." />
+                    <input type="text" required value={formDaftar.nama} onChange={(e) => setFormDaftar({...formDaftar, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-300 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-[#1c1917]" placeholder="Hanya huruf..." />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Email Aktif</label>
-                    <input type="email" required value={formDaftar.email} onChange={(e) => setFormDaftar({...formDaftar, email: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-300 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="contoh@gmail.com" />
+                    <input type="email" required value={formDaftar.email} onChange={(e) => setFormDaftar({...formDaftar, email: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-300 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-[#1c1917]" placeholder="contoh@gmail.com" />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nomor HP / WhatsApp Aktif</label>
-                    <input type="tel" required maxLength={14} value={formDaftar.noHp} onChange={(e) => setFormDaftar({...formDaftar, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-300 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Awali dengan 08..." />
+                    <input type="tel" required maxLength={14} value={formDaftar.noHp} onChange={(e) => setFormDaftar({...formDaftar, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-300 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-[#1c1917]" placeholder="Awali dengan 08..." />
                   </div>
                   
                   <div className="pt-2">
-                    <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">2. Unggah Formulir Pendaftaran (Sudah Diisi)</label>
+                    <label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">2. Unggah Formulir (Sudah Diisi)</label>
                     <input type="file" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={(e) => setFormDaftar({...formDaftar, fileFormulir: e.target.files[0]})} className="w-full text-xs p-2 border border-stone-300 rounded bg-white text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-800 hover:file:bg-red-100 cursor-pointer" />
                   </div>
                   <div className="pt-2">
@@ -278,105 +219,105 @@ export default function FasilitasAsrama() {
                   <button type="submit" disabled={isSubmittingDaftar} className="w-full bg-[#171412] hover:bg-red-800 text-white font-playfair font-bold text-lg py-3 rounded transition-colors mt-4">{isSubmittingDaftar ? "Mengunggah Dokumen..." : "Kirim Berkas Pendaftaran"}</button>
                 </form>
 
-                {/* Footer Kontak Bantuan */}
                 <div className="mt-8 pt-6 border-t border-stone-200 font-sans">
-                  <p className="text-xs text-stone-500 font-bold mb-3 uppercase tracking-widest">Butuh Bantuan Pendaftaran?</p>
+                  <p className="text-xs text-[#44403c] font-bold mb-3 uppercase tracking-widest">Butuh Bantuan Pendaftaran?</p>
                   <div className="flex flex-col gap-2">
-                    <a href={formatWhatsAppLink(kontak.noTelpon)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-stone-600 hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
+                    <a href={formatWhatsAppLink(kontak.noTelpon)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#44403c] hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                       Ketua Asrama ({kontak.noTelpon || "-"})
                     </a>
-                    <a href={formatWhatsAppLink(kontak.noHumas)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-stone-600 hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
+                    <a href={formatWhatsAppLink(kontak.noHumas)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#44403c] hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                       Humas Asrama ({kontak.noHumas || "-"})
                     </a>
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* MODAL FASILITAS & PENYEWAAN */}
       {selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={closeModal}>
           <button onClick={closeModal} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-black/50 p-2 rounded-full z-50"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
           
-          <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="relative w-full md:w-3/5 bg-stone-900 h-64 md:h-[80vh] flex items-center justify-center shrink-0 group">
-              <img src={modalImages[modalImageIdx]} className="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Preview" />
-              {modalImages.length > 1 && (
-                <>
-                  <button onClick={prevModalImage} className="absolute left-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                  <button onClick={nextModalImage} className="absolute right-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
-                  <div className="absolute bottom-4 bg-black/60 px-4 py-1.5 rounded-full text-white text-xs tracking-widest font-bold font-sans">{modalImageIdx + 1} / {modalImages.length}</div>
-                </>
-              )}
+          <div className="bg-white w-full max-w-6xl md:w-fit rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[95vh]" onClick={e => e.stopPropagation()}>
+            <div className="relative w-full md:w-auto bg-stone-900 flex shrink-0 md:pr-[400px] lg:pr-[450px] md:min-h-[450px]">
+              <div className="relative w-full flex items-center justify-center group">
+                <img src={modalImages[modalImageIdx]} className="w-full md:w-auto md:max-w-[55vw] max-h-[50vh] md:max-h-[95vh] object-contain block" alt="Preview" />
+                {modalImages.length > 1 && (
+                  <>
+                    <button onClick={prevModalImage} className="absolute left-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                    <button onClick={nextModalImage} className="absolute right-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                    <div className="absolute bottom-4 bg-black/60 px-4 py-1.5 rounded-full text-white text-xs tracking-widest font-bold font-sans">{modalImageIdx + 1} / {modalImages.length}</div>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="w-full md:w-2/5 p-8 md:p-10 flex flex-col bg-[#fcfbf9] overflow-y-auto max-h-[50vh] md:max-h-[80vh]">
-              {modalType === "sewa" ? (
-                <>
-                  <div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-amber-800 bg-amber-100 px-3 py-1 rounded-sm font-sans">{selectedItem.kategori}</span></div>
-                  <h2 className="text-3xl font-bold font-playfair text-stone-900 mb-2 leading-snug">{selectedItem.nama}</h2>
-                  <p className="text-amber-600 font-bold font-sans tracking-wide mb-6 text-xl">{selectedItem.harga}</p>
-                  <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
-                  <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
-                  
-                  <a href={formatWhatsAppLink(selectedItem.noHpSewa, selectedItem.nama)} target="_blank" rel="noopener noreferrer" className="w-full mt-6 bg-[#171412] hover:bg-amber-500 text-white text-center py-3.5 rounded-sm text-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 font-sans shadow-md">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> Reservasi via WhatsApp
-                  </a>
+            <div className="w-full md:w-[400px] lg:w-[450px] md:absolute md:right-0 md:top-0 md:bottom-0 bg-[#fcfbf9] overflow-y-auto border-l border-stone-200">
+              <div className="p-8 md:p-10 flex flex-col h-max min-h-full">
+                {modalType === "sewa" ? (
+                  <>
+                    <div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-amber-800 bg-amber-100 px-3 py-1 rounded-sm font-sans">{selectedItem.kategori}</span></div>
+                    <h2 className="text-3xl font-bold font-playfair text-[#1c1917] mb-2 leading-snug">{selectedItem.nama}</h2>
+                    <p className="text-amber-600 font-bold font-sans tracking-wide mb-6 text-xl">{selectedItem.harga}</p>
+                    <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
+                    <p className="text-[#44403c] leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
+                    
+                    <a href={formatWhatsAppLink(selectedItem.noHpSewa, selectedItem.nama)} target="_blank" rel="noopener noreferrer" className="w-full mt-6 bg-[#171412] hover:bg-amber-500 text-white text-center py-3.5 rounded-sm text-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 font-sans shadow-md">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> Reservasi via WhatsApp
+                    </a>
 
-                  <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
-                    <h3 className="font-playfair font-bold text-xl text-stone-900 mb-4">Tanya / Komentar ({komentarList.length})</h3>
-                    <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
-                      {komentarList.length === 0 ? <p className="text-sm text-stone-500 italic">Belum ada diskusi. Ada pertanyaan?</p> : (
-                        komentarList.map(k => (
-                          <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="font-bold text-sm text-stone-900">{k.nama}</span>
-                              <span className="text-[10px] text-stone-400">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span>
-                            </div>
-                            <p className="text-sm text-stone-600 mb-3">{k.isi}</p>
-                            
-                            {/* TOMBOL LIKE */}
-                            <div className="flex items-center gap-4 mb-1">
-                              <button onClick={() => handleLikeKomentar(k.id, k.likes)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? 'text-red-600' : 'text-stone-400 hover:text-red-600'}`}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill={typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                {k.likes || 0} Suka
-                              </button>
-                            </div>
-
-                            {/* BALASAN ADMIN */}
-                            {k.balasanAdmin && (
-                              <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
-                                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
-                                </span>
-                                <p className="text-sm text-stone-700">{k.balasanAdmin}</p>
+                    <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
+                      <h3 className="font-playfair font-bold text-xl text-[#1c1917] mb-4">Tanya / Komentar ({komentarList.length})</h3>
+                      <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
+                        {komentarList.length === 0 ? <p className="text-sm text-[#78716c] italic">Belum ada diskusi. Ada pertanyaan?</p> : (
+                          komentarList.map(k => (
+                            <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-bold text-sm text-[#1c1917]">{k.nama}</span>
+                                <span className="text-[10px] text-[#a8a29e]">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span>
                               </div>
-                            )}
+                              <p className="text-sm text-[#44403c] mb-3">{k.isi}</p>
+                              
+                              <div className="flex items-center gap-4 mb-1">
+                                <button onClick={() => handleLikeKomentar(k.id, k.likes)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? 'text-red-600' : 'text-stone-400 hover:text-red-600'}`}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill={typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                  {k.likes || 0} Suka
+                                </button>
+                              </div>
 
-                          </div>
-                        ))
-                      )}
+                              {k.balasanAdmin && (
+                                <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
+                                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
+                                  </span>
+                                  <p className="text-sm text-[#44403c]">{k.balasanAdmin}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
+                        <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-[#1c1917]" />
+                        <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Ketik pertanyaan atau komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-[#1c1917]"></textarea>
+                        <button type="submit" disabled={isSubmittingKomen} className="bg-[#171412] text-white text-xs font-bold px-4 py-2.5 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
+                      </form>
                     </div>
-                    <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
-                      <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900" />
-                      <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Ketik pertanyaan atau komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"></textarea>
-                      <button type="submit" disabled={isSubmittingKomen} className="bg-stone-900 text-white text-xs font-bold px-4 py-2.5 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
-                    </form>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-red-800 bg-red-50 px-3 py-1 rounded-sm font-sans">FASILITAS ASRAMA</span></div>
-                  <h2 className="text-3xl font-bold font-playfair text-stone-900 mb-6 leading-snug">{selectedItem.nama}</h2>
-                  <div className="w-10 h-1 bg-red-800 mb-6 rounded-full"></div>
-                  <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
-                </>
-              )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-red-800 bg-red-50 px-3 py-1 rounded-sm font-sans">FASILITAS ASRAMA</span></div>
+                    <h2 className="text-3xl font-bold font-playfair text-[#1c1917] mb-6 leading-snug">{selectedItem.nama}</h2>
+                    <div className="w-10 h-1 bg-red-800 mb-6 rounded-full"></div>
+                    <p className="text-[#44403c] leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -392,7 +333,6 @@ export default function FasilitasAsrama() {
         </div>
       </div>
 
-      {/* INFO PENDAFTARAN */}
       <div id="pendaftaran" className="max-w-3xl mx-auto px-4 mt-28 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-12"><h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Informasi Pendaftaran</h4><h2 className="text-4xl font-bold text-stone-900 font-playfair mb-4">Penerimaan Warga Baru</h2><p className="text-stone-600 max-w-2xl mx-auto">Kami membuka kesempatan bagi mahasiswa perantau untuk bergabung dan menjadi bagian dari keluarga besar Asrama Mahasiswa Merapi Singgalang.</p></div>
         <div className="bg-white border border-[#e8e4db] p-8 md:p-12 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] text-center flex flex-col items-center">
@@ -408,7 +348,6 @@ export default function FasilitasAsrama() {
           <div className="w-14 h-14 bg-[#171412] rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div>
           <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Fasilitas Asrama</h2><p className="text-stone-500 text-sm mt-1">Area penunjang keseharian warga asrama.</p></div>
         </div>
-        
         {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat data...</p> : dataFasilitas.length === 0 ? <div className="bg-white p-12 rounded-sm border border-[#e8e4db] text-stone-500 text-center shadow-sm w-full">Belum ada fasilitas yang ditambahkan.</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
             {dataFasilitas.map(item => (
@@ -430,7 +369,6 @@ export default function FasilitasAsrama() {
           <div className="w-14 h-14 bg-amber-50 rounded-sm border border-amber-200 flex items-center justify-center text-amber-600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg></div>
           <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Layanan & Penyewaan</h2><p className="text-stone-500 text-sm mt-1">Talenta seni budaya dan sarana yang disewakan untuk publik.</p></div>
         </div>
-        
         {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat data...</p> : dataPenyewaan.length === 0 ? <div className="bg-white p-12 rounded-sm border border-amber-200 text-stone-500 text-center shadow-sm w-full">Belum ada layanan yang ditambahkan.</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
             {dataPenyewaan.map(item => (
