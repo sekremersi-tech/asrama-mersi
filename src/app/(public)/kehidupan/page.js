@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-// TAMBAHAN: updateDoc di-import untuk fitur Like
 import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp, where, updateDoc } from "firebase/firestore";
 
 const HeroSlider = ({ images, title, subtitle }) => { 
@@ -40,7 +39,6 @@ const AutoSliderCard = ({ images, className, children, onClick }) => {
   );
 };
 
-// KARTU AUTO SLIDER KHUSUS BERITA
 const NewsAutoSliderCard = ({ images, className }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
   const [idx, setIdx] = useState(0);
@@ -72,7 +70,6 @@ export default function Kehidupan() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
-  // STATE SLIDER BERITA
   const [newsPage, setNewsPage] = useState(0);
   const newsPerPage = 2;
 
@@ -84,7 +81,6 @@ export default function Kehidupan() {
         const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "desc")));
         setDataGaleri(galSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         
-        // MENGAMBIL SEMUA BERITA UNTUK BISA DIGESER
         const berSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
         setDataBerita(berSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (error) { console.error(error); } finally { setLoading(false); }
@@ -109,7 +105,6 @@ export default function Kehidupan() {
           const q = query(collection(db, "komentar_publikasi"), where("postId", "==", targetId));
           const snap = await getDocs(q);
           let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
-          // PERUBAHAN: Mengurutkan agar komentar terbaru ada di paling atas (b - a)
           comments.sort((a, b) => (b.waktu?.toMillis() || 0) - (a.waktu?.toMillis() || 0));
           setKomentarList(comments);
         } catch(e) { console.error(e); }
@@ -145,130 +140,119 @@ export default function Kehidupan() {
     setIsSubmittingKomen(true);
     try {
       const targetId = String(selectedItem.id);
-      // Menangkap judul agar Admin tahu ini dari postingan mana
       const judulPostingan = selectedItem.judul || selectedItem.nama || "Postingan Publikasi";
-      
-      const newKomen = { 
-        postId: targetId, 
-        postJudul: judulPostingan,
-        nama: formKomen.nama.trim() || "Anonim", 
-        isi: formKomen.isi.trim(), 
-        likes: 0, 
-        waktu: serverTimestamp() 
-      };
-
+      const newKomen = { postId: targetId, postJudul: judulPostingan, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), likes: 0, waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
-      // PERUBAHAN: Menambahkan komentar baru langsung ke urutan PALING ATAS
       setKomentarList([{id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }, ...komentarList]);
       setFormKomen({nama: "", isi: ""});
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
 
-  // TAMBAHAN: FUNGSI TOMBOL LIKE
   const handleLikeKomentar = async (komenId, currentLikes) => {
-    // Mencegah klik berkali-kali menggunakan localStorage Browser
     const liked = localStorage.getItem(`liked_${komenId}`);
     if (liked) return;
-
     try {
       const newLikes = (currentLikes || 0) + 1;
       await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: newLikes });
       localStorage.setItem(`liked_${komenId}`, 'true');
-
-      // Update angka secara instan di layar
       setKomentarList(prev => prev.map(k => k.id === komenId ? { ...k, likes: newLikes } : k));
-    } catch (e) {
-      console.error("Gagal menyukai komentar:", e);
-    }
+    } catch (e) { console.error("Gagal menyukai komentar:", e); }
   };
 
-  // LOGIKA SLIDER
   const totalNewsPages = Math.ceil(dataBerita.length / newsPerPage);
   const displayedNews = dataBerita.slice(newsPage * newsPerPage, (newsPage + 1) * newsPerPage);
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora relative">
+      
+      {/* MODAL BERITA, LOMBA & GALERI */}
       {selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={closeModal}>
           <button onClick={closeModal} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-black/50 p-2 rounded-full z-50"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
           
-          <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className={`relative w-full ${showLombaModal ? 'md:w-1/2' : 'md:w-3/5'} bg-stone-900 h-64 md:h-[80vh] flex items-center justify-center shrink-0 group`}>
-              <img src={modalImages[modalImageIdx]} className="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Preview" />
-              {modalImages.length > 1 && (
-                <>
-                  <button onClick={prevModalImage} className="absolute left-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                  <button onClick={nextModalImage} className="absolute right-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
-                  <div className="absolute bottom-4 bg-black/60 px-4 py-1.5 rounded-full text-white text-xs tracking-widest font-bold font-sans">{modalImageIdx + 1} / {modalImages.length}</div>
-                </>
-              )}
+          <div className="bg-white w-full max-w-6xl md:w-fit rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[95vh]" onClick={e => e.stopPropagation()}>
+            
+            {/* Kiri: Gambar yg Menentukan Tinggi */}
+            <div className="relative w-full md:w-auto bg-stone-900 flex shrink-0 md:pr-[400px] lg:pr-[450px] md:min-h-[450px]">
+              <div className="relative w-full flex items-center justify-center group">
+                <img src={modalImages[modalImageIdx]} className="w-full md:w-auto md:max-w-[55vw] max-h-[50vh] md:max-h-[95vh] object-contain block" alt="Preview" />
+                {modalImages.length > 1 && (
+                  <>
+                    <button onClick={prevModalImage} className="absolute left-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                    <button onClick={nextModalImage} className="absolute right-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                    <div className="absolute bottom-4 bg-black/60 px-4 py-1.5 rounded-full text-white text-xs tracking-widest font-bold font-sans">{modalImageIdx + 1} / {modalImages.length}</div>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className={`w-full ${showLombaModal ? 'md:w-1/2' : 'md:w-2/5'} p-8 md:p-10 flex flex-col bg-[#fcfbf9] overflow-y-auto max-h-[50vh] md:max-h-[80vh]`}>
-              {showLombaModal ? (
-                <div className="flex flex-col h-full">
-                  <h2 className="text-3xl font-bold font-playfair text-stone-900 mb-2 leading-snug">Formulir Pendaftaran</h2>
-                  <p className="text-stone-500 text-sm mb-6 pb-4 border-b border-[#e8e4db]">{selectedItem.judul}</p>
-                  <form onSubmit={handleSubmitLomba} className="space-y-4 font-sans">
-                    <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nama Lengkap</label><input type="text" required value={formLomba.nama} onChange={(e) => setFormLomba({...formLomba, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Hanya huruf..." /></div>
-                    <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nomor HP / WA</label><input type="tel" required value={formLomba.noHp} onChange={(e) => setFormLomba({...formLomba, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Awali dengan 08..." maxLength={14} /></div>
-                    <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Alamat Asal / Instansi</label><textarea required rows="3" value={formLomba.alamat} onChange={(e) => setFormLomba({...formLomba, alamat: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Tuliskan alamat lengkap..."></textarea></div>
-                    <button type="submit" disabled={isSubmittingLomba} className="w-full bg-[#171412] hover:bg-amber-600 text-white font-playfair font-bold text-lg py-3 rounded transition-colors mt-2">{isSubmittingLomba ? "Memproses..." : "Daftar Sekarang"}</button>
-                  </form>
-                </div>
-              ) : (
-                <>
-                  {modalType === "berita" && (<div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-red-800 bg-red-50 px-3 py-1 rounded-sm font-sans">{selectedItem.kategori}</span><span className="text-xs text-stone-500 font-sans">{selectedItem.tanggal}</span></div>)}
-                  <h2 className="text-3xl font-bold font-playfair text-stone-900 mb-6 leading-snug" style={{ color: modalType === "galeri" && selectedItem.warna ? selectedItem.warna : 'inherit' }}>{selectedItem.judul}</h2>
-                  {modalType === "berita" && <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>}
-                  {modalType === "berita" ? <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p> : <p className="text-stone-600 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi || "Dokumentasi momen kebersamaan warga Asrama Mahasiswa Merapi Singgalang."}</p>}
-                  
-                  {modalType === "berita" && (
-                    <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
-                      <h3 className="font-playfair font-bold text-xl text-stone-900 mb-4">Komentar ({komentarList.length})</h3>
-                      <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
-                        {komentarList.length === 0 ? (
-                          <p className="text-sm text-stone-500 italic">Belum ada komentar. Jadilah yang pertama!</p>
-                        ) : (
-                          komentarList.map(k => (
-                            <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="font-bold text-sm text-stone-900">{k.nama}</span>
-                                <span className="text-[10px] text-stone-400">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span>
-                              </div>
-                              <p className="text-sm text-stone-600 mb-3">{k.isi}</p>
-                              
-                              {/* PERUBAHAN: Tampilan Tombol Like */}
-                              <div className="flex items-center gap-4 mb-1">
-                                <button onClick={() => handleLikeKomentar(k.id, k.likes)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? 'text-red-600' : 'text-stone-400 hover:text-red-600'}`}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill={typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                  {k.likes || 0} Suka
-                                </button>
-                              </div>
-
-                              {/* PERUBAHAN: Tampilan Balasan Admin */}
-                              {k.balasanAdmin && (
-                                <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
-                                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
-                                  </span>
-                                  <p className="text-sm text-stone-700">{k.balasanAdmin}</p>
+            {/* Kanan: Form / Informasi Teks */}
+            <div className="w-full md:w-[400px] lg:w-[450px] md:absolute md:right-0 md:top-0 md:bottom-0 bg-[#fcfbf9] overflow-y-auto border-l border-stone-200">
+              <div className="p-8 md:p-10 flex flex-col h-max min-h-full">
+                {showLombaModal ? (
+                  <div className="flex flex-col h-full">
+                    <h2 className="text-3xl font-bold font-playfair text-[#1c1917] mb-2 leading-snug">Formulir Pendaftaran</h2>
+                    <p className="text-[#44403c] text-sm mb-6 pb-4 border-b border-[#e8e4db]">{selectedItem.judul}</p>
+                    <form onSubmit={handleSubmitLomba} className="space-y-4 font-sans">
+                      <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nama Lengkap</label><input type="text" required value={formLomba.nama} onChange={(e) => setFormLomba({...formLomba, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-[#1c1917]" placeholder="Hanya huruf..." /></div>
+                      <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nomor HP / WA</label><input type="tel" required value={formLomba.noHp} onChange={(e) => setFormLomba({...formLomba, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-[#1c1917]" placeholder="Awali dengan 08..." maxLength={14} /></div>
+                      <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Alamat Asal / Instansi</label><textarea required rows="3" value={formLomba.alamat} onChange={(e) => setFormLomba({...formLomba, alamat: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-[#1c1917]" placeholder="Tuliskan alamat lengkap..."></textarea></div>
+                      <button type="submit" disabled={isSubmittingLomba} className="w-full bg-[#171412] hover:bg-amber-600 text-white font-playfair font-bold text-lg py-3 rounded transition-colors mt-2">{isSubmittingLomba ? "Memproses..." : "Daftar Sekarang"}</button>
+                    </form>
+                  </div>
+                ) : (
+                  <>
+                    {modalType === "berita" && (<div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-red-800 bg-red-50 px-3 py-1 rounded-sm font-sans">{selectedItem.kategori}</span><span className="text-xs text-[#78716c] font-sans">{selectedItem.tanggal}</span></div>)}
+                    <h2 className="text-3xl font-bold font-playfair mb-6 leading-snug" style={modalType === "galeri" && selectedItem?.warna ? { color: selectedItem.warna } : { color: '#1c1917' }}>{selectedItem.judul}</h2>
+                    {modalType === "berita" && <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>}
+                    
+                    {modalType === "berita" ? <p className="text-[#44403c] leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p> : <p className="text-[#44403c] leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi || "Dokumentasi momen kebersamaan warga Asrama Mahasiswa Merapi Singgalang."}</p>}
+                    
+                    {modalType === "berita" && (
+                      <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
+                        <h3 className="font-playfair font-bold text-xl text-[#1c1917] mb-4">Komentar ({komentarList.length})</h3>
+                        <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
+                          {komentarList.length === 0 ? (
+                            <p className="text-sm text-[#78716c] italic">Belum ada komentar. Jadilah yang pertama!</p>
+                          ) : (
+                            komentarList.map(k => (
+                              <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-bold text-sm text-[#1c1917]">{k.nama}</span>
+                                  <span className="text-[10px] text-[#a8a29e]">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span>
                                 </div>
-                              )}
+                                <p className="text-sm text-[#44403c] mb-3">{k.isi}</p>
 
-                            </div>
-                          ))
-                        )}
+                                <div className="flex items-center gap-4 mb-1">
+                                  <button onClick={() => handleLikeKomentar(k.id, k.likes)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? 'text-red-600' : 'text-[#a8a29e] hover:text-red-600'}`}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill={typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                    {k.likes || 0} Suka
+                                  </button>
+                                </div>
+
+                                {k.balasanAdmin && (
+                                  <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
+                                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
+                                    </span>
+                                    <p className="text-sm text-[#44403c]">{k.balasanAdmin}</p>
+                                  </div>
+                                )}
+
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
+                          <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-[#1c1917]" />
+                          <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Tulis komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-[#1c1917]"></textarea>
+                          <button type="submit" disabled={isSubmittingKomen} className="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
+                        </form>
                       </div>
-                      <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
-                        <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900" />
-                        <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Tulis komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"></textarea>
-                        <button type="submit" disabled={isSubmittingKomen} className="bg-[#171412] text-white text-xs font-bold px-4 py-2.5 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
-                      </form>
-                    </div>
-                  )}
-                </>
-              )}
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -290,22 +274,15 @@ export default function Kehidupan() {
           )}
         </div>
 
-        {/* KABAR TERBARU WARGA DENGAN SLIDER */}
         <div id="kabar" className="scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out delay-200">
           <div className="flex flex-col md:flex-row justify-between items-end mb-10 border-b border-[#e8e4db] pb-4 pt-16">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-red-800 rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
               <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Kabar Terbaru Warga</h2><p className="text-stone-500 text-sm mt-1">Berita, prestasi, dan publikasi penghuni asrama.</p></div>
             </div>
-            
-            {/* Tombol Geser (Slider) Desktop */}
             <div className="hidden md:flex items-center gap-4">
-              <button onClick={() => setNewsPage(p => Math.max(0, p - 1))} disabled={newsPage === 0} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              </button>
-              <button onClick={() => setNewsPage(p => Math.min(totalNewsPages - 1, p + 1))} disabled={newsPage >= totalNewsPages - 1} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              </button>
+              <button onClick={() => setNewsPage(p => Math.max(0, p - 1))} disabled={newsPage === 0} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+              <button onClick={() => setNewsPage(p => Math.min(totalNewsPages - 1, p + 1))} disabled={newsPage >= totalNewsPages - 1} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
             </div>
           </div>
           
@@ -317,7 +294,7 @@ export default function Kehidupan() {
                   <div className="p-6 md:p-8 flex flex-col justify-center w-full">
                     <div className="flex items-center gap-3 mb-3"><span className="text-xs font-bold tracking-widest uppercase text-red-800 font-sans">{item.kategori}</span><span className="text-stone-300">•</span><span className="text-xs text-stone-500 font-sans">{item.tanggal}</span></div>
                     <h3 className="text-xl md:text-2xl font-bold text-stone-900 font-playfair mb-3 group-hover:text-amber-600 transition-colors leading-snug line-clamp-2">{item.judul}</h3>
-                    <p className="text-stone-600 text-sm leading-relaxed line-clamp-2">{item.deskripsi}</p>
+                    <p className="text-[#44403c] text-sm leading-relaxed line-clamp-2">{item.deskripsi}</p>
                     <span className="text-amber-600 text-xs font-bold uppercase tracking-widest mt-4 font-sans flex items-center gap-1 group-hover:gap-2 transition-all">Baca Selengkapnya <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
                   </div>
                 </div>
@@ -325,15 +302,10 @@ export default function Kehidupan() {
             </div>
           )}
 
-          {/* Tombol Geser (Slider) HP */}
           {dataBerita.length > 0 && (
             <div className="mt-8 flex md:hidden justify-center gap-6">
-              <button onClick={() => setNewsPage(p => Math.max(0, p - 1))} disabled={newsPage === 0} className="w-12 h-12 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              </button>
-              <button onClick={() => setNewsPage(p => Math.min(totalNewsPages - 1, p + 1))} disabled={newsPage >= totalNewsPages - 1} className="w-12 h-12 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              </button>
+              <button onClick={() => setNewsPage(p => Math.max(0, p - 1))} disabled={newsPage === 0} className="w-12 h-12 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+              <button onClick={() => setNewsPage(p => Math.min(totalNewsPages - 1, p + 1))} disabled={newsPage >= totalNewsPages - 1} className="w-12 h-12 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
             </div>
           )}
         </div>
