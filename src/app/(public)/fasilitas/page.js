@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp, where } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp, where, updateDoc } from "firebase/firestore";
 
 const HeroSlider = ({ images, title, subtitle }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
@@ -102,7 +102,8 @@ export default function FasilitasAsrama() {
         const q = query(collection(db, "komentar_publikasi"), where("postId", "==", targetId));
         const snap = await getDocs(q);
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        comments.sort((a, b) => (a.waktu?.toMillis() || 0) - (b.waktu?.toMillis() || 0));
+        // PERUBAHAN: Menampilkan komentar terbaru di paling atas
+        comments.sort((a, b) => (b.waktu?.toMillis() || 0) - (a.waktu?.toMillis() || 0));
         setKomentarList(comments);
       } catch(e) { console.error(e); }
     }
@@ -119,11 +120,39 @@ export default function FasilitasAsrama() {
     setIsSubmittingKomen(true);
     try {
       const targetId = String(selectedItem.id); 
-      const newKomen = { postId: targetId, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), waktu: serverTimestamp() };
+      // Menangkap judul agar Admin tahu ini dari postingan mana
+      const judulPostingan = selectedItem.judul || selectedItem.nama || "Penyewaan / Fasilitas";
+      
+      const newKomen = { 
+        postId: targetId, 
+        postJudul: judulPostingan,
+        nama: formKomen.nama.trim() || "Anonim", 
+        isi: formKomen.isi.trim(), 
+        likes: 0,
+        waktu: serverTimestamp() 
+      };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
-      setKomentarList([...komentarList, {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }]);
+      // PERUBAHAN: Menambahkan komentar baru langsung ke urutan PALING ATAS
+      setKomentarList([{id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }, ...komentarList]);
       setFormKomen({nama: "", isi: ""});
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
+  };
+
+  // TAMBAHAN: FUNGSI TOMBOL LIKE
+  const handleLikeKomentar = async (komenId, currentLikes) => {
+    const liked = localStorage.getItem(`liked_${komenId}`);
+    if (liked) return;
+
+    try {
+      const newLikes = (currentLikes || 0) + 1;
+      await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: newLikes });
+      localStorage.setItem(`liked_${komenId}`, 'true');
+
+      // Update angka secara instan di layar
+      setKomentarList(prev => prev.map(k => k.id === komenId ? { ...k, likes: newLikes } : k));
+    } catch (e) {
+      console.error("Gagal menyukai komentar:", e);
+    }
   };
 
   const uploadToCloudinary = async (file) => { 
@@ -305,8 +334,30 @@ export default function FasilitasAsrama() {
                       {komentarList.length === 0 ? <p className="text-sm text-stone-500 italic">Belum ada diskusi. Ada pertanyaan?</p> : (
                         komentarList.map(k => (
                           <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
-                            <div className="flex justify-between items-center mb-1"><span className="font-bold text-sm text-stone-900">{k.nama}</span><span className="text-[10px] text-stone-400">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span></div>
-                            <p className="text-sm text-stone-600">{k.isi}</p>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-bold text-sm text-stone-900">{k.nama}</span>
+                              <span className="text-[10px] text-stone-400">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span>
+                            </div>
+                            <p className="text-sm text-stone-600 mb-3">{k.isi}</p>
+                            
+                            {/* TOMBOL LIKE */}
+                            <div className="flex items-center gap-4 mb-1">
+                              <button onClick={() => handleLikeKomentar(k.id, k.likes)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? 'text-red-600' : 'text-stone-400 hover:text-red-600'}`}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill={typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                {k.likes || 0} Suka
+                              </button>
+                            </div>
+
+                            {/* BALASAN ADMIN */}
+                            {k.balasanAdmin && (
+                              <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
+                                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
+                                </span>
+                                <p className="text-sm text-stone-700">{k.balasanAdmin}</p>
+                              </div>
+                            )}
+
                           </div>
                         ))
                       )}
@@ -314,7 +365,7 @@ export default function FasilitasAsrama() {
                     <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
                       <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900" />
                       <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Ketik pertanyaan atau komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"></textarea>
-                      <button type="submit" disabled={isSubmittingKomen} className="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
+                      <button type="submit" disabled={isSubmittingKomen} className="bg-stone-900 text-white text-xs font-bold px-4 py-2.5 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
                     </form>
                   </div>
                 </>
