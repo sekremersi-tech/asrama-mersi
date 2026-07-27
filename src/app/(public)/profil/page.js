@@ -139,6 +139,10 @@ export default function ProfilAsrama() {
   const [isAnimasiFlip, setIsAnimasiFlip] = useState(false);
   const [arahFlip, setArahFlip] = useState("");
 
+  // STATE UNTUK SLIDER TIMELINE
+  const [timelinePage, setTimelinePage] = useState(0);
+  const timelinePerPage = 3; 
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -188,6 +192,10 @@ export default function ProfilAsrama() {
       }, 400);
     }
   };
+
+  // LOGIKA SLIDER TIMELINE
+  const totalTimelinePages = Math.ceil(dataTimeline.length / timelinePerPage);
+  const displayedTimeline = dataTimeline.slice(timelinePage * timelinePerPage, (timelinePage + 1) * timelinePerPage);
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora overflow-x-hidden relative">
@@ -247,6 +255,7 @@ export default function ProfilAsrama() {
       {/* 3 & 4. VISI MISI & TIMELINE */}
       <div id="visimisi" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 scroll-mt-28">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+          
           <div className="lg:col-span-5 flex flex-col gap-6 reveal opacity-0 translate-x-[-20px] transition-all duration-1000 ease-out">
             <div className="text-left mb-2"><h2 className="text-3xl font-bold text-stone-900 font-playfair mb-3">Tujuan Asrama</h2><div className="w-12 h-1 bg-amber-500 rounded-full"></div></div>
             <div className="bg-[#171412] text-white p-6 md:p-8 rounded-sm shadow-lg relative overflow-hidden group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
@@ -259,12 +268,33 @@ export default function ProfilAsrama() {
               <p className="text-stone-600 leading-relaxed text-base whitespace-pre-line">{loading ? "Memuat..." : profilText.misi}</p>
             </div>
           </div>
+
           <div id="timeline" className="lg:col-span-7 reveal opacity-0 translate-x-[20px] transition-all duration-1000 ease-out delay-200">
-            <div className="text-left mb-8"><h2 className="text-3xl font-bold text-stone-900 font-playfair mb-3">Garis Waktu</h2><div className="w-12 h-1 bg-amber-500 rounded-full"></div></div>
+            
+            {/* Header Timeline dengan Tombol Slide */}
+            <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
+              <div className="text-left">
+                <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-3">Garis Waktu</h2>
+                <div className="w-12 h-1 bg-amber-500 rounded-full"></div>
+              </div>
+              
+              {/* Tombol Geser Timeline */}
+              {dataTimeline.length > timelinePerPage && (
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setTimelinePage(p => Math.max(0, p - 1))} disabled={timelinePage === 0} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  <button onClick={() => setTimelinePage(p => Math.min(totalTimelinePages - 1, p + 1))} disabled={timelinePage >= totalTimelinePages - 1} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+              )}
+            </div>
+
             {loading ? <p className="text-stone-500">Memuat timeline...</p> : dataTimeline.length === 0 ? <p className="text-stone-500">Belum ada catatan waktu.</p> : (
-              <div className="relative border-l-2 border-amber-200 ml-3 md:ml-4 space-y-10 py-2">
-                {dataTimeline.map((item, idx) => (
-                  <div key={item.id} className="relative pl-8 md:pl-10 group" style={{ transitionDelay: `${idx * 150}ms` }}>
+              <div key={timelinePage} className="relative border-l-2 border-amber-200 ml-3 md:ml-4 space-y-8 py-2 animate-[fadeIn_0.5s_ease-out]">
+                {displayedTimeline.map((item, idx) => (
+                  <div key={item.id} className="relative pl-8 md:pl-10 group" style={{ transitionDelay: `${idx * 100}ms` }}>
                     <div className="absolute -left-[9px] top-1.5 w-4 h-4 bg-amber-500 rounded-full border-4 border-[#f9f8f6] group-hover:scale-150 group-hover:bg-red-800 transition-all duration-300"></div>
                     <div className="bg-white p-5 rounded-sm border border-stone-100 shadow-sm group-hover:shadow-md group-hover:border-amber-200 transition-all duration-300 transform group-hover:translate-x-2">
                       <div className="mb-2"><span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold tracking-widest rounded-sm">{item.tahun}</span></div>
@@ -275,6 +305,16 @@ export default function ProfilAsrama() {
                 ))}
               </div>
             )}
+
+            {/* Indikator Halaman Timeline (Dots) */}
+            {dataTimeline.length > timelinePerPage && (
+              <div className="flex justify-center gap-2 mt-8">
+                {Array.from({ length: totalTimelinePages }).map((_, i) => (
+                  <button key={i} onClick={() => setTimelinePage(i)} className={`h-2 rounded-full transition-all duration-300 ${i === timelinePage ? 'w-6 bg-amber-500' : 'w-2 bg-stone-300 hover:bg-stone-400'}`}></button>
+                ))}
+              </div>
+            )}
+
           </div>
         </div>
       </div>
@@ -360,7 +400,7 @@ export default function ProfilAsrama() {
         )}
       </div>
 
-      {/* 6. TITIK TEMU */}
+      {/* 6. TITIK TEMU & MAPS INTERAKTIF */}
       <div id="lokasi" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-10 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-16 lg:gap-8 bg-white p-10 md:p-16 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#e8e4db]">
           <div className="w-full lg:w-1/2 text-center lg:text-left flex flex-col items-center lg:items-start">
@@ -369,10 +409,21 @@ export default function ProfilAsrama() {
             <p className="text-stone-600 text-lg leading-relaxed mb-8 max-w-sm">Jantung pergerakan dan ruang tumbuh bersama perantau Minang di sudut nyaman Kota Pelajar. Kami selalu terbuka untuk silaturahmi.</p>
             <div className="bg-stone-50 border-l-4 border-amber-500 p-5 rounded-r-lg shadow-sm w-full md:w-auto"><p className="text-sm text-stone-700 font-medium leading-relaxed font-sans">Jl. Marga Agung, Karangwaru, Kec. Tegalrejo,<br/>Kota Yogyakarta, Daerah Istimewa Yogyakarta 55241</p></div>
           </div>
+          
+          {/* AREA GOOGLE MAPS YANG BISA DIKLIK */}
           <div className="w-full lg:w-1/2 relative flex justify-center lg:justify-end animate-float">
-            <div className="w-full max-w-md h-[400px] rounded-3xl overflow-hidden shadow-2xl relative z-10 border-4 border-white bg-stone-200">
+            <a href="https://www.google.com/maps/search/?api=1&query=Asrama+Mahasiswa+Merapi+Singgalang+Yogyakarta" target="_blank" rel="noopener noreferrer" className="w-full max-w-md h-[400px] rounded-3xl overflow-hidden shadow-2xl relative z-10 border-4 border-white bg-stone-200 block group cursor-pointer">
+              
+              {/* Overlay Efek Hover untuk UX */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 z-20 transition-colors duration-300 flex items-center justify-center">
+                 <div className="bg-white text-stone-900 px-6 py-3 rounded-full font-bold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-2 shadow-lg transform translate-y-4 group-hover:translate-y-0">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Buka di Google Maps
+                 </div>
+              </div>
+              
               <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3953.111956550505!2d110.36388911477484!3d-7.778007694394982!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7a584a5a543593%3A0xc3baab4d7b7dbd76!2sAsrama%20Mahasiswa%20Merapi%20Singgalang!5e0!3m2!1sen!2sid!4v1689264560000!5m2!1sen!2sid" width="100%" height="100%" style={{ border: 0, pointerEvents: 'none' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Lokasi Asrama Merapi Singgalang"></iframe>
-            </div>
+            </a>
+            
             <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[80%] h-8 bg-black/20 blur-xl rounded-[100%]"></div>
           </div>
         </div>
