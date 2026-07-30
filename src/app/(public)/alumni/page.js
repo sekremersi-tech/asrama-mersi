@@ -40,12 +40,13 @@ export default function JejakPrestasi() {
   const [dataPesanAlumni, setDataPesanAlumni] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // REFS UNTUK AUTO-SCROLL & DRAG ALUMNI
+  // REFS UNTUK AUTO-SCROLL INFINITE LOOP & DRAG
   const scrollRef = useRef(null);
+  const contentRef = useRef(null);
+  const requestRef = useRef(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
   const scrollLeft = useRef(0);
-  const requestRef = useRef(null);
   const [isPaused, setIsPaused] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState(null);
@@ -100,17 +101,23 @@ export default function JejakPrestasi() {
     setSkripsiPage(0);
   }, [searchSkripsi]);
 
-  // LOGIKA ANIMASI AUTO-SCROLL YANG LEBIH MULUS (SMOOTH LOOPING)
+  // LOGIKA ANIMASI AUTO-SCROLL YANG SANGAT MULUS (SMOOTH LOOPING)
   const animateScroll = () => {
-    if (scrollRef.current && !isPaused && !isDragging.current) {
-      scrollRef.current.scrollLeft += 1; // Kecepatan jalan otomatis (1px)
+    if (scrollRef.current && contentRef.current) {
+      if (!isPaused && !isDragging.current) {
+        scrollRef.current.scrollLeft += 1; // Kecepatan geser otomatis
+      }
       
-      // Mengukur lebar 1 set data asli. Karena kita menduplikasi data 3x, maka lebar 1 set adalah 1/3
-      const singleSetWidth = scrollRef.current.scrollWidth / 3;
+      // Hitung lebar persis 1 grup elemen
+      const singleSetWidth = contentRef.current.offsetWidth;
       
-      // Jika sudah melewati 1 set penuh, balik ke awal dengan mulus tanpa terdeteksi mata
+      // Jika scroll melebihi batas 1 grup (bergerak ke kanan), reset secara halus
       if (scrollRef.current.scrollLeft >= singleSetWidth) {
         scrollRef.current.scrollLeft -= singleSetWidth;
+      } 
+      // Jika ditarik mundur hingga mentok ke kiri, lompat halus ke posisi tengah
+      else if (scrollRef.current.scrollLeft <= 0 && isDragging.current) {
+        scrollRef.current.scrollLeft += singleSetWidth;
       }
     }
     requestRef.current = requestAnimationFrame(animateScroll);
@@ -123,22 +130,20 @@ export default function JejakPrestasi() {
     return () => cancelAnimationFrame(requestRef.current);
   }, [dataPesanAlumni, isPaused]);
 
-  // EVENT HANDLER UNTUK DRAG MOUSE (KHUSUS LAPTOP/PC)
+  // EVENT HANDLER UNTUK DRAG (MOUSE DI PC)
   const handleMouseDown = (e) => {
     isDragging.current = true;
     startX.current = e.pageX - scrollRef.current.offsetLeft;
     scrollLeft.current = scrollRef.current.scrollLeft;
   };
-
   const handleMouseLeaveOrUp = () => {
     isDragging.current = false;
   };
-
   const handleMouseMove = (e) => {
     if (!isDragging.current) return;
     e.preventDefault();
     const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX.current) * 1.5; // Angka 1.5 adalah kecepatan geser mouse
+    const walk = (x - startX.current) * 1.5; 
     scrollRef.current.scrollLeft = scrollLeft.current - walk;
   };
 
@@ -245,8 +250,22 @@ export default function JejakPrestasi() {
   const totalSkripsiPages = Math.ceil(filteredSkripsi.length / skripsiPerPage);
   const currentDataSkripsi = filteredSkripsi.slice(skripsiPage * skripsiPerPage, (skripsiPage + 1) * skripsiPerPage);
 
-  // MENGGANDAKAN DATA PESAN (3X) AGAR SCROLL LOOPING BERJALAN MULUS TANPA PUTUS
-  const duplicatedPesanAlumni = [...dataPesanAlumni, ...dataPesanAlumni, ...dataPesanAlumni];
+
+  // KOMPONEN RENDER ITEM KESAN ALUMNI
+  const renderPesanAlumni = (item, idx, groupName) => (
+    <div key={`${groupName}-${item.id}-${idx}`} className="w-[300px] md:w-[380px] shrink-0 flex">
+      <div className="bg-white p-6 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col justify-between h-full min-h-[220px] w-full cursor-grab active:cursor-grabbing">
+        <p className="text-stone-600 italic font-lora text-sm md:text-base mb-6 leading-relaxed flex-grow whitespace-pre-wrap select-none pointer-events-none">"{item.pesan}"</p>
+        <div className="flex items-center gap-3 pt-4 border-t border-stone-100 select-none pointer-events-none">
+          <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm select-none" draggable="false" alt={item.nama} />
+          <div className="flex flex-col">
+            <span className="font-bold text-stone-900 text-sm font-sans line-clamp-1 select-none">{item.nama}</span>
+            <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase font-sans mt-0.5 select-none">Lulus {item.tahunLulus}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora relative overflow-x-hidden">
@@ -377,7 +396,7 @@ export default function JejakPrestasi() {
         </div>
       </div>
 
-      {/* 1.5 SUARA ALUMNI (DRAG & AUTO-SCROLL) */}
+      {/* 1.5 SUARA ALUMNI (AUTO SCROLL INFINITE DRAGABLE) */}
       <div className="w-full mt-20 mb-20 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 border-b border-[#e8e4db] pb-4">
           <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-2">Suara Alumni</h3>
@@ -392,41 +411,30 @@ export default function JejakPrestasi() {
           </div>
         ) : (
           <div 
-            className="w-full overflow-hidden py-4 px-2"
+            className="w-full overflow-hidden py-4 px-4"
             onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => {
-              setIsPaused(false);
-              handleMouseLeaveOrUp();
-            }}
+            onMouseLeave={() => { setIsPaused(false); handleMouseLeaveOrUp(); }}
           >
             {/* CONTAINER DRAGABLE */}
             <div 
               ref={scrollRef}
-              className="flex gap-6 overflow-x-auto hide-scrollbar cursor-grab active:cursor-grabbing w-full pb-4"
+              className="flex overflow-x-auto hide-scrollbar w-full pb-4"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseLeaveOrUp}
               onTouchStart={() => setIsPaused(true)}
               onTouchEnd={() => setIsPaused(false)}
-              style={{ 
-                paddingLeft: 'calc(50vw - 150px)', 
-                paddingRight: 'calc(50vw - 150px)',
-                WebkitOverflowScrolling: 'touch' 
-              }} 
+              style={{ WebkitOverflowScrolling: 'touch' }} 
             >
-              {duplicatedPesanAlumni.map((item, idx) => (
-                <div key={`${item.id}-${idx}`} className="w-[300px] md:w-[380px] shrink-0 pointer-events-none select-none">
-                  {/* KOTAK PESAN */}
-                  <div className="bg-white p-6 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col justify-between h-full min-h-[220px]">
-                    <p className="text-stone-600 italic font-lora text-sm md:text-base mb-6 leading-relaxed flex-grow whitespace-pre-wrap select-none pointer-events-none">"{item.pesan}"</p>
-                    <div className="flex items-center gap-3 pt-4 border-t border-stone-100 select-none pointer-events-none">
-                      <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm select-none" draggable="false" alt={item.nama} />
-                      <div className="flex flex-col">
-                        <span className="font-bold text-stone-900 text-sm font-sans line-clamp-1 select-none">{item.nama}</span>
-                        <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase font-sans mt-0.5 select-none">Lulus {item.tahunLulus}</span>
-                      </div>
-                    </div>
-                  </div>
+              {/* SET 1 (Sebagai Pengukur Utama) */}
+              <div ref={contentRef} className="flex gap-6 pr-6 shrink-0 items-stretch">
+                {dataPesanAlumni.map((item, idx) => renderPesanAlumni(item, idx, 'set1'))}
+              </div>
+
+              {/* DUPLIKASI SET UNTUK LOOPING MULUS (Membuat 3 Set Tambahan) */}
+              {[2, 3, 4].map(setNum => (
+                <div key={`set-${setNum}`} className="flex gap-6 pr-6 shrink-0 items-stretch">
+                  {dataPesanAlumni.map((item, idx) => renderPesanAlumni(item, idx, `set${setNum}`))}
                 </div>
               ))}
             </div>
