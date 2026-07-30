@@ -46,7 +46,7 @@ export default function JejakPrestasi() {
   const startX = useRef(0);
   const scrollLeft = useRef(0);
   const requestRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalImageIdx, setModalImageIdx] = useState(0);
@@ -100,14 +100,17 @@ export default function JejakPrestasi() {
     setSkripsiPage(0);
   }, [searchSkripsi]);
 
-  // LOGIKA ANIMASI AUTO-SCROLL (BERHENTI SAAT HOVER ATAU DRAG)
+  // LOGIKA ANIMASI AUTO-SCROLL YANG LEBIH MULUS (SMOOTH LOOPING)
   const animateScroll = () => {
-    if (scrollRef.current && !isHovered && !isDragging.current) {
-      scrollRef.current.scrollLeft += 1; // Kecepatan scroll (1px per frame)
+    if (scrollRef.current && !isPaused && !isDragging.current) {
+      scrollRef.current.scrollLeft += 1; // Kecepatan jalan otomatis (1px)
       
-      // Jika sudah mencapai ujung, reset ke awal untuk efek infinite loop
-      if (scrollRef.current.scrollLeft >= (scrollRef.current.scrollWidth / 2)) {
-        scrollRef.current.scrollLeft = 0;
+      // Mengukur lebar 1 set data asli. Karena kita menduplikasi data 3x, maka lebar 1 set adalah 1/3
+      const singleSetWidth = scrollRef.current.scrollWidth / 3;
+      
+      // Jika sudah melewati 1 set penuh, balik ke awal dengan mulus tanpa terdeteksi mata
+      if (scrollRef.current.scrollLeft >= singleSetWidth) {
+        scrollRef.current.scrollLeft -= singleSetWidth;
       }
     }
     requestRef.current = requestAnimationFrame(animateScroll);
@@ -118,17 +121,12 @@ export default function JejakPrestasi() {
       requestRef.current = requestAnimationFrame(animateScroll);
     }
     return () => cancelAnimationFrame(requestRef.current);
-  }, [dataPesanAlumni, isHovered]);
+  }, [dataPesanAlumni, isPaused]);
 
-  // EVENT HANDLER UNTUK DRAG (MOUSE & TOUCH)
+  // EVENT HANDLER UNTUK DRAG MOUSE (KHUSUS LAPTOP/PC)
   const handleMouseDown = (e) => {
     isDragging.current = true;
     startX.current = e.pageX - scrollRef.current.offsetLeft;
-    scrollLeft.current = scrollRef.current.scrollLeft;
-  };
-  const handleTouchStart = (e) => {
-    isDragging.current = true;
-    startX.current = e.touches[0].pageX - scrollRef.current.offsetLeft;
     scrollLeft.current = scrollRef.current.scrollLeft;
   };
 
@@ -140,13 +138,7 @@ export default function JejakPrestasi() {
     if (!isDragging.current) return;
     e.preventDefault();
     const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX.current) * 2; // Angka 2 adalah kecepatan drag
-    scrollRef.current.scrollLeft = scrollLeft.current - walk;
-  };
-  const handleTouchMove = (e) => {
-    if (!isDragging.current) return;
-    const x = e.touches[0].pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX.current) * 2;
+    const walk = (x - startX.current) * 1.5; // Angka 1.5 adalah kecepatan geser mouse
     scrollRef.current.scrollLeft = scrollLeft.current - walk;
   };
 
@@ -253,7 +245,7 @@ export default function JejakPrestasi() {
   const totalSkripsiPages = Math.ceil(filteredSkripsi.length / skripsiPerPage);
   const currentDataSkripsi = filteredSkripsi.slice(skripsiPage * skripsiPerPage, (skripsiPage + 1) * skripsiPerPage);
 
-  // MENGGANDAKAN DATA PESAN AGAR SCROLL LOOPING BERJALAN MULUS
+  // MENGGANDAKAN DATA PESAN (3X) AGAR SCROLL LOOPING BERJALAN MULUS TANPA PUTUS
   const duplicatedPesanAlumni = [...dataPesanAlumni, ...dataPesanAlumni, ...dataPesanAlumni];
 
   return (
@@ -389,7 +381,7 @@ export default function JejakPrestasi() {
       <div className="w-full mt-20 mb-20 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 border-b border-[#e8e4db] pb-4">
           <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-2">Suara Alumni</h3>
-          <p className="text-stone-500 text-sm">Kesan, pesan, dan inspirasi dari purna asrama. Geser untuk melihat selengkapnya.</p>
+          <p className="text-stone-500 text-sm">Kesan, pesan, dan inspirasi dari purna asrama. Geser untuk membaca lebih lanjut.</p>
         </div>
 
         {loading ? (
@@ -401,13 +393,11 @@ export default function JejakPrestasi() {
         ) : (
           <div 
             className="w-full overflow-hidden py-4 px-2"
-            onMouseEnter={() => setIsHovered(true)}
+            onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => {
-              setIsHovered(false);
+              setIsPaused(false);
               handleMouseLeaveOrUp();
             }}
-            onMouseUp={handleMouseLeaveOrUp}
-            onTouchEnd={handleMouseLeaveOrUp}
           >
             {/* CONTAINER DRAGABLE */}
             <div 
@@ -415,9 +405,14 @@ export default function JejakPrestasi() {
               className="flex gap-6 overflow-x-auto hide-scrollbar cursor-grab active:cursor-grabbing w-full pb-4"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              style={{ paddingLeft: 'calc(50vw - 150px)', paddingRight: 'calc(50vw - 150px)' }} // Padding agar item bisa ada di tengah
+              onMouseUp={handleMouseLeaveOrUp}
+              onTouchStart={() => setIsPaused(true)}
+              onTouchEnd={() => setIsPaused(false)}
+              style={{ 
+                paddingLeft: 'calc(50vw - 150px)', 
+                paddingRight: 'calc(50vw - 150px)',
+                WebkitOverflowScrolling: 'touch' 
+              }} 
             >
               {duplicatedPesanAlumni.map((item, idx) => (
                 <div key={`${item.id}-${idx}`} className="w-[300px] md:w-[380px] shrink-0 pointer-events-none select-none">
