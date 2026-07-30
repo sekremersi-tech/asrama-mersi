@@ -6,6 +6,7 @@ import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, where, updateDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
+// PENGATURAN HAK AKSES TAB UNTUK MASING-MASING DIVISI
 const TAB_ROLES = {
   sekre: ["tampilan", "status", "kepengurusan", "timeline", "fotoprofil", "fasilitas", "penyewaan", "galeri", "kehidupan", "skripsi", "suara_alumni", "log"],
   humas: ["status", "fotoprofil", "galeri", "kehidupan", "suara_alumni", "log"],
@@ -68,7 +69,7 @@ export default function AdminDashboard() {
   const [dataGaleri, setDataGaleri] = useState([]);
   const [dataKehidupan, setDataKehidupan] = useState([]);
   const [dataSkripsi, setDataSkripsi] = useState([]);
-  const [dataPesanAlumni, setDataPesanAlumni] = useState([]); // STATE BARU SUARA ALUMNI
+  const [dataPesanAlumni, setDataPesanAlumni] = useState([]); // STATE SUARA ALUMNI
   
   // STATE LOG DATA
   const [dataLogUnduh, setDataLogUnduh] = useState([]);
@@ -80,7 +81,6 @@ export default function AdminDashboard() {
   const [judulSejarah, setJudulSejarah] = useState(""); const [isiSejarah, setIsiSejarah] = useState(""); const [editSejarahId, setEditSejarahId] = useState(null); 
   const [namaDivisiBaru, setNamaDivisiBaru] = useState("");
   const [formAnggota, setFormAnggota] = useState({ divisiId: "", nama: "", peran: "Anggota" }); const [fileAnggota, setFileAnggota] = useState(null); const [fileAnggota2, setFileAnggota2] = useState(null); const [editAnggotaId, setEditAnggotaId] = useState(null);
-  
   const [konteksFoto, setKonteksFoto] = useState(""); const [filesFotoProfil, setFilesFotoProfil] = useState([]); const [editFotoProfId, setEditFotoProfId] = useState(null);
   const [tahunTimeline, setTahunTimeline] = useState(""); const [judulTimeline, setJudulTimeline] = useState(""); const [deskripsiTimeline, setDeskripsiTimeline] = useState(""); const [editTimelineId, setEditTimelineId] = useState(null);
   const [namaFasilitas, setNamaFasilitas] = useState(""); const [deskripsiFasilitas, setDeskripsiFasilitas] = useState(""); const [filesFasilitas, setFilesFasilitas] = useState([]); const [editFasilitId, setEditFasilitId] = useState(null);
@@ -89,13 +89,13 @@ export default function AdminDashboard() {
   const [judulKonten, setJudulKonten] = useState(""); const [kategori, setKategori] = useState("PRESTASI"); const [customKategori, setCustomKategori] = useState(""); const [deskripsi, setDeskripsi] = useState(""); const [filesGambar, setFilesGambar] = useState([]); const [editKehidupanId, setEditKehidupanId] = useState(null);
   const [nama, setNama] = useState(""); const [jurusan, setJurusan] = useState(""); const [judulSkripsi, setJudulSkripsi] = useState(""); const [tahun, setTahun] = useState(""); const [filePDF, setFilePDF] = useState(null); const [editSkripsiId, setEditSkripsiId] = useState(null);
   
-  // STATE BARU FORM SUARA ALUMNI
+  // STATE FORM SUARA ALUMNI
   const [namaAlumni, setNamaAlumni] = useState(""); const [tahunLulus, setTahunLulus] = useState(""); const [pesanAlumni, setPesanAlumni] = useState(""); const [fileFotoAlumni, setFileFotoAlumni] = useState(null); const [editPesanId, setEditPesanId] = useState(null);
 
   // STATE BALASAN KOMENTAR
   const [replyKomenId, setReplyKomenId] = useState(null); const [replyText, setReplyText] = useState("");
 
-  // PAGINATION STATES (Menyimpan nomor halaman saat ini untuk setiap tab)
+  // PAGINATION STATES 
   const [pageSejarah, setPageSejarah] = useState(1);
   const [pageFotoProf, setPageFotoProf] = useState(1);
   const [pageTimeline, setPageTimeline] = useState(1);
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
   const [pageGaleri, setPageGaleri] = useState(1);
   const [pageKehidupan, setPageKehidupan] = useState(1);
   const [pageSkripsi, setPageSkripsi] = useState(1);
-  const [pagePesanAlumni, setPagePesanAlumni] = useState(1); // STATE BARU PAGINATION ALUMNI
+  const [pagePesanAlumni, setPagePesanAlumni] = useState(1); 
   const [pageDaftarAsrama, setPageDaftarAsrama] = useState(1);
   const [pageDaftarLomba, setPageDaftarLomba] = useState(1);
   const [pageKomentar, setPageKomentar] = useState(1);
