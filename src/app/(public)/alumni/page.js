@@ -36,11 +36,8 @@ export default function JejakPrestasi() {
   const [dataPrestasi, setDataPrestasi] = useState([]);
   const [dataSkripsi, setDataSkripsi] = useState([]);
   
-  // STATE BARU UNTUK PESAN ALUMNI
+  // STATE PESAN ALUMNI
   const [dataPesanAlumni, setDataPesanAlumni] = useState([]);
-  const [pesanPage, setPesanPage] = useState(0);
-  const pesanPerPage = 4;
-  
   const [loading, setLoading] = useState(true);
 
   const [selectedItem, setSelectedItem] = useState(null);
@@ -94,16 +91,6 @@ export default function JejakPrestasi() {
   useEffect(() => {
     setSkripsiPage(0);
   }, [searchSkripsi]);
-
-  // LOGIKA AUTO-SLIDE UNTUK PESAN ALUMNI (PARALEL)
-  const totalPesanPages = Math.ceil(dataPesanAlumni.length / pesanPerPage);
-  useEffect(() => {
-    if (totalPesanPages <= 1) return;
-    const timer = setInterval(() => {
-      setPesanPage(prev => (prev + 1) % totalPesanPages);
-    }, 6000); // Bergerak otomatis setiap 6 detik
-    return () => clearInterval(timer);
-  }, [totalPesanPages]);
 
   const changePage = (newIndex, direction) => {
     if (newIndex >= 0 && newIndex < Math.ceil(dataPrestasi.length / itemsPerPage)) {
@@ -207,6 +194,9 @@ export default function JejakPrestasi() {
   const totalSkripsiPages = Math.ceil(filteredSkripsi.length / skripsiPerPage);
   const currentDataSkripsi = filteredSkripsi.slice(skripsiPage * skripsiPerPage, (skripsiPage + 1) * skripsiPerPage);
 
+  // MENGGANDAKAN DATA PESAN AGAR ANIMASI LOOPING TIDAK TERPUTUS
+  const duplicatedPesanAlumni = Array(10).fill(dataPesanAlumni).flat();
+
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora relative overflow-x-hidden">
       <style jsx global>{`
@@ -218,6 +208,16 @@ export default function JejakPrestasi() {
         @keyframes slideNextIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slidePrevOut { to { transform: translateX(50px); opacity: 0; } }
         @keyframes slidePrevIn { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        /* ANIMASI KHUSUS UNTUK MARQUEE (LOOPING) SUARA ALUMNI */
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 60s linear infinite;
+          width: max-content;
+        }
       `}</style>
 
       {/* MODAL POP-UP PRESTASI */}
@@ -327,57 +327,38 @@ export default function JejakPrestasi() {
         </div>
       </div>
 
-      {/* 1.5 SUARA ALUMNI / KESAN PESAN (BARU) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-20 mb-20 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-8 border-b border-[#e8e4db] pb-4">
-          <div>
-            <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-2">Suara Alumni</h3>
-            <p className="text-stone-500 text-sm">Kesan, pesan, dan inspirasi dari purna asrama.</p>
-          </div>
-          
-          {/* Tombol Geser Pesan */}
-          {totalPesanPages > 1 && (
-            <div className="hidden md:flex items-center gap-2 mt-4 md:mt-0">
-              <button onClick={() => setPesanPage(p => Math.max(0, p - 1))} disabled={pesanPage === 0} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              </button>
-              <button onClick={() => setPesanPage(p => Math.min(totalPesanPages - 1, p + 1))} disabled={pesanPage >= totalPesanPages - 1} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              </button>
-            </div>
-          )}
+      {/* 1.5 SUARA ALUMNI (CONTINUOUS MARQUEE) */}
+      <div className="w-full mt-20 mb-20 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 border-b border-[#e8e4db] pb-4">
+          <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-2">Suara Alumni</h3>
+          <p className="text-stone-500 text-sm">Kesan, pesan, dan inspirasi dari purna asrama.</p>
         </div>
 
         {loading ? (
           <p className="text-center text-stone-500">Memuat pesan alumni...</p>
         ) : dataPesanAlumni.length === 0 ? (
-          <p className="text-center text-stone-500 bg-white p-8 border border-[#e8e4db] rounded-sm shadow-sm">Belum ada pesan alumni yang ditambahkan.</p>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p className="text-center text-stone-500 bg-white p-8 border border-[#e8e4db] rounded-sm shadow-sm">Belum ada pesan alumni yang ditambahkan.</p>
+          </div>
         ) : (
-          <>
-            <div key={pesanPage} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-[fadeIn_0.5s_ease-out]">
-              {dataPesanAlumni.slice(pesanPage * pesanPerPage, (pesanPage + 1) * pesanPerPage).map((item, idx) => (
-                <div key={item.id} className="bg-white p-6 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300" style={{ transitionDelay: `${idx * 100}ms` }}>
-                  <p className="text-stone-600 italic font-lora text-sm mb-6 leading-relaxed flex-grow">"{item.pesan}"</p>
-                  <div className="flex items-center gap-3 pt-4 border-t border-stone-100">
-                    <img src={item.foto || `https://ui-avatars.com/api/?name=${item.nama}&background=991b1b&color=fff`} className="w-10 h-10 rounded-full object-cover border border-stone-200 shrink-0" alt={item.nama} />
-                    <div className="flex flex-col">
-                      <span className="font-bold text-stone-900 text-sm font-sans line-clamp-1">{item.nama}</span>
-                      <span className="text-[10px] font-bold text-amber-600 tracking-wider uppercase font-sans">Lulus {item.tahunLulus}</span>
+          <div className="overflow-hidden flex group -mx-3 mt-8">
+            <div className="flex animate-marquee group-hover:[animation-play-state:paused]">
+              {duplicatedPesanAlumni.map((item, idx) => (
+                <div key={`${item.id}-${idx}`} className="w-[300px] md:w-[380px] shrink-0 px-3 flex">
+                  <div className="bg-white p-6 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 w-full cursor-default">
+                    <p className="text-stone-600 italic font-lora text-sm md:text-base mb-6 leading-relaxed flex-grow whitespace-pre-wrap">"{item.pesan}"</p>
+                    <div className="flex items-center gap-3 pt-4 border-t border-stone-100">
+                      <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" alt={item.nama} />
+                      <div className="flex flex-col">
+                        <span className="font-bold text-stone-900 text-sm font-sans line-clamp-1">{item.nama}</span>
+                        <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase font-sans mt-0.5">Lulus {item.tahunLulus}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-
-            {/* Indikator Titik Untuk Mobile */}
-            {totalPesanPages > 1 && (
-              <div className="flex md:hidden justify-center gap-2 mt-8">
-                {Array.from({ length: totalPesanPages }).map((_, i) => (
-                  <button key={i} onClick={() => setPesanPage(i)} className={`h-2 rounded-full transition-all duration-300 ${i === pesanPage ? 'w-6 bg-amber-500' : 'w-2 bg-stone-300 hover:bg-stone-400'}`}></button>
-                ))}
-              </div>
-            )}
-          </>
+          </div>
         )}
       </div>
 
