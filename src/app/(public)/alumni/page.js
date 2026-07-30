@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, addDoc, serverTimestamp, where, doc, getDoc } from "firebase/firestore";
 
@@ -39,6 +39,12 @@ export default function JejakPrestasi() {
   // STATE PESAN ALUMNI
   const [dataPesanAlumni, setDataPesanAlumni] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // STATE DRAG-TO-SCROLL ALUMNI
+  const scrollRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalImageIdx, setModalImageIdx] = useState(0);
@@ -79,7 +85,6 @@ export default function JejakPrestasi() {
         const skrSnap = await getDocs(query(collection(db, "skripsi"), orderBy("tahun", "desc")));
         setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         
-        // MENGAMBIL DATA PESAN ALUMNI
         const pesanSnap = await getDocs(query(collection(db, "pesan_alumni"), orderBy("createdAt", "desc")));
         setDataPesanAlumni(pesanSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
@@ -91,6 +96,34 @@ export default function JejakPrestasi() {
   useEffect(() => {
     setSkripsiPage(0);
   }, [searchSkripsi]);
+
+  // LOGIKA DRAG-TO-SCROLL (MOUSE & TOUCH)
+  const onMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  };
+  const onTouchStart = (e) => {
+    setIsDragging(true);
+    setStartX(e.touches[0].pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  };
+  const onMouseLeave = () => { setIsDragging(false); };
+  const onMouseUp = () => { setIsDragging(false); };
+  const onTouchEnd = () => { setIsDragging(false); };
+  const onMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // Kecepatan scroll (dikali 2 agar lebih responsif)
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
+  const onTouchMove = (e) => {
+    if (!isDragging) return;
+    const x = e.touches[0].pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 2; 
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
 
   const changePage = (newIndex, direction) => {
     if (newIndex >= 0 && newIndex < Math.ceil(dataPrestasi.length / itemsPerPage)) {
@@ -194,9 +227,6 @@ export default function JejakPrestasi() {
   const totalSkripsiPages = Math.ceil(filteredSkripsi.length / skripsiPerPage);
   const currentDataSkripsi = filteredSkripsi.slice(skripsiPage * skripsiPerPage, (skripsiPage + 1) * skripsiPerPage);
 
-  // MENGGANDAKAN DATA PESAN AGAR ANIMASI LOOPING TIDAK TERPUTUS
-  const duplicatedPesanAlumni = Array(10).fill(dataPesanAlumni).flat();
-
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora relative overflow-x-hidden">
       <style jsx global>{`
@@ -209,14 +239,13 @@ export default function JejakPrestasi() {
         @keyframes slidePrevOut { to { transform: translateX(50px); opacity: 0; } }
         @keyframes slidePrevIn { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         
-        /* ANIMASI KHUSUS UNTUK MARQUEE (LOOPING) SUARA ALUMNI */
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+        /* HIDE SCROLLBAR UNTUK DRAG AREA TAPI TETAP BISA DI-SCROLL */
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
         }
-        .animate-marquee {
-          animation: marquee 60s linear infinite;
-          width: max-content;
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
 
@@ -327,11 +356,19 @@ export default function JejakPrestasi() {
         </div>
       </div>
 
-      {/* 1.5 SUARA ALUMNI (CONTINUOUS MARQUEE) */}
-      <div className="w-full mt-20 mb-20 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 border-b border-[#e8e4db] pb-4">
-          <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-2">Suara Alumni</h3>
-          <p className="text-stone-500 text-sm">Kesan, pesan, dan inspirasi dari purna asrama.</p>
+      {/* 1.5 SUARA ALUMNI (SLIDER DRAG-TO-SCROLL) */}
+      <div className="w-full mt-24 mb-20 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 flex justify-between items-end border-b border-[#e8e4db] pb-4">
+          <div>
+            <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-2">Suara Alumni</h3>
+            <p className="text-stone-500 text-sm">Kesan, pesan, dan inspirasi dari purna asrama.</p>
+          </div>
+          
+          <div className="hidden md:flex items-center gap-2 mb-2 text-stone-400">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m9 18 6-6-6-6"/></svg>
+            <span className="text-xs uppercase tracking-widest font-sans font-bold">Geser</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m15 18-6-6 6-6"/></svg>
+          </div>
         </div>
 
         {loading ? (
@@ -341,22 +378,42 @@ export default function JejakPrestasi() {
             <p className="text-center text-stone-500 bg-white p-8 border border-[#e8e4db] rounded-sm shadow-sm">Belum ada pesan alumni yang ditambahkan.</p>
           </div>
         ) : (
-          <div className="overflow-hidden flex group -mx-3 mt-8">
-            <div className="flex animate-marquee group-hover:[animation-play-state:paused]">
-              {duplicatedPesanAlumni.map((item, idx) => (
-                <div key={`${item.id}-${idx}`} className="w-[300px] md:w-[380px] shrink-0 px-3 flex">
-                  <div className="bg-white p-6 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 w-full cursor-default">
-                    <p className="text-stone-600 italic font-lora text-sm md:text-base mb-6 leading-relaxed flex-grow whitespace-pre-wrap">"{item.pesan}"</p>
-                    <div className="flex items-center gap-3 pt-4 border-t border-stone-100">
-                      <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" alt={item.nama} />
+          <div 
+            className="w-full pl-4 sm:pl-6 lg:pl-8 pr-4"
+          >
+            <div 
+              ref={scrollRef}
+              className={`flex gap-6 overflow-x-auto hide-scrollbar pb-8 pt-4 w-full cursor-grab active:cursor-grabbing snap-x snap-mandatory ${isDragging ? 'scroll-smooth-none' : 'scroll-smooth'}`}
+              onMouseDown={onMouseDown}
+              onMouseLeave={onMouseLeave}
+              onMouseUp={onMouseUp}
+              onMouseMove={onMouseMove}
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
+              onTouchMove={onTouchMove}
+            >
+              {dataPesanAlumni.map((item, idx) => (
+                <div 
+                  key={item.id} 
+                  className="w-[300px] md:w-[350px] shrink-0 flex snap-center"
+                >
+                  <div className="bg-white p-6 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 w-full select-none">
+                    <p className="text-stone-600 italic font-lora text-sm md:text-base mb-6 leading-relaxed flex-grow whitespace-pre-wrap pointer-events-none">"{item.pesan}"</p>
+                    <div className="flex items-center gap-3 pt-4 border-t border-stone-100 pointer-events-none">
+                      <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" alt={item.nama} draggable="false" />
                       <div className="flex flex-col">
                         <span className="font-bold text-stone-900 text-sm font-sans line-clamp-1">{item.nama}</span>
-                        <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase font-sans mt-0.5"> {item.tahunLulus}</span>
+                        <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase font-sans mt-0.5">Lulus {item.tahunLulus}</span>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+            
+            {/* Indikator Swipe (Mobile) */}
+            <div className="flex md:hidden justify-center items-center gap-2 mt-2 text-stone-400">
+              <span className="text-[10px] uppercase tracking-widest font-sans font-bold">Geser untuk melihat semua</span>
             </div>
           </div>
         )}
