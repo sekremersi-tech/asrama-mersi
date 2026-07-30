@@ -206,7 +206,7 @@ export default function Beranda() {
         </div>
       )}
 
-      <HeroSlider images={bgHero} titleLine1="Ranah Minang di" titleLine2="Serambi Kota Pelajar" subtitle="Etalase prestasi, repositori intelektual, dan ruang tumbuh bersama merawat tradisi." />
+      <HeroSlider images={bgHero} titleLine1="Ranah Minang di" titleLine2="Serambi Kota Pelajar" subtitle="Asrama Daerah Provinsi Sumatera Barat." />
 
       {/* SEKSI LAYANAN SEWA */}
       {layananSewa.length > 0 && (
