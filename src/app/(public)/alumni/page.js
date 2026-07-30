@@ -351,7 +351,7 @@ export default function JejakPrestasi() {
                       <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" alt={item.nama} />
                       <div className="flex flex-col">
                         <span className="font-bold text-stone-900 text-sm font-sans line-clamp-1">{item.nama}</span>
-                        <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase font-sans mt-0.5">Lulus {item.tahunLulus}</span>
+                        <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase font-sans mt-0.5"> {item.tahunLulus}</span>
                       </div>
                     </div>
                   </div>
