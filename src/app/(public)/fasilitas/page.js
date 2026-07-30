@@ -181,8 +181,21 @@ export default function FasilitasAsrama() {
             <div className="w-full md:w-[400px] lg:w-[500px] md:absolute md:right-0 md:top-0 md:bottom-0 bg-[#fcfbf9] overflow-y-auto border-l border-stone-200">
               <div className="p-6 md:p-10 flex flex-col h-max min-h-full">
                 <h2 className="text-2xl md:text-3xl font-bold font-playfair text-[#1c1917] mb-2 leading-snug">Pendaftaran Warga</h2>
+                
+                {/* PEMBARUAN TEKS SYARAT */}
                 <div className="mb-6 pb-4 border-b border-[#e8e4db]">
-                  <p className="text-[#44403c] text-sm mb-4">Pastikan Anda membaca syarat dan ketentuan pada brosur. Silakan unduh templat formulir di bawah ini, isi dengan lengkap, lalu unggah kembali beserta dokumen persyaratan lainnya.</p>
+                  <div className="text-[#44403c] text-sm mb-4 space-y-1.5">
+                    <p className="font-bold text-stone-900">SYARAT:</p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Beragama Islam</li>
+                      <li>Bergaris keturunan Minangkabau atau berasal dari Sumatera Barat yang dibuktikan dengan KTP</li>
+                      <li>Menempuh pendidikan DI, DII, DIII, DIV, S1</li>
+                      <li>Menyerahkan Biodata Calon Warga</li>
+                      <li>Menyerahkan pas photo 3x4 dalam format file foto</li>
+                    </ul>
+                    <p className="pt-2">Silakan unduh templat formulir di bawah ini, isi dengan lengkap, lalu unggah kembali beserta dokumen persyaratan lainnya.</p>
+                  </div>
+                  
                   <a href={linkFormulir || "#"} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center justify-center gap-2 w-full py-2.5 rounded text-sm font-bold uppercase tracking-widest font-sans transition-all ${linkFormulir ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300' : 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200'}`}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     {linkFormulir ? "1. Unduh Templat Formulir" : "Formulir Belum Tersedia"}
@@ -298,6 +311,7 @@ export default function FasilitasAsrama() {
                                   <p className="text-sm text-[#44403c]">{k.balasanAdmin}</p>
                                 </div>
                               )}
+
                             </div>
                           ))
                         )}
