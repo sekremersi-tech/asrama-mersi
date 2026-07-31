@@ -155,14 +155,23 @@ export default function Kehidupan() {
   };
 
   const handleLikeKomentar = async (komenId, currentLikes) => {
-    const liked = localStorage.getItem(`liked_${komenId}`);
-    if (liked) return;
+    const isLiked = localStorage.getItem(`liked_${komenId}`) === 'true';
+    let newLikes = currentLikes || 0;
+
     try {
-      const newLikes = (currentLikes || 0) + 1;
-      await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: newLikes });
-      localStorage.setItem(`liked_${komenId}`, 'true');
+      if (isLiked) {
+        newLikes = Math.max(0, newLikes - 1);
+        await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: newLikes });
+        localStorage.removeItem(`liked_${komenId}`); 
+      } else {
+        newLikes = newLikes + 1;
+        await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: newLikes });
+        localStorage.setItem(`liked_${komenId}`, 'true'); 
+      }
       setKomentarList(prev => prev.map(k => k.id === komenId ? { ...k, likes: newLikes } : k));
-    } catch (e) { console.error("Gagal menyukai komentar:", e); }
+    } catch (e) { 
+      console.error("Gagal mengubah status like:", e); 
+    }
   };
 
   const totalNewsPages = Math.ceil(dataBerita.length / newsPerPage);
@@ -244,8 +253,20 @@ export default function Kehidupan() {
                                   <p className="text-sm text-[#44403c] mb-3">{k.isi}</p>
 
                                   <div className="flex items-center gap-4 mb-1">
-                                    <button onClick={() => handleLikeKomentar(k.id, k.likes)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? 'text-red-600' : 'text-[#a8a29e] hover:text-red-600'}`}>
-                                      <svg width="14" height="14" viewBox="0 0 24 24" fill={typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                    <button 
+                                      onClick={() => handleLikeKomentar(k.id, k.likes)} 
+                                      className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) === 'true' ? 'text-red-600' : 'text-[#a8a29e] hover:text-red-600'}`}
+                                    >
+                                      <svg 
+                                        width="14" 
+                                        height="14" 
+                                        viewBox="0 0 24 24" 
+                                        fill={typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) === 'true' ? "currentColor" : "none"} 
+                                        stroke="currentColor" 
+                                        strokeWidth="2"
+                                      >
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                      </svg>
                                       {k.likes || 0} Suka
                                     </button>
                                   </div>
