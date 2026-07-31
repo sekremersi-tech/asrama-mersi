@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, limit, doc, getDoc, addDoc, serverTimestamp, where } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, doc, getDoc, addDoc, updateDoc, increment, serverTimestamp, where } from "firebase/firestore";
 
 const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
@@ -63,7 +63,6 @@ export default function Beranda() {
       const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
       if (docKontak.exists()) setKontak(docKontak.data());
 
-      // HANYA MENGAMBIL 2 BERITA TERBARU UNTUK BERANDA
       const qKabar = query(collection(db, "kehidupan"), orderBy("createdAt", "desc"), limit(2)); 
       const snapKabar = await getDocs(qKabar);
       setKabarTerbaru(snapKabar.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -115,11 +114,21 @@ export default function Beranda() {
     setIsSubmittingKomen(true);
     try {
       const targetId = String(selectedItem.id);
-      const newKomen = { postId: targetId, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), waktu: serverTimestamp() };
+      const newKomen = { postId: targetId, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), likes: 0, waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
       setKomentarList([...komentarList, {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }]);
       setFormKomen({nama: "", isi: ""});
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
+  };
+
+  const handleLikeKomentar = async (komentarId) => {
+    try {
+      const commentRef = doc(db, "komentar_publikasi", komentarId);
+      await updateDoc(commentRef, { likes: increment(1) });
+      setKomentarList(prev => prev.map(k => k.id === komentarId ? { ...k, likes: (k.likes || 0) + 1 } : k));
+    } catch (e) {
+      console.error("Gagal menyukai komentar", e);
+    }
   };
 
   const formatWhatsAppLink = (nomor, namaSewa) => {
@@ -189,7 +198,11 @@ export default function Beranda() {
                       komentarList.map(k => (
                         <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
                           <div className="flex justify-between items-center mb-1"><span className="font-bold text-sm text-stone-900">{k.nama}</span><span className="text-[10px] text-stone-400">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span></div>
-                          <p className="text-sm text-stone-600">{k.isi}</p>
+                          <p className="text-sm text-stone-600 mb-2">{k.isi}</p>
+                          <button onClick={() => handleLikeKomentar(k.id)} className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 transition-colors bg-red-50/50 hover:bg-red-50 px-2 py-1 rounded w-fit mt-1">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                            <span className="font-bold">{k.likes || 0} Suka</span>
+                          </button>
                         </div>
                       ))
                     )}
@@ -237,7 +250,7 @@ export default function Beranda() {
         </section>
       )}
 
-      {/* SEKSI KABAR TERBARU (HANYA TAMPIL 2 ITEM, TANPA SLIDER) */}
+      {/* SEKSI KABAR TERBARU */}
       <section className="max-w-7xl mx-auto px-4 py-12 md:py-24 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="flex flex-col md:flex-row justify-between items-end mb-10 border-b border-[#e8e4db] pb-4">
           <div className="flex items-center gap-4">
