@@ -155,22 +155,27 @@ export default function Kehidupan() {
   };
 
   const handleLikeKomentar = async (komenId, currentLikes) => {
-    const isLiked = localStorage.getItem(`liked_${komenId}`) === 'true';
+    // Pastikan pengecekan window untuk menghindari error SSR di Next.js
+    const isLiked = typeof window !== 'undefined' && localStorage.getItem(`liked_${komenId}`) === 'true';
     let newLikes = currentLikes || 0;
 
+    // 1. OPTIMISTIC UPDATE: Ubah state & UI terlebih dahulu agar tombol langsung merespon
+    if (isLiked) {
+      newLikes = Math.max(0, newLikes - 1);
+      if (typeof window !== 'undefined') localStorage.removeItem(`liked_${komenId}`);
+    } else {
+      newLikes = newLikes + 1;
+      if (typeof window !== 'undefined') localStorage.setItem(`liked_${komenId}`, 'true');
+    }
+
+    // Perbarui state komentar langsung tanpa menunggu respon database
+    setKomentarList(prev => prev.map(k => k.id === komenId ? { ...k, likes: newLikes } : k));
+
+    // 2. UPDATE DATABASE: Lakukan sinkronisasi ke Firebase di belakang layar
     try {
-      if (isLiked) {
-        newLikes = Math.max(0, newLikes - 1);
-        await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: newLikes });
-        localStorage.removeItem(`liked_${komenId}`); 
-      } else {
-        newLikes = newLikes + 1;
-        await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: newLikes });
-        localStorage.setItem(`liked_${komenId}`, 'true'); 
-      }
-      setKomentarList(prev => prev.map(k => k.id === komenId ? { ...k, likes: newLikes } : k));
-    } catch (e) { 
-      console.error("Gagal mengubah status like:", e); 
+      await updateDoc(doc(db, "komentar_publikasi", String(komenId)), { likes: newLikes });
+    } catch (e) {
+      console.error("Gagal mengubah status like di database:", e);
     }
   };
 
@@ -254,8 +259,13 @@ export default function Kehidupan() {
 
                                   <div className="flex items-center gap-4 mb-1">
                                     <button 
-                                      onClick={() => handleLikeKomentar(k.id, k.likes)} 
-                                      className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) === 'true' ? 'text-red-600' : 'text-[#a8a29e] hover:text-red-600'}`}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault(); 
+                                        e.stopPropagation(); 
+                                        handleLikeKomentar(k.id, k.likes);
+                                      }} 
+                                      className={`text-xs flex items-center gap-1.5 font-bold transition-colors cursor-pointer relative z-10 ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) === 'true' ? 'text-red-600' : 'text-[#a8a29e] hover:text-red-600'}`}
                                     >
                                       <svg 
                                         width="14" 
