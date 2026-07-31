@@ -139,10 +139,6 @@ export default function ProfilAsrama() {
   const [isAnimasiFlip, setIsAnimasiFlip] = useState(false);
   const [arahFlip, setArahFlip] = useState("");
 
-  // STATE UNTUK SLIDER TIMELINE
-  const [timelinePage, setTimelinePage] = useState(0);
-  const timelinePerPage = 3; 
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -193,10 +189,6 @@ export default function ProfilAsrama() {
     }
   };
 
-  // LOGIKA SLIDER TIMELINE
-  const totalTimelinePages = Math.ceil(dataTimeline.length / timelinePerPage);
-  const displayedTimeline = dataTimeline.slice(timelinePage * timelinePerPage, (timelinePage + 1) * timelinePerPage);
-
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora overflow-x-hidden relative">
       <style jsx global>{`
@@ -210,6 +202,12 @@ export default function ProfilAsrama() {
         @keyframes flipPrev { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(90deg); opacity: 0; } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
         .animate-float { animation: float 6s ease-in-out infinite; }
+        
+        /* Custom Scrollbar untuk Timeline */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d6d3c9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
       `}</style>
 
       <HeroSlider images={bgProfil} title="Profil Asrama" />
@@ -271,50 +269,31 @@ export default function ProfilAsrama() {
 
           <div id="timeline" className="lg:col-span-7 reveal opacity-0 translate-x-[20px] transition-all duration-1000 ease-out delay-200">
             
-            {/* Header Timeline dengan Tombol Slide */}
+            {/* Header Timeline Tanpa Tombol Slide */}
             <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
               <div className="text-left">
                 <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-3">Garis Waktu</h2>
                 <div className="w-12 h-1 bg-amber-500 rounded-full"></div>
               </div>
-              
-              {/* Tombol Geser Timeline */}
-              {dataTimeline.length > timelinePerPage && (
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setTimelinePage(p => Math.max(0, p - 1))} disabled={timelinePage === 0} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                  </button>
-                  <button onClick={() => setTimelinePage(p => Math.min(totalTimelinePages - 1, p + 1))} disabled={timelinePage >= totalTimelinePages - 1} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed text-stone-600 transition-all shadow-sm">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </button>
-                </div>
-              )}
             </div>
 
+            {/* Container Scroll Timeline */}
             {loading ? <p className="text-stone-500">Memuat timeline...</p> : dataTimeline.length === 0 ? <p className="text-stone-500">Belum ada catatan waktu.</p> : (
-              <div key={timelinePage} className="relative border-l-2 border-amber-200 ml-3 md:ml-4 space-y-8 py-2 animate-[fadeIn_0.5s_ease-out]">
-                {displayedTimeline.map((item, idx) => (
-                  <div key={item.id} className="relative pl-8 md:pl-10 group" style={{ transitionDelay: `${idx * 100}ms` }}>
-                    <div className="absolute -left-[9px] top-1.5 w-4 h-4 bg-amber-500 rounded-full border-4 border-[#f9f8f6] group-hover:scale-150 group-hover:bg-red-800 transition-all duration-300"></div>
-                    <div className="bg-white p-5 rounded-sm border border-stone-100 shadow-sm group-hover:shadow-md group-hover:border-amber-200 transition-all duration-300 transform group-hover:translate-x-2">
-                      <div className="mb-2"><span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold tracking-widest rounded-sm">{item.tahun}</span></div>
-                      <h3 className="text-lg font-bold text-stone-900 font-playfair mb-2 group-hover:text-amber-600 transition-colors">{item.judul}</h3>
-                      <p className="text-stone-600 text-sm leading-relaxed">{item.deskripsi}</p>
+              <div className="max-h-[600px] overflow-y-auto pr-4 custom-scrollbar pb-6">
+                <div className="relative border-l-2 border-amber-200 ml-3 md:ml-4 space-y-8 py-2 animate-[fadeIn_0.5s_ease-out]">
+                  {dataTimeline.map((item, idx) => (
+                    <div key={item.id} className="relative pl-8 md:pl-10 group" style={{ transitionDelay: `${idx * 100}ms` }}>
+                      <div className="absolute -left-[9px] top-1.5 w-4 h-4 bg-amber-500 rounded-full border-4 border-[#f9f8f6] group-hover:scale-150 group-hover:bg-red-800 transition-all duration-300"></div>
+                      <div className="bg-white p-5 rounded-sm border border-stone-100 shadow-sm group-hover:shadow-md group-hover:border-amber-200 transition-all duration-300 transform group-hover:translate-x-2">
+                        <div className="mb-2"><span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold tracking-widest rounded-sm">{item.tahun}</span></div>
+                        <h3 className="text-lg font-bold text-stone-900 font-playfair mb-2 group-hover:text-amber-600 transition-colors">{item.judul}</h3>
+                        <p className="text-stone-600 text-sm leading-relaxed">{item.deskripsi}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
-
-            {/* Indikator Halaman Timeline (Dots) */}
-            {dataTimeline.length > timelinePerPage && (
-              <div className="flex justify-center gap-2 mt-8">
-                {Array.from({ length: totalTimelinePages }).map((_, i) => (
-                  <button key={i} onClick={() => setTimelinePage(i)} className={`h-2 rounded-full transition-all duration-300 ${i === timelinePage ? 'w-6 bg-amber-500' : 'w-2 bg-stone-300 hover:bg-stone-400'}`}></button>
-                ))}
-              </div>
-            )}
-
           </div>
         </div>
       </div>
