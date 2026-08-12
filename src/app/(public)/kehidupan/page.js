@@ -253,10 +253,11 @@ export default function Kehidupan() {
         </div>
 
         {loading ? <p className="text-center py-10 text-stone-500">Memuat galeri...</p> : domeImages.length === 0 ? <div className="bg-white p-8 border border-[#e8e4db] text-center text-stone-500">Belum ada foto kegiatan.</div> : (
-          <div className="w-full h-[60vh] md:h-[80vh] bg-[#120F17] rounded-xl overflow-hidden shadow-2xl relative border border-stone-800 animate-[fadeIn_0.5s_ease-out]">
+          <div className="w-full h-[60vh] md:h-[80vh] bg-[#fcfbf9] rounded-xl overflow-hidden shadow-2xl relative border border-[#e8e4db] animate-[fadeIn_0.5s_ease-out]">
             <DomeGallery 
               images={domeImages} 
               grayscale={false} 
+              overlayBlurColor="#fcfbf9"
             />
           </div>
         )}
