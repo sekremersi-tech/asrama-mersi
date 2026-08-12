@@ -1,4 +1,3 @@
-/* src/components/DomeGallery.css */
 .sphere-root {
   position: relative;
   width: 100%;
@@ -109,7 +108,7 @@ main.sphere-main {
 .item__image img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain; /* Gambar akan menyesuaikan agar utuh */
   pointer-events: none;
   backface-visibility: hidden;
   filter: var(--image-filter, none);
@@ -171,7 +170,7 @@ main.sphere-main {
 .viewer .enlarge img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain; /* Menjaga animasi zoom agar utuh */
   filter: var(--image-filter, none);
 }
 
