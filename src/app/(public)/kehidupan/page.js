@@ -258,6 +258,9 @@ export default function Kehidupan() {
               images={domeImages} 
               grayscale={false} 
               overlayBlurColor="#fcfbf9"
+              minRadius={1400} // Membuat lingkaran jauh lebih besar (mendekati dinding melengkung) dan foto lebih besar
+              openedImageWidth="85vw" // Ukuran maksimum gambar saat ditekan
+              openedImageHeight="85vh"
             />
           </div>
         )}
