@@ -1,4 +1,3 @@
-// src/components/DomeGallery.js
 "use client";
 
 import { useEffect, useMemo, useRef, useCallback } from 'react';
@@ -367,7 +366,7 @@ export default function DomeGallery({
       const originalImg = overlay.querySelector('img');
       if (originalImg) {
         const img = originalImg.cloneNode();
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        img.style.cssText = 'width:100%;height:100%;object-fit:contain;';
         animatingOverlay.appendChild(img);
       }
       overlay.remove();
