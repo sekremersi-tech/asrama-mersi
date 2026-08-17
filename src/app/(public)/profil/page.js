@@ -292,9 +292,9 @@ export default function ProfilAsrama() {
                 <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10 pb-4 border-b border-stone-200 max-w-xs mx-auto">Pengurus Inti</h3>
                 {/* justify-items-center dan items-start agar formasi piramida terlihat */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 justify-items-center items-start max-w-5xl mx-auto pt-8">
-                  {/* Kolom 1: Sekretaris (Lebih Kecil, Turun) */}
+                  {/* Kolom 1: Sekretaris (Turun) */}
                   {pengurusInti.sekreNama && (
-                    <div className="w-full max-w-[260px] md:mt-16 relative z-10 hover:z-20 transition-all duration-300">
+                    <div className="w-full max-w-[250px] md:mt-16 relative z-10 hover:z-20 transition-all duration-300">
                       <ProfileCard 
                         name={pengurusInti.sekreNama} 
                         status="Sekretaris" 
@@ -307,7 +307,7 @@ export default function ProfilAsrama() {
                   )}
                   {/* Kolom 2: Ketua (Di Tengah, Ditinggikan / Margin Negatif) */}
                   {pengurusInti.ketuaNama && (
-                    <div className="w-full max-w-[260px] md:-mt-8 relative z-10 hover:z-20 transition-all duration-300">
+                    <div className="w-full max-w-[250px] md:-mt-8 relative z-10 hover:z-20 transition-all duration-300">
                       <ProfileCard 
                         name={pengurusInti.ketuaNama} 
                         status="Ketua Asrama" 
@@ -318,9 +318,9 @@ export default function ProfilAsrama() {
                       />
                     </div>
                   )}
-                  {/* Kolom 3: Bendahara (Lebih Kecil, Turun) */}
+                  {/* Kolom 3: Bendahara (Turun) */}
                   {pengurusInti.bendaharaNama && (
-                    <div className="w-full max-w-[260px] md:mt-16 relative z-10 hover:z-20 transition-all duration-300">
+                    <div className="w-full max-w-[250px] md:mt-16 relative z-10 hover:z-20 transition-all duration-300">
                       <ProfileCard 
                         name={pengurusInti.bendaharaNama} 
                         status="Bendahara" 
@@ -348,7 +348,6 @@ export default function ProfilAsrama() {
                     const anggotas = anggotaDivisiIni.filter(a => a.peran !== "Koordinator");
 
                     return (
-                      // DI SINI PERBAIKANNYA: Menghapus overflow-hidden dan menambahkan relative z-10 hover:z-20
                       <div key={div.id} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col hover:shadow-xl transition-all duration-300 w-full relative z-10 hover:z-20">
                         <div className="bg-[#171412] py-4 px-6 text-center border-b-2 border-red-800 rounded-t-sm">
                           <h4 className="text-white font-bold tracking-wider font-sans uppercase">{div.namaDivisi}</h4>
@@ -379,7 +378,7 @@ export default function ProfilAsrama() {
                               {anggotas.length > 0 && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 justify-items-center">
                                   {anggotas.map(anggota => (
-                                    <div key={anggota.id} className="w-full max-w-[240px] relative z-10 hover:z-20 transition-all duration-300">
+                                    <div key={anggota.id} className="w-full max-w-[250px] relative z-10 hover:z-20 transition-all duration-300">
                                       <ProfileCard 
                                         name={anggota.nama} 
                                         status={anggota.peran || "Anggota"} 
