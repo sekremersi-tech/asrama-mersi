@@ -157,7 +157,7 @@ export default function ProfilAsrama() {
       setTimeout(() => {
         setHalAktif(newIndex);
         setIsAnimasiFlip(false);
-      }, 550); // Durasi disesuaikan dengan animasi flip yang baru (550ms)
+      }, 500); // Sinkron dengan durasi animasi CSS (0.5 detik)
     }
   };
 
@@ -169,7 +169,7 @@ export default function ProfilAsrama() {
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
         .animate-float { animation: float 6s ease-in-out infinite; }
         
-        /* Custom Scrollbar */
+        /* Custom Scrollbar untuk Timeline */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #d6d3c9; border-radius: 4px; }
@@ -192,128 +192,97 @@ export default function ProfilAsrama() {
           color: #991b1b; 
         }
 
-        /* --- ANIMASI BUKU 3D YANG SUPER REALISTIS (LENGKUNGAN & CAHAYA) --- */
-        .perspective-1500 { perspective: 1800px; }
+        /* --- ANIMASI BUKU 3D YANG SUPER REALISTIS --- */
+        .perspective-2000 { perspective: 2000px; }
+        .origin-spine { transform-origin: left center; }
         
-        /* Desain Kertas Utama dengan Garis Jilid Buku */
-        .kertas-sejarah {
-          background-color: #fcfbf9;
-          background-image: 
-            linear-gradient(90deg, rgba(0,0,0,0.06) 0%, transparent 5%, transparent 95%, rgba(0,0,0,0.03) 100%),
-            linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0) 100%);
-          box-shadow: 
-            inset 15px 0 20px -10px rgba(0,0,0,0.12), 
-            inset 2px 0 5px rgba(0,0,0,0.08),
-            3px 0 0 #f4f2ec, 
-            4px 0 0 #d9d4c5, 
-            0 15px 35px rgba(0,0,0,0.1);
-        }
-
-        /* Efek Kilapan Cahaya Melengkung saat Kertas Dibalik */
-        .kertas-sejarah::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.7) 20%, rgba(0,0,0,0.05) 25%, transparent 100%);
-          background-size: 300% 100%;
-          background-position: 100% 0;
-          opacity: 0;
-          pointer-events: none;
-          z-index: 20;
-          border-radius: inherit;
-        }
-
-        /* Kelas Pemicu Animasi */
-        .flip-next { animation: flipOutNext 0.55s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards; transform-origin: left center; }
-        .flip-next::after { animation: lightSweepNext 0.55s ease-in forwards; }
+        .book-flip-next { animation: bookFoldLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .book-enter-next { animation: bookUnfoldRight 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
         
-        .page-enter-next { animation: flipInNext 0.55s cubic-bezier(0.17, 0.84, 0.44, 1) forwards; transform-origin: right center; }
-        
-        .flip-prev { animation: flipOutPrev 0.55s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards; transform-origin: right center; }
-        .flip-prev::after { animation: lightSweepPrev 0.55s ease-in forwards; }
+        .book-flip-prev { animation: bookFoldRight 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .book-enter-prev { animation: bookUnfoldLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
-        .page-enter-prev { animation: flipInPrev 0.55s cubic-bezier(0.17, 0.84, 0.44, 1) forwards; transform-origin: left center; }
-
-        /* Keyframes Gerakan Kertas Melengkung ke Kiri (Next) */
-        @keyframes flipOutNext {
-          0% { transform: rotateY(0deg) skewY(0deg) translateZ(0); opacity: 1; }
-          40% { transform: rotateY(-45deg) skewY(-6deg) translateZ(50px) scale(1.03); box-shadow: 30px 20px 40px rgba(0,0,0,0.2); opacity: 1; }
-          100% { transform: rotateY(-100deg) skewY(-10deg) translateZ(0) scale(0.95); opacity: 0; }
+        @keyframes bookFoldLeft {
+          0% { transform: rotateY(0deg) skewY(0deg); opacity: 1; }
+          100% { transform: rotateY(-90deg) skewY(-5deg); opacity: 0; }
         }
-        @keyframes flipInNext {
-          0% { transform: rotateY(100deg) skewY(10deg) translateZ(0) scale(0.95); opacity: 0; }
-          60% { transform: rotateY(45deg) skewY(5deg) translateZ(50px) scale(1.03); box-shadow: -20px 20px 40px rgba(0,0,0,0.15); opacity: 1; }
-          100% { transform: rotateY(0deg) skewY(0deg) translateZ(0) scale(1); opacity: 1; }
+        @keyframes bookUnfoldRight {
+          0% { transform: rotateY(90deg) skewY(5deg); opacity: 0; }
+          100% { transform: rotateY(0deg) skewY(0deg); opacity: 1; }
         }
-        @keyframes lightSweepNext {
-          0% { opacity: 0; background-position: 100% 0; }
-          50% { opacity: 1; background-position: 50% 0; }
-          100% { opacity: 0.2; background-position: 0% 0; }
+        @keyframes bookFoldRight {
+          0% { transform: rotateY(0deg) skewY(0deg); opacity: 1; }
+          100% { transform: rotateY(90deg) skewY(5deg); opacity: 0; }
         }
-
-        /* Keyframes Gerakan Kertas Melengkung ke Kanan (Prev) */
-        @keyframes flipOutPrev {
-          0% { transform: rotateY(0deg) skewY(0deg) translateZ(0); opacity: 1; }
-          40% { transform: rotateY(45deg) skewY(6deg) translateZ(50px) scale(1.03); box-shadow: -30px 20px 40px rgba(0,0,0,0.2); opacity: 1; }
-          100% { transform: rotateY(100deg) skewY(10deg) translateZ(0) scale(0.95); opacity: 0; }
-        }
-        @keyframes flipInPrev {
-          0% { transform: rotateY(-100deg) skewY(-10deg) translateZ(0) scale(0.95); opacity: 0; }
-          60% { transform: rotateY(-45deg) skewY(-5deg) translateZ(50px) scale(1.03); box-shadow: 20px 20px 40px rgba(0,0,0,0.15); opacity: 1; }
-          100% { transform: rotateY(0deg) skewY(0deg) translateZ(0) scale(1); opacity: 1; }
-        }
-        @keyframes lightSweepPrev {
-          0% { opacity: 0; background-position: 0% 0; }
-          50% { opacity: 1; background-position: 50% 0; }
-          100% { opacity: 0.2; background-position: 100% 0; }
+        @keyframes bookUnfoldLeft {
+          0% { transform: rotateY(-90deg) skewY(-5deg); opacity: 0; }
+          100% { transform: rotateY(0deg) skewY(0deg); opacity: 1; }
         }
       `}</style>
 
       <HeroSlider images={bgProfil} title="Profil Asrama" />
 
-      {/* 1. SEJARAH - DESAIN BUKU ELEGAN & ANIMASI UNIK */}
-      <div id="sejarah" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="relative mt-12 perspective-1500 transform-style-3d">
+      {/* 1. SEJARAH - DESAIN BUKU HARDCOVER ELEGAN & ANIMASI UNIK */}
+      <div id="sejarah" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="relative w-full perspective-2000 mt-12">
           
-          {/* Tumpukan Kertas Belakang (Ilusi Ketebalan Buku) */}
-          <div className="absolute inset-0 bg-[#d9d4c5] transform translate-y-3 -rotate-2 rounded-sm shadow-md"></div>
-          <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-1.5 rotate-1 rounded-sm shadow-md"></div>
-          
-          {/* Kertas Utama (Dengan kelas .kertas-sejarah dan animasi baru) */}
-          <div className={`kertas-sejarah relative rounded-sm z-10 flex flex-col min-h-[450px] ${isAnimasiFlip ? (arahFlip === 'next' ? 'flip-next' : 'flip-prev') : (arahFlip ? (arahFlip === 'next' ? 'page-enter-next' : 'page-enter-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500')}`}>
-            
-            {/* Pita Pembatas Buku */}
-            <div className="absolute top-0 right-12 w-8 h-16 bg-red-800 shadow-md origin-top transform transition-transform hover:scale-y-110 pointer-events-none z-20" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)" }}></div>
+          {/* Cover Buku Belakang (Dark / Hardcover) */}
+          <div className="absolute -inset-3 md:-inset-4 bg-[#1e1a17] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] transform translate-y-2"></div>
+          <div className="absolute -inset-3 md:-inset-4 bg-gradient-to-b from-[#2a2522] to-[#171412] rounded-xl shadow-inner border border-stone-800"></div>
 
-            <div className="p-8 md:p-14 lg:px-20 flex flex-col flex-grow relative z-10">
-              {/* Header Kertas */}
-              <div className="flex flex-col-reverse md:flex-row justify-between items-start md:items-center mb-10 border-b-2 border-stone-200 pb-6 gap-4">
-                <span className="text-amber-600 font-bold tracking-widest uppercase font-sans text-sm pl-2 md:pl-0 border-l-4 md:border-l-0 border-amber-500">{halamanSejarah[halAktif]?.judul}</span>
-                <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair tracking-wide">Catatan Sejarah</h2>
+          {/* Kertas Buku Kiri & Kanan */}
+          <div className="relative w-full bg-[#fdfcf7] rounded-sm flex shadow-[inset_0_0_20px_rgba(0,0,0,0.05)] overflow-hidden min-h-[450px]">
+            
+            {/* Garis Tengah (Spine/Jilid) */}
+            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-12 lg:w-16 bg-gradient-to-r from-transparent via-black/10 to-transparent z-20 pointer-events-none hidden md:block"></div>
+            
+            {/* Pita Buku (Bookmark) */}
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-12 bg-red-800 shadow-md z-30 hidden md:block" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)" }}></div>
+
+            {/* HALAMAN KIRI (Statis) */}
+            <div className="hidden md:flex w-1/2 p-12 lg:p-16 flex-col justify-between relative z-10 border-r border-[#d9d4c5] shadow-[inset_-20px_0_30px_-15px_rgba(0,0,0,0.1)]">
+              <div>
+                <span className="text-amber-600 font-bold tracking-widest uppercase font-sans text-xs">Profil & Rekam Jejak</span>
+                <h2 className="text-5xl lg:text-6xl font-bold text-stone-900 font-playfair tracking-wide mt-4 leading-tight">
+                  Catatan<br/>Sejarah
+                </h2>
+                <div className="w-16 h-1.5 bg-red-800 mt-6 rounded-full"></div>
               </div>
-              
-              {/* Isi Kertas dengan Drop Cap */}
-              <div className="flex-grow flex items-center">
-                <p className="text-stone-700 leading-[2.2] text-lg text-justify whitespace-pre-line font-lora drop-cap">
-                  {loading ? "Menyibak lembaran sejarah..." : halamanSejarah[halAktif]?.isi}
+              <div className="mt-auto pt-12">
+                <p className="text-stone-500 italic font-lora text-base leading-relaxed border-l-4 border-amber-500 pl-4">
+                  "Merawat ingatan, menapaki masa depan. Menjadi saksi perjalanan intelektualitas perantau Minang di sudut nyaman Kota Pelajar."
                 </p>
               </div>
+            </div>
+
+            {/* HALAMAN KANAN (Dinamis & Animasi 3D Flip) */}
+            <div className="w-full md:w-1/2 p-8 md:p-12 lg:p-16 relative z-10 perspective-2000 shadow-[inset_20px_0_30px_-15px_rgba(0,0,0,0.1)] bg-[#fdfcf7]">
               
-              {/* Footer / Navigasi Kertas */}
-              <div className="mt-12 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase pt-6 border-t border-stone-200">
-                <button onClick={() => changePage(halAktif - 1, 'prev')} disabled={halAktif === 0 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-600 hover:text-red-800'}`}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg> Balik Lembar
-                </button>
+              <div className={`flex flex-col h-full transform-style-3d origin-spine ${isAnimasiFlip ? (arahFlip === 'next' ? 'book-flip-next' : 'book-flip-prev') : (arahFlip ? (arahFlip === 'next' ? 'book-enter-next' : 'book-enter-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500')}`}>
                 
-                <div className="flex items-center gap-4">
-                  <div className="h-px w-8 bg-stone-300 hidden md:block"></div>
-                  <span className="text-stone-400 font-serif italic text-base normal-case">{halAktif + 1} / {halamanSejarah.length || 1}</span>
-                  <div className="h-px w-8 bg-stone-300 hidden md:block"></div>
+                {/* Header Kanan */}
+                <div className="flex justify-between items-center mb-8 border-b-2 border-stone-200 pb-4">
+                  <span className="text-red-800 font-bold tracking-widest uppercase font-sans text-xs">{halamanSejarah[halAktif]?.judul}</span>
+                  <span className="text-stone-400 font-serif italic text-sm">{halAktif + 1} / {halamanSejarah.length || 1}</span>
+                </div>
+                
+                {/* Isi Sejarah */}
+                <div className="flex-grow">
+                  <p className="text-stone-700 leading-[2.2] text-base lg:text-lg text-justify whitespace-pre-line font-lora drop-cap">
+                    {loading ? "Menyibak lembaran sejarah..." : halamanSejarah[halAktif]?.isi}
+                  </p>
+                </div>
+                
+                {/* Navigasi Kertas */}
+                <div className="mt-12 flex justify-between items-center text-xs lg:text-sm font-bold tracking-widest font-sans uppercase pt-6">
+                  <button onClick={() => changePage(halAktif - 1, 'prev')} disabled={halAktif === 0 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-600 hover:text-red-800'}`}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg> Prev
+                  </button>
+                  <button onClick={() => changePage(halAktif + 1, 'next')} disabled={halAktif === halamanSejarah.length - 1 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === halamanSejarah.length - 1 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-900 hover:text-amber-600'}`}>
+                    Next <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
                 </div>
 
-                <button onClick={() => changePage(halAktif + 1, 'next')} disabled={halAktif === halamanSejarah.length - 1 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === halamanSejarah.length - 1 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-900 hover:text-amber-600'}`}>
-                  Lanjut Baca <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </button>
               </div>
             </div>
           </div>
