@@ -42,15 +42,15 @@ export default function PublicLayout({ children }) {
     fetchKontak();
   }, []);
 
-  // 3. SISTEM PELACAK PENGUNJUNG (CCTV ANALITIK TANPA GPS)
+  // 3. SISTEM PELACAK PENGUNJUNG (CCTV ANALITIK TANPA GPS) - API BARU
   useEffect(() => {
     const trackVisitor = async () => {
       // Jika dalam sesi ini sudah dicatat, abaikan agar tidak dobel
       if (sessionStorage.getItem('mersi_tracked')) return;
 
       try {
-        // Ambil data lokasi berdasarkan IP Address (Gratis & Aman)
-        const res = await fetch('https://ipapi.co/json/');
+        // Menggunakan API ipinfo yang limitnya jauh lebih longgar untuk menghindari Error 429
+        const res = await fetch('https://ipinfo.io/json');
         const data = await res.json();
         
         // Kirim laporan ke database
@@ -58,7 +58,7 @@ export default function PublicLayout({ children }) {
           ip: data.ip || "Tidak diketahui",
           kota: data.city || "Tidak diketahui",
           provinsi: data.region || "Tidak diketahui",
-          negara: data.country_name || "Tidak diketahui",
+          negara: data.country || "Tidak diketahui",
           isp: data.org || "Provider tidak diketahui",
           userAgent: navigator.userAgent, // Tipe HP/Browser
           waktu: serverTimestamp()
@@ -67,7 +67,7 @@ export default function PublicLayout({ children }) {
         // Tandai bahwa HP/Browser ini sudah dicatat
         sessionStorage.setItem('mersi_tracked', 'true');
       } catch (error) {
-        console.error("Gagal mencatat log kunjungan:", error);
+        console.error("Log kunjungan dilewati (Limit API / Adblock aktif).");
       }
     };
 
