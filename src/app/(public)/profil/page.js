@@ -2,41 +2,114 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, getDoc, query, orderBy } from "firebase/firestore";
-import ProfileCard from "@/components/ProfileCard";
+import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
+import ProfileCard from "@/components/ProfileCard"; // Import komponen 3D Profile Card
 
-const HeroSlider = ({ images, title, subtitle }) => { 
+const HeroSlider = ({ images, title }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
   const [idx, setIdx] = useState(0);
-  useEffect(() => { if (imgArray.length <= 1) return; const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000); return () => clearInterval(timer); }, [imgArray.length]);
+
+  useEffect(() => {
+    if (imgArray.length <= 1) return;
+    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000);
+    return () => clearInterval(timer);
+  }, [imgArray.length]);
+
   return (
-    <div className="relative py-28 md:py-36 w-full bg-[#171412] flex flex-col items-center justify-center overflow-hidden text-center">
+    <div className="relative py-28 md:py-36 w-full bg-[#171412] flex flex-col items-center justify-center overflow-hidden">
       <div className="absolute inset-0 w-full h-full bg-[#171412]">
-        {imgArray.map((bg, i) => (<div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-70' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>))}
+        {imgArray.map((bg, i) => (
+          <div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-70' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>
+        ))}
         <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/80 to-[#171412]/40 backdrop-blur-[1px]"></div>
       </div>
-      <div className="relative z-10 max-w-7xl mx-auto px-4 w-full flex flex-col items-center pb-8 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 text-center reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 font-playfair drop-shadow-lg">{title}</h1>
-        {subtitle && <p className="text-stone-300 text-lg max-w-2xl mx-auto m-0 mb-6 font-lora">{subtitle}</p>}
-        <div className="w-16 h-1.5 bg-amber-500 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
+        <div className="w-16 h-1.5 bg-amber-500 mx-auto rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
       </div>
     </div>
   );
 };
 
+const AutoSliderCard = ({ images, className }) => {
+  const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (imgArray.length <= 1) return;
+    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 3500);
+    return () => clearInterval(timer);
+  }, [imgArray.length]);
+
+  if (imgArray.length === 0) return <div className={`bg-stone-200 ${className}`}></div>;
+
+  return (
+    <div className={`relative overflow-hidden w-full h-full ${className}`}>
+      {imgArray.map((src, i) => (
+        <img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === idx ? "opacity-100 scale-105" : "opacity-0 scale-100"}`} alt="Dokumentasi Profil" />
+      ))}
+      {imgArray.length > 1 && (
+        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-lg border border-white/10 z-10 font-sans">
+          +{imgArray.length} Foto
+        </div>
+      )}
+    </div>
+  );
+};
+
+const StackedGallery = ({ data }) => {
+  const [activeIdx, setActiveIdx] = useState(0);
+  if (!data || data.length === 0) return null;
+
+  return (
+    <div className="w-full flex flex-col items-center">
+      <div className="relative w-full max-w-4xl h-[350px] md:h-[500px] flex items-center justify-center">
+        {data.map((item, idx) => {
+          const isActive = idx === activeIdx;
+          const isPrev = idx === (activeIdx - 1 + data.length) % data.length;
+          const isNext = idx === (activeIdx + 1) % data.length;
+          
+          let zIndex = 0; let transform = 'scale(0.75) translateY(-30px)'; let opacity = 0;
+          
+          if (isActive) { zIndex = 30; transform = 'scale(1) translateY(0)'; opacity = 1; }
+          else if (isPrev) { zIndex = 20; transform = 'scale(0.85) translateX(-50px) translateY(10px) rotate(-4deg)'; opacity = 0.5; }
+          else if (isNext) { zIndex = 20; transform = 'scale(0.85) translateX(50px) translateY(10px) rotate(4deg)'; opacity = 0.5; }
+
+          const images = Array.isArray(item.linkGambar) ? item.linkGambar : [item.linkGambar];
+          return (
+            <div key={item.id} className="absolute w-[85%] md:w-[65%] h-[90%] transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer shadow-2xl rounded-sm overflow-hidden border border-stone-200 bg-white" style={{ zIndex, transform, opacity, pointerEvents: isActive ? 'auto' : 'none' }} onClick={() => !isActive && setActiveIdx(idx)}>
+               <AutoSliderCard images={images} className="w-full h-[75%]" />
+               <div className="h-[25%] bg-white p-4 flex items-center justify-center border-t border-stone-100"><p className="text-stone-600 italic font-lora text-sm md:text-base text-center line-clamp-2">"{item.konteks}"</p></div>
+            </div>
+          );
+        })}
+        <button onClick={() => setActiveIdx((activeIdx - 1 + data.length) % data.length)} className="absolute left-0 md:left-4 z-40 bg-white/90 p-4 rounded-full shadow-lg text-stone-600 hover:text-red-800 transition-colors backdrop-blur-sm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+        <button onClick={() => setActiveIdx((activeIdx + 1) % data.length)} className="absolute right-0 md:right-4 z-40 bg-white/90 p-4 rounded-full shadow-lg text-stone-600 hover:text-red-800 transition-colors backdrop-blur-sm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+      </div>
+      <div className="flex gap-2 mt-8 z-50">
+        {data.map((_, i) => (
+          <button key={i} onClick={() => setActiveIdx(i)} className={`h-2.5 rounded-full transition-all duration-500 ${i === activeIdx ? 'w-10 bg-amber-500' : 'w-2.5 bg-stone-300 hover:bg-stone-400'}`}></button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function ProfilAsrama() {
   const [bgProfil, setBgProfil] = useState([]);
   const [profilText, setProfilText] = useState({ visi: "", misi: "" });
-  const [dataSejarah, setDataSejarah] = useState([]);
   const [dataTimeline, setDataTimeline] = useState([]);
+  const [dataFotoProfil, setDataFotoProfil] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
   const [pengurusInti, setPengurusInti] = useState(null);
   const [dataDivisi, setDataDivisi] = useState([]);
   const [dataAnggota, setDataAnggota] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  // Pagination Sejarah
-  const [sejarahPage, setSejarahPage] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [halamanSejarah, setHalamanSejarah] = useState([]);
+  const [halAktif, setHalAktif] = useState(0);
+  const [isAnimasiFlip, setIsAnimasiFlip] = useState(false);
+  const [arahFlip, setArahFlip] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,20 +118,30 @@ export default function ProfilAsrama() {
         if (snapFoto.exists() && snapFoto.data().profil) setBgProfil(snapFoto.data().profil);
         
         const snapText = await getDoc(doc(db, "pengaturan", "profilText"));
-        if (snapText.exists()) setProfilText(snapText.data());
+        if (snapText.exists()) {
+          setProfilText(snapText.data());
+        }
 
         const sejSnap = await getDocs(query(collection(db, "sejarah_asrama"), orderBy("createdAt", "asc")));
-        setDataSejarah(sejSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const sejData = sejSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (sejData.length > 0) {
+          setHalamanSejarah(sejData);
+        } else {
+          setHalamanSejarah([{ judul: "Bagian 1", isi: "Belum ada catatan sejarah yang ditambahkan oleh Admin." }]);
+        }
+
+        const fotoProfSnap = await getDocs(query(collection(db, "profil_galeri"), orderBy("createdAt", "desc")));
+        setDataFotoProfil(fotoProfSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
         const timeSnap = await getDocs(query(collection(db, "timeline_sejarah"), orderBy("tahun", "asc")));
         setDataTimeline(timeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
         const docInti = await getDoc(doc(db, "pengaturan", "pengurus_inti"));
         if (docInti.exists()) setPengurusInti(docInti.data());
-
+        
         const divSnap = await getDocs(query(collection(db, "divisi_asrama"), orderBy("createdAt", "asc")));
         setDataDivisi(divSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
+        
         const angSnap = await getDocs(query(collection(db, "anggota_divisi"), orderBy("createdAt", "asc")));
         setDataAnggota(angSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
@@ -67,172 +150,285 @@ export default function ProfilAsrama() {
     fetchData();
   }, []);
 
-  const changeSejarahPage = (newIndex) => {
-    if (newIndex >= 0 && newIndex < dataSejarah.length) {
-      setIsAnimating(true);
+  const changePage = (newIndex, direction) => {
+    if (newIndex >= 0 && newIndex < halamanSejarah.length) {
+      setArahFlip(direction);
+      setIsAnimasiFlip(true);
       setTimeout(() => {
-        setSejarahPage(newIndex);
-        setIsAnimating(false);
+        setHalAktif(newIndex);
+        setIsAnimasiFlip(false);
       }, 400);
     }
   };
 
   return (
-    <div className="bg-[#f9f8f6] pb-24 font-lora relative overflow-x-hidden">
+    <div className="bg-[#f9f8f6] pb-24 font-lora overflow-x-hidden relative">
       <style jsx global>{`
-        .fade-out { animation: fadeOut 0.4s forwards ease-in-out; }
-        .fade-in { animation: fadeIn 0.4s forwards ease-in-out; }
-        @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .flip-next { animation: flipNext 0.4s ease-in forwards; transform-origin: left center; }
+        .flip-prev { animation: flipPrev 0.4s forwards; transform-origin: right center; }
+        @keyframes flipNext { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(-90deg); opacity: 0; } }
+        @keyframes flipPrev { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(90deg); opacity: 0; } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        
+        /* Custom Scrollbar untuk Timeline */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d6d3c9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+
+        /* MENGURANGI SILAU PADA PROFILE CARD 3D */
+        .pc-shine { filter: brightness(0.4) contrast(1.1) saturate(0.3) opacity(0.3) !important; }
+        .pc-card:hover .pc-shine, .pc-card.active .pc-shine { filter: brightness(0.6) contrast(1.2) saturate(0.5) !important; }
+        .pc-glare { opacity: 0.1 !important; }
       `}</style>
 
-      <HeroSlider images={bgProfil} title="Profil Asrama" subtitle="Rumah gadang bagi para perantau dari Sumatera Barat di Daerah Istimewa Yogyakarta." />
+      <HeroSlider images={bgProfil} title="Profil Asrama" />
 
-      {/* 1. CATATAN SEJARAH */}
-      <div id="sejarah" className="max-w-4xl mx-auto px-4 mt-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        {dataSejarah.length > 0 && (
-          <div className="bg-white p-8 md:p-14 rounded-sm shadow-2xl border border-[#e8e4db] relative perspective-1000">
-            <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-4 -rotate-1 rounded-sm -z-10"></div>
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
-              <h2 className="text-3xl font-bold text-stone-900 font-playfair w-full text-center md:text-left">Catatan Sejarah</h2>
-              <span className="text-amber-600 font-bold font-sans tracking-widest uppercase text-xs shrink-0 mt-4 md:mt-0">{dataSejarah[sejarahPage]?.judul}</span>
+      {/* 1. SEJARAH */}
+      <div id="sejarah" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="text-center mb-10"><div className="w-12 h-1 bg-red-800 mx-auto rounded-full mb-6"></div></div>
+        <div className="relative mt-8 perspective-1000">
+          <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-4 -rotate-1 rounded-sm shadow-md"></div>
+          <div className="absolute inset-0 bg-[#f4f2ec] transform translate-y-2 rotate-1 rounded-sm shadow-md"></div>
+          
+          <div className={`relative bg-[#fcfbf9] p-8 md:p-14 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[400px] ${isAnimasiFlip ? (arahFlip === 'next' ? 'flip-next' : 'flip-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500'}`}>
+            <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
+              <span className="text-amber-600 font-bold italic font-serif text-lg">{halamanSejarah[halAktif]?.judul}</span>
+              <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair">Catatan Sejarah</h2>
             </div>
-            
-            <div className={`min-h-[200px] flex flex-col justify-center ${isAnimating ? 'fade-out' : 'fade-in'}`}>
-              <p className="text-stone-700 leading-relaxed text-lg whitespace-pre-line text-justify md:text-left drop-cap">
-                {dataSejarah[sejarahPage]?.isi}
+            <div className="flex-grow flex items-center overflow-hidden">
+              <p className="text-stone-700 leading-relaxed text-lg md:text-xl text-justify whitespace-pre-line font-lora">
+                {loading ? "Memuat catatan lembar sejarah..." : halamanSejarah[halAktif]?.isi}
               </p>
             </div>
-
             <div className="mt-12 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase">
-              <button onClick={() => changeSejarahPage(sejarahPage - 1)} disabled={sejarahPage === 0 || isAnimating} className={`flex items-center gap-2 transition-colors ${sejarahPage === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-500 hover:text-red-800'}`}>← Balik Lembar</button>
-              <span className="text-stone-400 font-serif italic text-base lowercase">{sejarahPage + 1} / {dataSejarah.length}</span>
-              <button onClick={() => changeSejarahPage(sejarahPage + 1)} disabled={sejarahPage === dataSejarah.length - 1 || isAnimating} className={`flex items-center gap-2 transition-colors ${sejarahPage === dataSejarah.length - 1 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-900 hover:text-amber-600'}`}>Lanjut Baca →</button>
+              <button onClick={() => changePage(halAktif - 1, 'prev')} disabled={halAktif === 0 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-500 hover:text-red-800'}`}>← Balik Lembar</button>
+              <span className="text-stone-400 font-serif italic text-base lowercase">{halAktif + 1} / {halamanSejarah.length || 1}</span>
+              <button onClick={() => changePage(halAktif + 1, 'next')} disabled={halAktif === halamanSejarah.length - 1 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === halamanSejarah.length - 1 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-900 hover:text-amber-600'}`}>Lanjut Baca →</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* 2. DOKUMENTASI */}
+      {dataFotoProfil.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-32 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+          <div className="text-center mb-12">
+            <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Kilas Balik Suasana</h4>
+            <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair mb-4">Dokumentasi Profil Asrama</h2>
+            <div className="w-12 h-1 bg-red-800 mx-auto rounded-full"></div>
+          </div>
+          <StackedGallery data={dataFotoProfil} />
+        </div>
+      )}
+
+      {/* 3 & 4. VISI MISI & TIMELINE */}
+      <div id="visimisi" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 scroll-mt-28">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+          
+          <div className="lg:col-span-5 flex flex-col gap-6 reveal opacity-0 translate-x-[-20px] transition-all duration-1000 ease-out">
+            <div className="text-left mb-2"><h2 className="text-3xl font-bold text-stone-900 font-playfair mb-3">Tujuan Asrama</h2><div className="w-12 h-1 bg-amber-500 rounded-full"></div></div>
+            <div className="bg-[#171412] text-white p-6 md:p-8 rounded-sm shadow-lg relative overflow-hidden group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500 rounded-full blur-[60px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
+              <h3 className="text-2xl font-bold font-playfair mb-4 text-amber-500">Visi Kami</h3>
+              <p className="text-stone-300 leading-relaxed text-base">{loading ? "Memuat..." : profilText.visi}</p>
+            </div>
+            <div className="bg-white p-6 md:p-8 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] hover:-translate-y-1 transition-all duration-300">
+              <h3 className="text-2xl font-bold font-playfair mb-4 text-red-800">Misi Kami</h3>
+              <p className="text-stone-600 leading-relaxed text-base whitespace-pre-line">{loading ? "Memuat..." : profilText.misi}</p>
+            </div>
+          </div>
+
+          <div id="timeline" className="lg:col-span-7 reveal opacity-0 translate-x-[20px] transition-all duration-1000 ease-out delay-200">
+            
+            {/* Header Timeline Tanpa Tombol Slide */}
+            <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
+              <div className="text-left">
+                <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-3">Garis Waktu</h2>
+                <div className="w-12 h-1 bg-amber-500 rounded-full"></div>
+              </div>
+            </div>
+
+            {/* Container Scroll Timeline */}
+            {loading ? <p className="text-stone-500">Memuat timeline...</p> : dataTimeline.length === 0 ? <p className="text-stone-500">Belum ada catatan waktu.</p> : (
+              <div className="max-h-[600px] overflow-y-auto pr-4 custom-scrollbar pb-6">
+                <div className="relative border-l-2 border-amber-200 ml-3 md:ml-4 space-y-8 py-2 animate-[fadeIn_0.5s_ease-out]">
+                  {dataTimeline.map((item, idx) => (
+                    <div key={item.id} className="relative pl-8 md:pl-10 group" style={{ transitionDelay: `${idx * 100}ms` }}>
+                      <div className="absolute -left-[9px] top-1.5 w-4 h-4 bg-amber-500 rounded-full border-4 border-[#f9f8f6] group-hover:scale-150 group-hover:bg-red-800 transition-all duration-300"></div>
+                      <div className="bg-white p-5 rounded-sm border border-stone-100 shadow-sm group-hover:shadow-md group-hover:border-amber-200 transition-all duration-300 transform group-hover:translate-x-2">
+                        <div className="mb-2"><span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold tracking-widest rounded-sm">{item.tahun}</span></div>
+                        <h3 className="text-lg font-bold text-stone-900 font-playfair mb-2 group-hover:text-amber-600 transition-colors">{item.judul}</h3>
+                        <p className="text-stone-600 text-sm leading-relaxed">{item.deskripsi}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 5. STRUKTUR KEPENGURUSAN DENGAN PROFILE CARD 3D */}
+      <div id="kepengurusan" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="text-center mb-16">
+          <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Struktur Organisasi</h4>
+          <h2 className="text-4xl font-bold text-stone-900 font-playfair mb-4">Kepengurusan Asrama</h2>
+          <div className="w-16 h-1 bg-red-800 mx-auto rounded-full"></div>
+          <p className="text-stone-500 text-sm mt-4 italic">Gerakkan kursor atau miringkan HP Anda untuk melihat efek 3D.</p>
+        </div>
+
+        {loading ? <p className="text-center text-stone-500">Memuat struktur organisasi...</p> : (
+          <>
+            {/* PENGURUS INTI: KETUA DI TENGAH */}
+            {pengurusInti && (
+              <div className="mb-20">
+                <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10 pb-4 border-b border-stone-200 max-w-xs mx-auto">Pengurus Inti</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center max-w-5xl mx-auto">
+                  {/* Kolom 1: Sekretaris */}
+                  {pengurusInti.sekreNama && (
+                    <div className="w-full max-w-[300px]">
+                      <ProfileCard 
+                        name={pengurusInti.sekreNama} 
+                        status="Sekretaris" 
+                        avatarUrl={pengurusInti.sekreFoto} 
+                        enableMobileTilt={true} 
+                        behindGlowColor="rgba(245, 158, 11, 0.15)"
+                        innerGradient="linear-gradient(145deg, rgba(23,20,18,0.9) 0%, rgba(23,20,18,0.7) 100%)"
+                      />
+                    </div>
+                  )}
+                  {/* Kolom 2: Ketua (Di Tengah) */}
+                  {pengurusInti.ketuaNama && (
+                    <div className="w-full max-w-[300px]">
+                      <ProfileCard 
+                        name={pengurusInti.ketuaNama} 
+                        status="Ketua Asrama" 
+                        avatarUrl={pengurusInti.ketuaFoto} 
+                        enableMobileTilt={true} 
+                        behindGlowColor="rgba(220, 38, 38, 0.25)"
+                        innerGradient="linear-gradient(145deg, rgba(23,20,18,0.95) 0%, rgba(23,20,18,0.7) 100%)"
+                      />
+                    </div>
+                  )}
+                  {/* Kolom 3: Bendahara */}
+                  {pengurusInti.bendaharaNama && (
+                    <div className="w-full max-w-[300px]">
+                      <ProfileCard 
+                        name={pengurusInti.bendaharaNama} 
+                        status="Bendahara" 
+                        avatarUrl={pengurusInti.bendaharaFoto} 
+                        enableMobileTilt={true} 
+                        behindGlowColor="rgba(245, 158, 11, 0.15)"
+                        innerGradient="linear-gradient(145deg, rgba(23,20,18,0.9) 0%, rgba(23,20,18,0.7) 100%)"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* DIVISI & ANGGOTA */}
+            {dataDivisi.length > 0 && (
+              <div>
+                <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10 pb-4 border-b border-stone-200 max-w-xs mx-auto">Divisi & Anggota</h3>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:[&>*:nth-child(odd):last-child]:col-span-2 lg:[&>*:nth-child(odd):last-child]:max-w-2xl lg:[&>*:nth-child(odd):last-child]:mx-auto lg:[&>*:nth-child(odd):last-child]:w-full">
+                  {dataDivisi.map(div => {
+                    // MEMISAHKAN KOORDINATOR DAN ANGGOTA
+                    const anggotaDivisiIni = dataAnggota.filter(a => a.divisiId === div.id);
+                    const koordinators = anggotaDivisiIni.filter(a => a.peran === "Koordinator");
+                    const anggotas = anggotaDivisiIni.filter(a => a.peran !== "Koordinator");
+
+                    return (
+                      <div key={div.id} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300 w-full">
+                        <div className="bg-[#171412] py-4 px-6 text-center border-b-2 border-red-800">
+                          <h4 className="text-white font-bold tracking-wider font-sans uppercase">{div.namaDivisi}</h4>
+                        </div>
+                        <div className="p-8 flex-grow bg-stone-50">
+                          {anggotaDivisiIni.length === 0 ? <p className="text-sm text-stone-400 text-center italic">Belum ada anggota</p> : (
+                            <div className="flex flex-col gap-10">
+                              
+                              {/* BARIS KOORDINATOR (SELALU DI ATAS) */}
+                              {koordinators.length > 0 && (
+                                <div className="flex justify-center flex-wrap gap-8">
+                                  {koordinators.map(koor => (
+                                    <div key={koor.id} className="w-full max-w-[280px]">
+                                      <ProfileCard 
+                                        name={koor.nama} 
+                                        status={koor.peran} 
+                                        avatarUrl={koor.foto} 
+                                        enableMobileTilt={true} 
+                                        behindGlowColor="rgba(220, 38, 38, 0.15)"
+                                        innerGradient="linear-gradient(145deg, rgba(23,20,18,0.9) 0%, rgba(23,20,18,0.7) 100%)"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* BARIS ANGGOTA (DI BAWAH) */}
+                              {anggotas.length > 0 && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 justify-items-center">
+                                  {anggotas.map(anggota => (
+                                    <div key={anggota.id} className="w-full max-w-[280px]">
+                                      <ProfileCard 
+                                        name={anggota.nama} 
+                                        status={anggota.peran || "Anggota"} 
+                                        avatarUrl={anggota.foto} 
+                                        enableMobileTilt={true} 
+                                        behindGlowColor="rgba(245, 158, 11, 0.1)"
+                                        innerGradient="linear-gradient(145deg, rgba(23,20,18,0.9) 0%, rgba(23,20,18,0.7) 100%)"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* 2. VISI MISI & GARIS WAKTU */}
-      <div id="visimisi" className="max-w-7xl mx-auto px-4 mt-32 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          {/* VISI MISI */}
-          <div>
-            <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-8 flex items-center gap-4">
-              Tujuan Asrama
-              <div className="flex-grow h-px bg-stone-200"></div>
-            </h2>
-            <div className="bg-red-800 text-white p-8 md:p-10 rounded-sm shadow-xl mb-8 border-b-4 border-amber-500">
-              <h3 className="font-sans font-bold tracking-widest uppercase text-amber-400 mb-4 text-sm">Visi Kami</h3>
-              <p className="text-lg leading-relaxed font-playfair italic">"{profilText.visi}"</p>
-            </div>
-            <div className="bg-[#fcfbf9] p-8 md:p-10 rounded-sm shadow-sm border border-[#e8e4db]">
-              <h3 className="font-sans font-bold tracking-widest uppercase text-red-800 mb-6 text-sm">Misi Kami</h3>
-              <p className="text-stone-600 leading-relaxed whitespace-pre-line">{profilText.misi}</p>
-            </div>
+      {/* 6. TITIK TEMU & MAPS INTERAKTIF */}
+      <div id="lokasi" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-10 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-16 lg:gap-8 bg-white p-10 md:p-16 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#e8e4db]">
+          <div className="w-full lg:w-1/2 text-center lg:text-left flex flex-col items-center lg:items-start">
+            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-6 border border-red-100 shadow-sm"><div className="w-2 h-2 bg-red-800 rounded-full"></div></div>
+            <h2 className="text-4xl md:text-5xl font-bold text-stone-900 font-playfair mb-6 leading-tight">Titik <br className="hidden md:block"/> Temu</h2>
+            <p className="text-stone-600 text-lg leading-relaxed mb-8 max-w-sm">Jantung pergerakan dan ruang tumbuh bersama perantau Minang di sudut nyaman Kota Pelajar. Kami selalu terbuka untuk silaturahmi.</p>
+            <div className="bg-stone-50 border-l-4 border-amber-500 p-5 rounded-r-lg shadow-sm w-full md:w-auto"><p className="text-sm text-stone-700 font-medium leading-relaxed font-sans">Jl. Marga Agung, Karangwaru, Kec. Tegalrejo,<br/>Kota Yogyakarta, Daerah Istimewa Yogyakarta 55241</p></div>
           </div>
-
-          {/* TIMELINE */}
-          <div id="timeline" className="scroll-mt-28">
-            <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-8 flex items-center gap-4">
-              <div className="flex-grow h-px bg-stone-200 hidden lg:block"></div>
-              Garis Waktu
-              <div className="flex-grow h-px bg-stone-200 lg:hidden"></div>
-            </h2>
-            <div className="relative pl-8 border-l-2 border-amber-200 space-y-12 py-4">
-              {dataTimeline.map((item, idx) => (
-                <div key={item.id} className="relative group">
-                  <div className="absolute -left-[41px] top-1 w-5 h-5 bg-white border-4 border-amber-500 rounded-full group-hover:bg-red-800 transition-colors shadow-sm"></div>
-                  <div className="bg-amber-100 text-amber-800 font-bold font-sans text-xs tracking-widest uppercase px-3 py-1 w-fit rounded-sm mb-3">{item.tahun}</div>
-                  <h4 className="font-bold text-xl text-stone-900 font-playfair mb-2 leading-snug">{item.judul}</h4>
-                  <p className="text-stone-600 text-sm leading-relaxed">{item.deskripsi}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. STRUKTUR KEPENGURUSAN MENGGUNAKAN PROFILE CARD 3D */}
-      <div id="kepengurusan" className="w-full bg-[#171412] mt-32 py-24 scroll-mt-0 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out border-t-8 border-red-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h4 className="text-amber-500 font-bold tracking-widest text-xs uppercase font-sans mb-3">Struktur Organisasi</h4>
-            <h2 className="text-4xl md:text-5xl font-bold text-white font-playfair mb-4">Kepengurusan Asrama</h2>
-            <p className="text-stone-400 font-lora italic">Gerakkan kursor atau miringkan HP Anda untuk melihat efek 3D.</p>
-          </div>
-
-          {loading ? <p className="text-center text-stone-400">Memuat struktur organisasi...</p> : (
-            <>
-              {/* PENGURUS INTI */}
-              {pengurusInti && (
-                <div className="mb-20">
-                  <h3 className="text-center font-sans font-bold tracking-widest uppercase text-stone-400 mb-10 pb-4 border-b border-stone-800 max-w-xs mx-auto">Pengurus Inti</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-center max-w-5xl mx-auto">
-                    {pengurusInti.ketuaNama && (
-                      <ProfileCard name={pengurusInti.ketuaNama} status="Ketua Asrama" avatarUrl={pengurusInti.ketuaFoto} enableMobileTilt={true} />
-                    )}
-                    {pengurusInti.sekreNama && (
-                      <ProfileCard name={pengurusInti.sekreNama} status="Sekretaris" avatarUrl={pengurusInti.sekreFoto} enableMobileTilt={true} />
-                    )}
-                    {pengurusInti.bendaharaNama && (
-                      <ProfileCard name={pengurusInti.bendaharaNama} status="Bendahara" avatarUrl={pengurusInti.bendaharaFoto} enableMobileTilt={true} />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* DIVISI DAN ANGGOTA */}
-              {dataDivisi.map(div => {
-                const anggotaDivisi = dataAnggota.filter(a => a.divisiId === div.id);
-                if (anggotaDivisi.length === 0) return null;
-
-                // Urutkan agar Koordinator tampil duluan
-                const sortedAnggota = anggotaDivisi.sort((a, b) => {
-                  if (a.peran === "Koordinator" && b.peran !== "Koordinator") return -1;
-                  if (a.peran !== "Koordinator" && b.peran === "Koordinator") return 1;
-                  return 0;
-                });
-
-                return (
-                  <div key={div.id} className="mb-16">
-                    <h3 className="text-center font-sans font-bold tracking-widest uppercase text-red-500 mb-8 pb-2 border-b border-stone-800 max-w-md mx-auto">{div.namaDivisi}</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 justify-center">
-                      {sortedAnggota.map(anggota => (
-                        <ProfileCard 
-                          key={anggota.id} 
-                          name={anggota.nama} 
-                          status={anggota.peran} 
-                          avatarUrl={anggota.foto} 
-                          enableMobileTilt={true} 
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* 4. TITIK TEMU / LOKASI */}
-      <div id="lokasi" className="max-w-7xl mx-auto px-4 mt-32 mb-10 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="bg-white p-8 md:p-14 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col md:flex-row gap-12 items-center">
-          <div className="w-full md:w-1/3">
-            <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3 flex items-center gap-2"><div className="w-2 h-2 bg-red-800 rounded-full animate-pulse"></div> Lokasi</h4>
-            <h2 className="text-4xl font-bold text-stone-900 font-playfair mb-6">Titik Temu</h2>
-            <p className="text-stone-600 leading-relaxed mb-6">Jantung pergerakan dan ruang tumbuh bersama perantau Minang di sudut nyaman Kota Pelajar. Kami selalu terbuka untuk silaturahmi.</p>
-            <div className="bg-stone-50 p-4 border-l-4 border-red-800 text-sm font-sans text-stone-700">Jl. Marga Agung, Karangwaru, Kec. Tegalrejo, Kota Yogyakarta, Daerah Istimewa Yogyakarta 55241</div>
-          </div>
-          <div className="w-full md:w-2/3 h-80 bg-stone-200 rounded-sm overflow-hidden relative shadow-inner">
-            <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3953.1557025859345!2d110.3607062147774!3d-7.773307679269152!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7a584ec66fb7bf%3A0x6e788e090dfc7b04!2sAsrama%20Mahasiswa%20Merapi%20Singgalang!5e0!3m2!1sen!2sid!4v1650000000000!5m2!1sen!2sid" 
-              className="absolute inset-0 w-full h-full border-0" 
-              allowFullScreen="" 
-              loading="lazy" 
-              referrerPolicy="no-referrer-when-downgrade">
-            </iframe>
+          
+          {/* AREA GOOGLE MAPS YANG BISA DIKLIK */}
+          <div className="w-full lg:w-1/2 relative flex justify-center lg:justify-end animate-float">
+            <a href="https://www.google.com/maps/search/?api=1&query=Asrama+Mahasiswa+Merapi+Singgalang+Yogyakarta" target="_blank" rel="noopener noreferrer" className="w-full max-w-md h-[400px] rounded-3xl overflow-hidden shadow-2xl relative z-10 border-4 border-white bg-stone-200 block group cursor-pointer">
+              
+              {/* Overlay Efek Hover untuk UX */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 z-20 transition-colors duration-300 flex items-center justify-center">
+                 <div className="bg-white text-stone-900 px-6 py-3 rounded-full font-bold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-2 shadow-lg transform translate-y-4 group-hover:translate-y-0">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Buka di Google Maps
+                 </div>
+              </div>
+              
+              <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3953.111956550505!2d110.36388911477484!3d-7.778007694394982!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7a584a5a543593%3A0xc3baab4d7b7dbd76!2sAsrama%20Mahasiswa%20Merapi%20Singgalang!5e0!3m2!1sen!2sid!4v1689264560000!5m2!1sen!2sid" width="100%" height="100%" style={{ border: 0, pointerEvents: 'none' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Lokasi Asrama Merapi Singgalang"></iframe>
+            </a>
+            
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[80%] h-8 bg-black/20 blur-xl rounded-[100%]"></div>
           </div>
         </div>
       </div>
