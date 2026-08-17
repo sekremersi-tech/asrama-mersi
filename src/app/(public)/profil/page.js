@@ -157,7 +157,7 @@ export default function ProfilAsrama() {
       setTimeout(() => {
         setHalAktif(newIndex);
         setIsAnimasiFlip(false);
-      }, 400); // Tunggu animasi flip selesai sebelum mengganti konten
+      }, 550); // Durasi disesuaikan dengan animasi flip yang baru (550ms)
     }
   };
 
@@ -169,7 +169,7 @@ export default function ProfilAsrama() {
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
         .animate-float { animation: float 6s ease-in-out infinite; }
         
-        /* Custom Scrollbar untuk Timeline */
+        /* Custom Scrollbar */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #d6d3c9; border-radius: 4px; }
@@ -189,38 +189,83 @@ export default function ProfilAsrama() {
           padding-top: 0.05em;
           font-family: 'Playfair Display', serif;
           font-weight: 700;
-          color: #991b1b; /* red-800 */
+          color: #991b1b; 
         }
 
-        /* ANIMASI BUKU 3D YANG LEBIH REALISTIS, UNIK & ESTETIK */
-        .perspective-1500 { perspective: 1500px; }
+        /* --- ANIMASI BUKU 3D YANG SUPER REALISTIS (LENGKUNGAN & CAHAYA) --- */
+        .perspective-1500 { perspective: 1800px; }
         
-        .flip-next { animation: flipOutNext 0.4s ease-in forwards; transform-origin: left center; }
-        .page-enter-next { animation: flipInNext 0.4s ease-out forwards; transform-origin: right center; }
-        
-        .flip-prev { animation: flipOutPrev 0.4s ease-in forwards; transform-origin: right center; }
-        .page-enter-prev { animation: flipInPrev 0.4s ease-out forwards; transform-origin: left center; }
+        /* Desain Kertas Utama dengan Garis Jilid Buku */
+        .kertas-sejarah {
+          background-color: #fcfbf9;
+          background-image: 
+            linear-gradient(90deg, rgba(0,0,0,0.06) 0%, transparent 5%, transparent 95%, rgba(0,0,0,0.03) 100%),
+            linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0) 100%);
+          box-shadow: 
+            inset 15px 0 20px -10px rgba(0,0,0,0.12), 
+            inset 2px 0 5px rgba(0,0,0,0.08),
+            3px 0 0 #f4f2ec, 
+            4px 0 0 #d9d4c5, 
+            0 15px 35px rgba(0,0,0,0.1);
+        }
 
+        /* Efek Kilapan Cahaya Melengkung saat Kertas Dibalik */
+        .kertas-sejarah::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.7) 20%, rgba(0,0,0,0.05) 25%, transparent 100%);
+          background-size: 300% 100%;
+          background-position: 100% 0;
+          opacity: 0;
+          pointer-events: none;
+          z-index: 20;
+          border-radius: inherit;
+        }
+
+        /* Kelas Pemicu Animasi */
+        .flip-next { animation: flipOutNext 0.55s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards; transform-origin: left center; }
+        .flip-next::after { animation: lightSweepNext 0.55s ease-in forwards; }
+        
+        .page-enter-next { animation: flipInNext 0.55s cubic-bezier(0.17, 0.84, 0.44, 1) forwards; transform-origin: right center; }
+        
+        .flip-prev { animation: flipOutPrev 0.55s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards; transform-origin: right center; }
+        .flip-prev::after { animation: lightSweepPrev 0.55s ease-in forwards; }
+
+        .page-enter-prev { animation: flipInPrev 0.55s cubic-bezier(0.17, 0.84, 0.44, 1) forwards; transform-origin: left center; }
+
+        /* Keyframes Gerakan Kertas Melengkung ke Kiri (Next) */
         @keyframes flipOutNext {
-          0% { transform: rotateY(0deg) rotateZ(0deg) translateZ(0) translateY(0) scale(1); opacity: 1; }
-          50% { transform: rotateY(-45deg) rotateZ(-2deg) translateZ(40px) translateY(-10px) scale(1.02); opacity: 0.8; box-shadow: 20px 30px 50px rgba(0,0,0,0.15); }
-          100% { transform: rotateY(-90deg) rotateZ(-4deg) translateZ(0px) translateY(0) scale(0.95); opacity: 0; }
+          0% { transform: rotateY(0deg) skewY(0deg) translateZ(0); opacity: 1; }
+          40% { transform: rotateY(-45deg) skewY(-6deg) translateZ(50px) scale(1.03); box-shadow: 30px 20px 40px rgba(0,0,0,0.2); opacity: 1; }
+          100% { transform: rotateY(-100deg) skewY(-10deg) translateZ(0) scale(0.95); opacity: 0; }
         }
         @keyframes flipInNext {
-          0% { transform: rotateY(90deg) rotateZ(4deg) translateZ(0px) scale(0.95); opacity: 0; }
-          50% { transform: rotateY(45deg) rotateZ(2deg) translateZ(40px) translateY(-10px) scale(1.02); opacity: 0.8; box-shadow: -20px 30px 50px rgba(0,0,0,0.15); }
-          100% { transform: rotateY(0deg) rotateZ(0deg) translateZ(0) scale(1); opacity: 1; }
+          0% { transform: rotateY(100deg) skewY(10deg) translateZ(0) scale(0.95); opacity: 0; }
+          60% { transform: rotateY(45deg) skewY(5deg) translateZ(50px) scale(1.03); box-shadow: -20px 20px 40px rgba(0,0,0,0.15); opacity: 1; }
+          100% { transform: rotateY(0deg) skewY(0deg) translateZ(0) scale(1); opacity: 1; }
+        }
+        @keyframes lightSweepNext {
+          0% { opacity: 0; background-position: 100% 0; }
+          50% { opacity: 1; background-position: 50% 0; }
+          100% { opacity: 0.2; background-position: 0% 0; }
         }
 
+        /* Keyframes Gerakan Kertas Melengkung ke Kanan (Prev) */
         @keyframes flipOutPrev {
-          0% { transform: rotateY(0deg) rotateZ(0deg) translateZ(0) translateY(0) scale(1); opacity: 1; }
-          50% { transform: rotateY(45deg) rotateZ(2deg) translateZ(40px) translateY(-10px) scale(1.02); opacity: 0.8; box-shadow: -20px 30px 50px rgba(0,0,0,0.15); }
-          100% { transform: rotateY(90deg) rotateZ(4deg) translateZ(0px) translateY(0) scale(0.95); opacity: 0; }
+          0% { transform: rotateY(0deg) skewY(0deg) translateZ(0); opacity: 1; }
+          40% { transform: rotateY(45deg) skewY(6deg) translateZ(50px) scale(1.03); box-shadow: -30px 20px 40px rgba(0,0,0,0.2); opacity: 1; }
+          100% { transform: rotateY(100deg) skewY(10deg) translateZ(0) scale(0.95); opacity: 0; }
         }
         @keyframes flipInPrev {
-          0% { transform: rotateY(-90deg) rotateZ(-4deg) translateZ(0px) scale(0.95); opacity: 0; }
-          50% { transform: rotateY(-45deg) rotateZ(-2deg) translateZ(40px) translateY(-10px) scale(1.02); opacity: 0.8; box-shadow: 20px 30px 50px rgba(0,0,0,0.15); }
-          100% { transform: rotateY(0deg) rotateZ(0deg) translateZ(0) scale(1); opacity: 1; }
+          0% { transform: rotateY(-100deg) skewY(-10deg) translateZ(0) scale(0.95); opacity: 0; }
+          60% { transform: rotateY(-45deg) skewY(-5deg) translateZ(50px) scale(1.03); box-shadow: 20px 20px 40px rgba(0,0,0,0.15); opacity: 1; }
+          100% { transform: rotateY(0deg) skewY(0deg) translateZ(0) scale(1); opacity: 1; }
+        }
+        @keyframes lightSweepPrev {
+          0% { opacity: 0; background-position: 0% 0; }
+          50% { opacity: 1; background-position: 50% 0; }
+          100% { opacity: 0.2; background-position: 100% 0; }
         }
       `}</style>
 
@@ -230,15 +275,14 @@ export default function ProfilAsrama() {
       <div id="sejarah" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="relative mt-12 perspective-1500 transform-style-3d">
           
-          {/* Tumpukan Kertas Belakang (Lebih Realistis) */}
+          {/* Tumpukan Kertas Belakang (Ilusi Ketebalan Buku) */}
           <div className="absolute inset-0 bg-[#d9d4c5] transform translate-y-3 -rotate-2 rounded-sm shadow-md"></div>
           <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-1.5 rotate-1 rounded-sm shadow-md"></div>
           
-          {/* Kertas Utama (Dengan kelas animasi baru) */}
-          <div className={`relative bg-[#fcfbf9] rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[450px] overflow-hidden ${isAnimasiFlip ? (arahFlip === 'next' ? 'flip-next' : 'flip-prev') : (arahFlip ? (arahFlip === 'next' ? 'page-enter-next' : 'page-enter-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500')}`}>
+          {/* Kertas Utama (Dengan kelas .kertas-sejarah dan animasi baru) */}
+          <div className={`kertas-sejarah relative rounded-sm z-10 flex flex-col min-h-[450px] ${isAnimasiFlip ? (arahFlip === 'next' ? 'flip-next' : 'flip-prev') : (arahFlip ? (arahFlip === 'next' ? 'page-enter-next' : 'page-enter-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500')}`}>
             
-            {/* Efek Garis Lipatan Buku di Kiri & Pita Pembatas Buku */}
-            <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-black/5 to-transparent border-r border-black/5 pointer-events-none z-20"></div>
+            {/* Pita Pembatas Buku */}
             <div className="absolute top-0 right-12 w-8 h-16 bg-red-800 shadow-md origin-top transform transition-transform hover:scale-y-110 pointer-events-none z-20" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)" }}></div>
 
             <div className="p-8 md:p-14 lg:px-20 flex flex-col flex-grow relative z-10">
@@ -256,7 +300,7 @@ export default function ProfilAsrama() {
               </div>
               
               {/* Footer / Navigasi Kertas */}
-              <div className="mt-12 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase pt-6 border-t border-stone-100">
+              <div className="mt-12 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase pt-6 border-t border-stone-200">
                 <button onClick={() => changePage(halAktif - 1, 'prev')} disabled={halAktif === 0 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-600 hover:text-red-800'}`}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg> Balik Lembar
                 </button>
