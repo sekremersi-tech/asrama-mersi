@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, limit, doc, getDoc, addDoc, updateDoc, increment, serverTimestamp, where } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, doc, getDoc, addDoc, serverTimestamp, where, updateDoc, increment } from "firebase/firestore";
 
 const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
@@ -53,6 +53,9 @@ export default function Beranda() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
+  // State bantuan untuk melacak like secara lokal agar re-render lebih halus
+  const [localLikes, setLocalLikes] = useState({});
+
   useEffect(() => {
     const fetchData = async () => {
       const docSnap = await getDoc(doc(db, "pengaturan", "tampilan"));
@@ -80,19 +83,24 @@ export default function Beranda() {
     if (type === "berita" && item.kategori === "LOMBA TERBUKA") {
       setShowLombaModal(true); setModalType("lomba");
     } else {
-      setShowLombaModal(false); setKomentarList([]);
+      setShowLombaModal(false); setKomentarList([]); setLocalLikes({});
       try {
         const targetId = String(item.id);
         const q = query(collection(db, "komentar_publikasi"), where("postId", "==", targetId));
         const snap = await getDocs(q);
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        comments.sort((a, b) => (a.waktu?.toMillis() || 0) - (b.waktu?.toMillis() || 0));
+        comments.sort((a, b) => (b.waktu?.toMillis() || 0) - (a.waktu?.toMillis() || 0));
+        
+        // Simpan jumlah likes ke local state untuk di-render
+        let likesMap = {};
+        comments.forEach(c => { likesMap[c.id] = c.likes || 0; });
+        setLocalLikes(likesMap);
         setKomentarList(comments);
       } catch(e) { console.error(e); }
     }
   };
   
-  const closeModal = () => { setSelectedItem(null); setShowLombaModal(false); setKomentarList([]); setFormKomen({ nama: "", isi: "" }); document.body.style.overflow = "auto"; };
+  const closeModal = () => { setSelectedItem(null); setShowLombaModal(false); setKomentarList([]); setLocalLikes({}); setFormKomen({ nama: "", isi: "" }); document.body.style.overflow = "auto"; };
   const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
   const nextModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev + 1) % modalImages.length); };
   const prevModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev - 1 + modalImages.length) % modalImages.length); };
@@ -114,20 +122,39 @@ export default function Beranda() {
     setIsSubmittingKomen(true);
     try {
       const targetId = String(selectedItem.id);
-      const newKomen = { postId: targetId, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), likes: 0, waktu: serverTimestamp() };
+      const judulPostingan = selectedItem.judul || selectedItem.nama || "Publikasi Beranda";
+      const newKomen = { postId: targetId, postJudul: judulPostingan, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), likes: 0, waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
-      setKomentarList([...komentarList, {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }]);
+      
+      const addedKomen = {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } };
+      setKomentarList([addedKomen, ...komentarList]);
+      setLocalLikes(prev => ({ ...prev, [docRef.id]: 0 }));
       setFormKomen({nama: "", isi: ""});
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
 
-  const handleLikeKomentar = async (komentarId) => {
+  const handleLikeKomentar = async (komenId) => {
+    if (typeof window === 'undefined') return;
+    const liked = localStorage.getItem(`liked_${komenId}`);
+    if (liked) return; // Jika sudah pernah di-like, hentikan proses.
+
     try {
-      const commentRef = doc(db, "komentar_publikasi", komentarId);
-      await updateDoc(commentRef, { likes: increment(1) });
-      setKomentarList(prev => prev.map(k => k.id === komentarId ? { ...k, likes: (k.likes || 0) + 1 } : k));
-    } catch (e) {
-      console.error("Gagal menyukai komentar", e);
+      // 1. Tandai di local storage agar tidak bisa ditekan lagi
+      localStorage.setItem(`liked_${komenId}`, 'true');
+      
+      // 2. Update UI secara langsung agar terasa instan (optimistic update)
+      setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
+
+      // 3. Kirim instruksi increment (tambah 1) yang aman ke Firebase
+      await updateDoc(doc(db, "komentar_publikasi", komenId), { 
+        likes: increment(1) 
+      });
+
+    } catch (e) { 
+      console.error("Gagal menyukai komentar:", e); 
+      // Rollback jika gagal
+      localStorage.removeItem(`liked_${komenId}`);
+      setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 1) - 1 }));
     }
   };
 
@@ -146,80 +173,99 @@ export default function Beranda() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={closeModal}>
           <button onClick={closeModal} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-black/50 p-2 rounded-full z-50"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
           
-          <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className={`relative w-full ${showLombaModal ? 'md:w-1/2' : 'md:w-3/5'} bg-stone-900 h-64 md:h-[80vh] flex items-center justify-center shrink-0 group`}>
-              <img src={modalImages[modalImageIdx]} className="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Preview" />
-              {modalImages.length > 1 && (
-                <>
-                  <button onClick={prevModalImage} className="absolute left-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                  <button onClick={nextModalImage} className="absolute right-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
-                  <div className="absolute bottom-4 bg-black/60 px-4 py-1.5 rounded-full text-white text-xs tracking-widest font-bold font-sans">{modalImageIdx + 1} / {modalImages.length}</div>
-                </>
-              )}
+          <div className="bg-white w-full max-w-6xl md:w-fit rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[95vh]" onClick={e => e.stopPropagation()}>
+            <div className="relative w-full md:w-auto bg-stone-900 flex shrink-0 md:pr-[400px] lg:pr-[450px] md:min-h-[450px]">
+              <div className="relative w-full flex items-center justify-center group">
+                <img src={modalImages[modalImageIdx]} className="w-full md:w-auto md:max-w-[55vw] max-h-[50vh] md:max-h-[95vh] object-contain block" alt="Preview" />
+                {modalImages.length > 1 && (
+                  <>
+                    <button onClick={prevModalImage} className="absolute left-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                    <button onClick={nextModalImage} className="absolute right-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                    <div className="absolute bottom-4 bg-black/60 px-4 py-1.5 rounded-full text-white text-xs tracking-widest font-bold font-sans">{modalImageIdx + 1} / {modalImages.length}</div>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className={`w-full ${showLombaModal ? 'md:w-1/2' : 'md:w-2/5'} p-8 md:p-10 flex flex-col bg-[#fcfbf9] overflow-y-auto max-h-[50vh] md:max-h-[80vh]`}>
-              {showLombaModal ? (
-                <div className="flex flex-col h-full">
-                  <h2 className="text-3xl font-bold font-playfair text-stone-900 mb-2 leading-snug">Formulir Pendaftaran</h2>
-                  <p className="text-stone-500 text-sm mb-6 pb-4 border-b border-[#e8e4db]">{selectedItem.judul}</p>
-                  <form onSubmit={handleSubmitLomba} className="space-y-4 font-sans">
-                    <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nama Lengkap</label><input type="text" required value={formLomba.nama} onChange={(e) => setFormLomba({...formLomba, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Hanya huruf..." /></div>
-                    <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nomor HP / WA</label><input type="tel" required value={formLomba.noHp} onChange={(e) => setFormLomba({...formLomba, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Awali dengan 08..." maxLength={14} /></div>
-                    <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Alamat Asal / Instansi</label><textarea required rows="3" value={formLomba.alamat} onChange={(e) => setFormLomba({...formLomba, alamat: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-stone-900" placeholder="Tuliskan alamat lengkap..."></textarea></div>
-                    <button type="submit" disabled={isSubmittingLomba} className="w-full bg-[#171412] hover:bg-amber-600 text-white font-playfair font-bold text-lg py-3 rounded transition-colors mt-2">{isSubmittingLomba ? "Memproses..." : "Daftar Sekarang"}</button>
-                  </form>
-                </div>
-              ) : modalType === "sewa" ? (
-                <>
-                  <div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-amber-800 bg-amber-100 px-3 py-1 rounded-sm font-sans">{selectedItem.kategori}</span></div>
-                  <h2 className="text-3xl font-bold font-playfair text-stone-900 mb-2 leading-snug">{selectedItem.nama}</h2>
-                  <p className="text-amber-600 font-bold font-sans tracking-wide mb-6 text-xl">{selectedItem.harga}</p>
-                  <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
-                  <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
-                  <a href={formatWhatsAppLink(selectedItem.noHpSewa, selectedItem.nama)} target="_blank" rel="noopener noreferrer" className="w-full mt-6 bg-[#171412] hover:bg-amber-500 text-white text-center py-3.5 rounded-sm text-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 font-sans shadow-md">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> Reservasi via WhatsApp
-                  </a>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-red-800 bg-red-50 px-3 py-1 rounded-sm font-sans">{selectedItem.kategori}</span><span className="text-xs text-stone-500 font-sans">{selectedItem.tanggal}</span></div>
-                  <h2 className="text-3xl font-bold font-playfair text-stone-900 mb-6 leading-snug">{selectedItem.judul}</h2>
-                  <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
-                  <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
-                </>
-              )}
-              
-              {!showLombaModal && (
-                <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
-                  <h3 className="font-playfair font-bold text-xl text-stone-900 mb-4">{modalType === "sewa" ? "Tanya / Komentar" : "Komentar"} ({komentarList.length})</h3>
-                  <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
-                    {komentarList.length === 0 ? <p className="text-sm text-stone-500 italic">Belum ada diskusi. Ada pertanyaan?</p> : (
-                      komentarList.map(k => (
-                        <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
-                          <div className="flex justify-between items-center mb-1"><span className="font-bold text-sm text-stone-900">{k.nama}</span><span className="text-[10px] text-stone-400">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span></div>
-                          <p className="text-sm text-stone-600 mb-2">{k.isi}</p>
-                          <button onClick={() => handleLikeKomentar(k.id)} className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 transition-colors bg-red-50/50 hover:bg-red-50 px-2 py-1 rounded w-fit mt-1">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                            <span className="font-bold">{k.likes || 0} Suka</span>
-                          </button>
-                        </div>
-                      ))
-                    )}
+            <div className="w-full md:w-[400px] lg:w-[450px] md:absolute md:right-0 md:top-0 md:bottom-0 bg-[#fcfbf9] overflow-y-auto border-l border-stone-200">
+              <div className="p-8 md:p-10 flex flex-col h-max min-h-full">
+                {showLombaModal ? (
+                  <div className="flex flex-col h-full">
+                    <h2 className="text-3xl font-bold font-playfair text-[#1c1917] mb-2 leading-snug">Formulir Pendaftaran</h2>
+                    <p className="text-[#44403c] text-sm mb-6 pb-4 border-b border-[#e8e4db]">{selectedItem.judul}</p>
+                    <form onSubmit={handleSubmitLomba} className="space-y-4 font-sans">
+                      <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nama Lengkap</label><input type="text" required value={formLomba.nama} onChange={(e) => setFormLomba({...formLomba, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-[#1c1917]" placeholder="Hanya huruf..." /></div>
+                      <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Nomor HP / WA</label><input type="tel" required value={formLomba.noHp} onChange={(e) => setFormLomba({...formLomba, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-[#1c1917]" placeholder="Awali dengan 08..." maxLength={14} /></div>
+                      <div><label className="text-xs font-bold text-stone-800 uppercase tracking-widest block mb-1">Alamat Asal / Instansi</label><textarea required rows="3" value={formLomba.alamat} onChange={(e) => setFormLomba({...formLomba, alamat: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm text-[#1c1917]" placeholder="Tuliskan alamat lengkap..."></textarea></div>
+                      <button type="submit" disabled={isSubmittingLomba} className="w-full bg-[#171412] hover:bg-amber-600 text-white font-playfair font-bold text-lg py-3 rounded transition-colors mt-2">{isSubmittingLomba ? "Memproses..." : "Daftar Sekarang"}</button>
+                    </form>
                   </div>
-                  <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
-                    <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900" />
-                    <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Ketik pertanyaan atau komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"></textarea>
-                    <button type="submit" disabled={isSubmittingKomen} className="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
-                  </form>
-                </div>
-              )}
+                ) : modalType === "sewa" ? (
+                  <>
+                    <div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-amber-800 bg-amber-100 px-3 py-1 rounded-sm font-sans">{selectedItem.kategori}</span></div>
+                    <h2 className="text-3xl font-bold font-playfair text-[#1c1917] mb-2 leading-snug">{selectedItem.nama}</h2>
+                    <p className="text-amber-600 font-bold font-sans tracking-wide mb-6 text-xl">{selectedItem.harga}</p>
+                    <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
+                    <p className="text-[#44403c] leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
+                    <a href={formatWhatsAppLink(selectedItem.noHpSewa, selectedItem.nama)} target="_blank" rel="noopener noreferrer" className="w-full mt-6 bg-[#171412] hover:bg-amber-500 text-white text-center py-3.5 rounded-sm text-sm font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 font-sans shadow-md">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> Reservasi via WhatsApp
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 mb-4"><span className="text-xs font-bold tracking-widest uppercase text-red-800 bg-red-50 px-3 py-1 rounded-sm font-sans">{selectedItem.kategori}</span><span className="text-xs text-[#78716c] font-sans">{selectedItem.tanggal}</span></div>
+                    <h2 className="text-3xl font-bold font-playfair text-[#1c1917] mb-6 leading-snug">{selectedItem.judul}</h2>
+                    <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
+                    <p className="text-[#44403c] leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
+                  </>
+                )}
+                
+                {!showLombaModal && (
+                  <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
+                    <h3 className="font-playfair font-bold text-xl text-[#1c1917] mb-4">{modalType === "sewa" ? "Tanya / Komentar" : "Komentar"} ({komentarList.length})</h3>
+                    <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
+                      {komentarList.length === 0 ? <p className="text-sm text-[#78716c] italic">Belum ada diskusi. Ada pertanyaan?</p> : (
+                        komentarList.map(k => {
+                          const isLiked = typeof window !== 'undefined' && localStorage.getItem(`liked_${k.id}`);
+                          return (
+                            <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
+                              <div className="flex justify-between items-center mb-1"><span className="font-bold text-sm text-[#1c1917]">{k.nama}</span><span className="text-[10px] text-[#a8a29e]">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span></div>
+                              <p className="text-sm text-[#44403c] mb-3">{k.isi}</p>
+                              
+                              <div className="flex items-center gap-4 mb-1">
+                                <button onClick={() => handleLikeKomentar(k.id)} disabled={isLiked} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${isLiked ? 'text-red-600 cursor-default' : 'text-[#a8a29e] hover:text-red-600'}`}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                  {localLikes[k.id] || 0} Suka
+                                </button>
+                              </div>
+
+                              {k.balasanAdmin && (
+                                <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
+                                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
+                                  </span>
+                                  <p className="text-sm text-[#44403c]">{k.balasanAdmin}</p>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                    <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
+                      <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-[#1c1917]" />
+                      <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Ketik pertanyaan atau komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-[#1c1917]"></textarea>
+                      <button type="submit" disabled={isSubmittingKomen} className="bg-[#171412] text-white text-xs font-bold px-4 py-2.5 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
+                    </form>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      <HeroSlider images={bgHero} titleLine1="Ranah Minang di" titleLine2="Serambi Kota Pelajar" subtitle="Asrama Daerah Provinsi Sumatera Barat." />
+      <HeroSlider images={bgHero} titleLine1="Ranah Minang di" titleLine2="Serambi Kota Pelajar" subtitle="Etalase prestasi, repositori intelektual, dan ruang tumbuh bersama merawat tradisi." />
 
       {/* SEKSI LAYANAN SEWA */}
       {layananSewa.length > 0 && (
@@ -270,7 +316,7 @@ export default function Beranda() {
                 <div className="p-6 md:p-8 flex flex-col justify-center w-full">
                   <div className="flex items-center gap-3 mb-3"><span className="text-xs font-bold tracking-widest uppercase text-red-800 font-sans">{item.kategori}</span><span className="text-stone-300">•</span><span className="text-xs text-stone-500 font-sans">{item.tanggal}</span></div>
                   <h3 className="text-xl md:text-2xl font-bold text-stone-900 font-playfair mb-3 group-hover:text-amber-600 transition-colors leading-snug line-clamp-2">{item.judul}</h3>
-                  <p className="text-stone-600 text-sm leading-relaxed line-clamp-2">{item.deskripsi}</p>
+                  <p className="text-[#44403c] text-sm leading-relaxed line-clamp-2">{item.deskripsi}</p>
                   <span className="text-amber-600 text-xs font-bold uppercase tracking-widest mt-4 font-sans flex items-center gap-1 group-hover:gap-2 transition-all">Baca Selengkapnya <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
                 </div>
               </div>
