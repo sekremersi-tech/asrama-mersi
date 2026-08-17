@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp, where, updateDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp, where, updateDoc, increment } from "firebase/firestore";
 
 const HeroSlider = ({ images, title, subtitle }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
@@ -55,6 +55,9 @@ export default function FasilitasAsrama() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
+  // State bantuan untuk melacak like secara lokal
+  const [localLikes, setLocalLikes] = useState({});
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -80,7 +83,7 @@ export default function FasilitasAsrama() {
 
   const openModal = async (item, type) => { 
     setSelectedItem(item); setModalImageIdx(0); setModalType(type); document.body.style.overflow = "hidden"; 
-    setKomentarList([]); setFormKomen({ nama: "", isi: "" }); 
+    setKomentarList([]); setLocalLikes({}); setFormKomen({ nama: "", isi: "" }); 
     if (type === "sewa") {
       try {
         const targetId = String(item.id);
@@ -88,12 +91,16 @@ export default function FasilitasAsrama() {
         const snap = await getDocs(q);
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
         comments.sort((a, b) => (b.waktu?.toMillis() || 0) - (a.waktu?.toMillis() || 0));
+        
+        let likesMap = {};
+        comments.forEach(c => { likesMap[c.id] = c.likes || 0; });
+        setLocalLikes(likesMap);
         setKomentarList(comments);
       } catch(e) { console.error(e); }
     }
   };
 
-  const closeModal = () => { setSelectedItem(null); setKomentarList([]); setFormKomen({ nama: "", isi: "" }); document.body.style.overflow = "auto"; };
+  const closeModal = () => { setSelectedItem(null); setKomentarList([]); setLocalLikes({}); setFormKomen({ nama: "", isi: "" }); document.body.style.overflow = "auto"; };
   const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
   const nextModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev + 1) % modalImages.length); };
   const prevModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev - 1 + modalImages.length) % modalImages.length); };
@@ -107,20 +114,32 @@ export default function FasilitasAsrama() {
       const judulPostingan = selectedItem.judul || selectedItem.nama || "Penyewaan / Fasilitas";
       const newKomen = { postId: targetId, postJudul: judulPostingan, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), likes: 0, waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
-      setKomentarList([{id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }, ...komentarList]);
+      
+      const addedKomen = {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } };
+      setKomentarList([addedKomen, ...komentarList]);
+      setLocalLikes(prev => ({ ...prev, [docRef.id]: 0 }));
       setFormKomen({nama: "", isi: ""});
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
 
-  const handleLikeKomentar = async (komenId, currentLikes) => {
+  const handleLikeKomentar = async (komenId) => {
+    if (typeof window === 'undefined') return;
     const liked = localStorage.getItem(`liked_${komenId}`);
     if (liked) return;
+
     try {
-      const newLikes = (currentLikes || 0) + 1;
-      await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: newLikes });
       localStorage.setItem(`liked_${komenId}`, 'true');
-      setKomentarList(prev => prev.map(k => k.id === komenId ? { ...k, likes: newLikes } : k));
-    } catch (e) { console.error("Gagal menyukai komentar:", e); }
+      setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
+
+      await updateDoc(doc(db, "komentar_publikasi", komenId), { 
+        likes: increment(1) 
+      });
+
+    } catch (e) { 
+      console.error("Gagal menyukai komentar:", e); 
+      localStorage.removeItem(`liked_${komenId}`);
+      setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 1) - 1 }));
+    }
   };
 
   const uploadToCloudinary = async (file) => { 
@@ -288,32 +307,34 @@ export default function FasilitasAsrama() {
                       <h3 className="font-playfair font-bold text-xl text-[#1c1917] mb-4">Tanya / Komentar ({komentarList.length})</h3>
                       <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
                         {komentarList.length === 0 ? <p className="text-sm text-[#78716c] italic">Belum ada diskusi. Ada pertanyaan?</p> : (
-                          komentarList.map(k => (
-                            <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="font-bold text-sm text-[#1c1917]">{k.nama}</span>
-                                <span className="text-[10px] text-[#a8a29e]">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span>
-                              </div>
-                              <p className="text-sm text-[#44403c] mb-3">{k.isi}</p>
-                              
-                              <div className="flex items-center gap-4 mb-1">
-                                <button onClick={() => handleLikeKomentar(k.id, k.likes)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? 'text-red-600' : 'text-stone-400 hover:text-red-600'}`}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill={typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                  {k.likes || 0} Suka
-                                </button>
-                              </div>
-
-                              {k.balasanAdmin && (
-                                <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
-                                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
-                                  </span>
-                                  <p className="text-sm text-[#44403c]">{k.balasanAdmin}</p>
+                          komentarList.map(k => {
+                            const isLiked = typeof window !== 'undefined' && localStorage.getItem(`liked_${k.id}`);
+                            return (
+                              <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
+                                <div className="flex justify-between items-center mb-2">
+                                  <span className="font-bold text-sm text-[#1c1917]">{k.nama}</span>
+                                  <span className="text-[10px] text-[#a8a29e]">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span>
                                 </div>
-                              )}
+                                <p className="text-sm text-[#44403c] mb-3">{k.isi}</p>
+                                
+                                <div className="flex items-center gap-4 mb-1">
+                                  <button onClick={() => handleLikeKomentar(k.id)} disabled={isLiked} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${isLiked ? 'text-red-600 cursor-default' : 'text-stone-400 hover:text-red-600'}`}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                    {localLikes[k.id] || 0} Suka
+                                  </button>
+                                </div>
 
-                            </div>
-                          ))
+                                {k.balasanAdmin && (
+                                  <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
+                                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
+                                    </span>
+                                    <p className="text-sm text-[#44403c]">{k.balasanAdmin}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })
                         )}
                       </div>
                       <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
@@ -406,3 +427,6 @@ export default function FasilitasAsrama() {
     </div>
   );
 }
+
+berikut file fasiltitas/page.js
+tolong lakukan perbaikan yang sama dengan beranda agar bisa di klik menyukainya
