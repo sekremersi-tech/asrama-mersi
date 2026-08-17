@@ -62,8 +62,10 @@ export default function JejakPrestasi() {
 
   const [showSkripsiModal, setShowSkripsiModal] = useState(false);
   const [selectedSkripsi, setSelectedSkripsi] = useState(null);
-  const [formUnduh, setFormUnduh] = useState({ namaPengunduh: "", emailPengunduh: "", noHpPengunduh: "" });
-  const [isSubmittingUnduh, setIsSubmittingUnduh] = useState(false);
+  
+  // STATE PERMOHONAN SKRIPSI (MENGGANTIKAN FORM UNDUH)
+  const [formPermohonan, setFormPermohonan] = useState({ nama: "", instansi: "", noHp: "", tujuan: "" });
+  const [isSubmittingPermohonan, setIsSubmittingPermohonan] = useState(false);
 
   const [searchSkripsi, setSearchSkripsi] = useState("");
   const [skripsiPage, setSkripsiPage] = useState(0);
@@ -203,32 +205,37 @@ export default function JejakPrestasi() {
     } catch (err) { alert("Gagal mengirim komentar!"); } finally { setIsSubmittingKomen(false); }
   };
 
-  const handleUnduhSkripsi = async (e) => {
+  // LOGIKA BARU PENGAJUAN AKSES SKRIPSI
+  const handleAjukanAkses = async (e) => {
     e.preventDefault();
-    if (!formUnduh.noHpPengunduh.startsWith("08")) {
+    if (!formPermohonan.noHp.startsWith("08")) {
       return alert("Gagal: Nomor HP / WA harus diawali dengan angka 08");
     }
-    if (formUnduh.noHpPengunduh.length < 11) {
+    if (formPermohonan.noHp.length < 11) {
       return alert("Gagal: Nomor HP / WA tidak valid. Minimal harus 11 angka.");
     }
-    if (!formUnduh.emailPengunduh.includes("@")) {
-      return alert("Gagal: Format email tidak valid.");
-    }
 
-    setIsSubmittingUnduh(true);
+    setIsSubmittingPermohonan(true);
     try {
-      await addDoc(collection(db, "log_unduh_skripsi"), {
-        ...formUnduh,
+      await addDoc(collection(db, "permohonan_skripsi"), {
+        nama: formPermohonan.nama,
+        instansi: formPermohonan.instansi,
+        noHp: formPermohonan.noHp,
+        tujuan: formPermohonan.tujuan,
         skripsiId: selectedSkripsi.id,
         judulSkripsi: selectedSkripsi.judul,
-        penulisSkripsi: selectedSkripsi.nama,
-        waktuAkses: serverTimestamp()
+        status: "Menunggu",
+        waktu: serverTimestamp()
       });
-      window.open(selectedSkripsi.linkPDF, "_blank");
+      alert("Permohonan berhasil dikirim! Silakan tunggu konfirmasi dan link akses dari Sekretaris via WhatsApp.");
       setShowSkripsiModal(false);
-      setFormUnduh({ namaPengunduh: "", emailPengunduh: "", noHpPengunduh: "" });
+      setFormPermohonan({ nama: "", instansi: "", noHp: "", tujuan: "" });
       document.body.style.overflow = "auto";
-    } catch (error) { alert("Gagal memproses unduhan."); } finally { setIsSubmittingUnduh(false); }
+    } catch (error) { 
+      alert("Gagal memproses permohonan. Coba lagi."); 
+    } finally { 
+      setIsSubmittingPermohonan(false); 
+    }
   };
 
   const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
@@ -334,48 +341,61 @@ export default function JejakPrestasi() {
         </div>
       )}
 
-      {/* MODAL UNDUH SKRIPSI */}
+      {/* MODAL PERMOHONAN AKSES SKRIPSI (PENGGANTI MODAL UNDUH) */}
       {showSkripsiModal && selectedSkripsi && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={() => {setShowSkripsiModal(false); document.body.style.overflow = "auto";}}>
           <div className="bg-white p-8 rounded-lg shadow-2xl max-w-md w-full border-t-4 border-red-800" onClick={e => e.stopPropagation()}>
             <h3 className="font-playfair text-2xl font-bold text-stone-900 mb-2">Akses Skripsi</h3>
-            <p className="text-sm text-stone-500 mb-6 pb-4 border-b border-stone-100">Silakan isi data diri Anda untuk mengunduh karya tulis ini. Data digunakan untuk keperluan pendataan perpustakaan asrama.</p>
-            <form onSubmit={handleUnduhSkripsi} className="space-y-4 font-sans">
+            <p className="text-sm text-stone-500 mb-6 pb-4 border-b border-stone-100">Silakan isi form ini untuk memohon akses baca skripsi. Link akses rahasia (hanya baca 3 halaman pertama) akan dikirimkan via WhatsApp setelah permohonan disetujui.</p>
+            <form onSubmit={handleAjukanAkses} className="space-y-4 font-sans">
               <div>
                 <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nama Lengkap</label>
                 <input 
                   type="text" 
                   required 
-                  value={formUnduh.namaPengunduh} 
-                  onChange={(e) => setFormUnduh({...formUnduh, namaPengunduh: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} 
+                  value={formPermohonan.nama} 
+                  onChange={(e) => setFormPermohonan({...formPermohonan, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} 
                   className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
                   placeholder="Hanya isi dengan huruf..." 
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Email Aktif</label>
+                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Instansi / Asal Kampus</label>
                 <input 
-                  type="email" 
+                  type="text" 
                   required 
-                  value={formUnduh.emailPengunduh} 
-                  onChange={(e) => setFormUnduh({...formUnduh, emailPengunduh: e.target.value})} 
+                  value={formPermohonan.instansi} 
+                  onChange={(e) => setFormPermohonan({...formPermohonan, instansi: e.target.value})} 
                   className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
-                  placeholder="contoh@gmail.com" 
+                  placeholder="Nama instansi atau kampus Anda" 
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nomor WA / HP</label>
+                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nomor WA / HP Aktif</label>
                 <input 
                   type="tel" 
                   required 
                   maxLength={14}
-                  value={formUnduh.noHpPengunduh} 
-                  onChange={(e) => setFormUnduh({...formUnduh, noHpPengunduh: e.target.value.replace(/\D/g, '')})} 
+                  value={formPermohonan.noHp} 
+                  onChange={(e) => setFormPermohonan({...formPermohonan, noHp: e.target.value.replace(/\D/g, '')})} 
                   className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
                   placeholder="Awali dengan 08..." 
                 />
               </div>
-              <button type="submit" disabled={isSubmittingUnduh} className="w-full bg-[#171412] hover:bg-red-800 text-white font-bold py-3 rounded transition-colors mt-2">{isSubmittingUnduh ? "Memproses..." : "Unduh Dokumen"}</button>
+              <div>
+                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Tujuan Membaca Skripsi</label>
+                <textarea 
+                  required 
+                  rows="2"
+                  value={formPermohonan.tujuan} 
+                  onChange={(e) => setFormPermohonan({...formPermohonan, tujuan: e.target.value})} 
+                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
+                  placeholder="Contoh: Untuk referensi penelitian..." 
+                ></textarea>
+              </div>
+              <button type="submit" disabled={isSubmittingPermohonan} className="w-full bg-[#171412] hover:bg-red-800 text-white font-bold py-3 rounded transition-colors mt-2">
+                {isSubmittingPermohonan ? "Memproses..." : "Ajukan Permohonan Akses"}
+              </button>
             </form>
           </div>
         </div>
