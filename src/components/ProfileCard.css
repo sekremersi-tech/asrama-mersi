@@ -61,7 +61,8 @@
 
 .pc-card {
   width: 100%;
-  height: auto; /* Mengikuti tinggi asli foto */
+  height: auto; 
+  aspect-ratio: 3/4; /* RAHASIA AGAR KARTU TIDAK HILANG DAN PROPORSIONAL */
   display: grid;
   border-radius: var(--card-radius);
   position: relative;
@@ -228,15 +229,15 @@
 
 .pc-avatar-content .avatar {
   width: 100%;
-  height: auto; /* Membiarkan tinggi mengikuti proporsi asli foto */
-  display: block; /* Menghilangkan spasi default img */
+  height: 100%; 
   object-fit: cover;
-  position: relative; /* Bukan absolute agar bisa mendorong tinggi parent */
+  position: absolute; 
+  inset: 0;
   transform-origin: 50% 50%;
   transform: translateX(calc((var(--pointer-from-left) - 0.5) * 8px)) 
              translateY(calc((var(--pointer-from-top) - 0.5) * 8px)) 
              translateZ(0) 
-             scale(1.05); /* Sedikit diperbesar agar tepinya tidak bocor saat miring */
+             scale(1.05);
   backface-visibility: hidden;
   will-change: transform;
   transition: transform 120ms ease-out;
