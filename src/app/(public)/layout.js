@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function PublicLayout({ children }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [kontak, setKontak] = useState({ namaKetua: "Admin", noTelpon: "-" });
 
+  // 1. EFEK ANIMASI MUNCUL
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -32,12 +33,45 @@ export default function PublicLayout({ children }) {
     return () => { observer.disconnect(); mutationObserver.disconnect(); };
   }, [pathname]);
 
+  // 2. AMBIL DATA KONTAK
   useEffect(() => {
     const fetchKontak = async () => {
       const snap = await getDoc(doc(db, "pengaturan", "kontak"));
       if(snap.exists()) setKontak(snap.data());
     };
     fetchKontak();
+  }, []);
+
+  // 3. SISTEM PELACAK PENGUNJUNG (CCTV ANALITIK TANPA GPS)
+  useEffect(() => {
+    const trackVisitor = async () => {
+      // Jika dalam sesi ini sudah dicatat, abaikan agar tidak dobel
+      if (sessionStorage.getItem('mersi_tracked')) return;
+
+      try {
+        // Ambil data lokasi berdasarkan IP Address (Gratis & Aman)
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        
+        // Kirim laporan ke database
+        await addDoc(collection(db, "log_pengunjung"), {
+          ip: data.ip || "Tidak diketahui",
+          kota: data.city || "Tidak diketahui",
+          provinsi: data.region || "Tidak diketahui",
+          negara: data.country_name || "Tidak diketahui",
+          isp: data.org || "Provider tidak diketahui",
+          userAgent: navigator.userAgent, // Tipe HP/Browser
+          waktu: serverTimestamp()
+        });
+
+        // Tandai bahwa HP/Browser ini sudah dicatat
+        sessionStorage.setItem('mersi_tracked', 'true');
+      } catch (error) {
+        console.error("Gagal mencatat log kunjungan:", error);
+      }
+    };
+
+    trackVisitor();
   }, []);
 
   const formatWhatsAppLink = (nomor) => {
@@ -206,7 +240,6 @@ export default function PublicLayout({ children }) {
                   <span>Ketua: {kontak.namaKetua} ({kontak.noTelpon})</span>
                 </a>
               </li>
-              {/* BAGIAN EMAIL YANG BARU DITAMBAHKAN */}
               <li>
                 <a href="mailto:sekremersi@gmail.com" className="flex items-center gap-3 group hover:text-white transition-colors">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 group-hover:text-amber-500 transition-colors">
