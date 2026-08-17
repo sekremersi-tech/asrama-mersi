@@ -58,8 +58,10 @@ export default function AdminDashboard() {
 
   // STATE DATA
   const [dataSejarah, setDataSejarah] = useState([]);
-  const [pengurusInti, setPengurusInti] = useState({ ketuaNama: "", ketuaFoto: "", ketuaFoto2: "", sekreNama: "", sekreFoto: "", sekreFoto2: "", bendaharaNama: "", bendaharaFoto: "", bendaharaFoto2: "" });
-  const [fileInti, setFileInti] = useState({ ketua: null, ketua2: null, sekretaris: null, sekretaris2: null, bendahara: null, bendahara2: null });
+  // PERBAIKAN: Hapus state foto2 (karena 3D Profile Card cuma butuh 1 foto)
+  const [pengurusInti, setPengurusInti] = useState({ ketuaNama: "", ketuaFoto: "", sekreNama: "", sekreFoto: "", bendaharaNama: "", bendaharaFoto: "" });
+  const [fileInti, setFileInti] = useState({ ketua: null, sekretaris: null, bendahara: null });
+  
   const [dataDivisi, setDataDivisi] = useState([]);
   const [dataAnggota, setDataAnggota] = useState([]);
   const [dataFotoProfil, setDataFotoProfil] = useState([]);
@@ -76,27 +78,22 @@ export default function AdminDashboard() {
   const [dataPendaftarLomba, setDataPendaftarLomba] = useState([]);
   const [dataPendaftarAsrama, setDataPendaftarAsrama] = useState([]);
   const [dataKomentar, setDataKomentar] = useState([]);
-  const [dataPengunjung, setDataPengunjung] = useState([]); // STATE LOG KUNJUNGAN
+  const [dataPengunjung, setDataPengunjung] = useState([]); 
 
   // STATE FORM INPUT & EDIT ID
   const [judulSejarah, setJudulSejarah] = useState(""); const [isiSejarah, setIsiSejarah] = useState(""); const [editSejarahId, setEditSejarahId] = useState(null); 
   const [namaDivisiBaru, setNamaDivisiBaru] = useState("");
-  const [formAnggota, setFormAnggota] = useState({ divisiId: "", nama: "", peran: "Anggota" }); const [fileAnggota, setFileAnggota] = useState(null); const [fileAnggota2, setFileAnggota2] = useState(null); const [editAnggotaId, setEditAnggotaId] = useState(null);
+  // PERBAIKAN: Hapus fileAnggota2
+  const [formAnggota, setFormAnggota] = useState({ divisiId: "", nama: "", peran: "Anggota" }); const [fileAnggota, setFileAnggota] = useState(null); const [editAnggotaId, setEditAnggotaId] = useState(null);
+  
   const [konteksFoto, setKonteksFoto] = useState(""); const [filesFotoProfil, setFilesFotoProfil] = useState([]); const [editFotoProfId, setEditFotoProfId] = useState(null);
   const [tahunTimeline, setTahunTimeline] = useState(""); const [judulTimeline, setJudulTimeline] = useState(""); const [deskripsiTimeline, setDeskripsiTimeline] = useState(""); const [editTimelineId, setEditTimelineId] = useState(null);
   const [namaFasilitas, setNamaFasilitas] = useState(""); const [deskripsiFasilitas, setDeskripsiFasilitas] = useState(""); const [filesFasilitas, setFilesFasilitas] = useState([]); const [editFasilitId, setEditFasilitId] = useState(null);
   const [namaSewa, setNamaSewa] = useState(""); const [kategoriSewa, setKategoriSewa] = useState("Tempat / Barang"); const [hargaSewa, setHargaSewa] = useState(""); const [noHpSewa, setNoHpSewa] = useState(""); const [deskripsiSewa, setDeskripsiSewa] = useState(""); const [filesSewa, setFilesSewa] = useState([]); const [editSewaId, setEditSewaId] = useState(null);
-  
-  // STATE GALERI - Deskripsi Dihapus
   const [judulGaleri, setJudulGaleri] = useState(""); const [warnaGaleri, setWarnaGaleri] = useState("#ffffff"); const [filesGaleri, setFilesGaleri] = useState([]); const [editGaleriId, setEditGaleriId] = useState(null);
-  
   const [judulKonten, setJudulKonten] = useState(""); const [kategori, setKategori] = useState("PRESTASI"); const [customKategori, setCustomKategori] = useState(""); const [deskripsi, setDeskripsi] = useState(""); const [filesGambar, setFilesGambar] = useState([]); const [editKehidupanId, setEditKehidupanId] = useState(null);
   const [nama, setNama] = useState(""); const [jurusan, setJurusan] = useState(""); const [judulSkripsi, setJudulSkripsi] = useState(""); const [tahun, setTahun] = useState(""); const [filePDF, setFilePDF] = useState(null); const [editSkripsiId, setEditSkripsiId] = useState(null);
-  
-  // STATE FORM SUARA ALUMNI
   const [namaAlumni, setNamaAlumni] = useState(""); const [tahunLulus, setTahunLulus] = useState(""); const [pesanAlumni, setPesanAlumni] = useState(""); const [fileFotoAlumni, setFileFotoAlumni] = useState(null); const [editPesanId, setEditPesanId] = useState(null);
-
-  // STATE BALASAN KOMENTAR
   const [replyKomenId, setReplyKomenId] = useState(null); const [replyText, setReplyText] = useState("");
 
   // PAGINATION STATES 
@@ -113,7 +110,7 @@ export default function AdminDashboard() {
   const [pageDaftarLomba, setPageDaftarLomba] = useState(1);
   const [pageKomentar, setPageKomentar] = useState(1);
   const [pageUnduh, setPageUnduh] = useState(1);
-  const [pagePengunjung, setPagePengunjung] = useState(1); // PAGINATION PENGUNJUNG
+  const [pagePengunjung, setPagePengunjung] = useState(1); 
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -166,8 +163,6 @@ export default function AdminDashboard() {
     const lombaSnap = await getDocs(query(collection(db, "pendaftaran_lomba"), orderBy("waktuDaftar", "desc"))); setDataPendaftarLomba(lombaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const asramaSnap = await getDocs(query(collection(db, "pendaftaran_asrama"), orderBy("waktuDaftar", "desc"))); setDataPendaftarAsrama(asramaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const komenSnap = await getDocs(query(collection(db, "komentar_publikasi"), orderBy("waktu", "desc"))); setDataKomentar(komenSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    
-    // MENGAMBIL DATA LOG PENGUNJUNG
     const pengSnap = await getDocs(query(collection(db, "log_pengunjung"), orderBy("waktu", "desc"))); setDataPengunjung(pengSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
@@ -179,15 +174,58 @@ export default function AdminDashboard() {
   const handleSaveProfilText = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "profilText"), profilText); await setDoc(doc(db, "pengaturan", "kontak"), kontak); setStatus({ type: "success", message: "Teks profil & Kontak berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveStatusAsrama = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "statusAsrama"), statusAsrama); setStatus({ type: "success", message: "Status Asrama berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveBrosur = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let currentBrosurUrl = brosurUrl; if (fileBrosur) { currentBrosurUrl = await uploadToCloudinary(fileBrosur, "image"); setBrosurUrl(currentBrosurUrl); setFileBrosur(null); } await setDoc(doc(db, "pengaturan", "brosur"), { link: currentBrosurUrl, linkFormulir: linkFormulir }); setStatus({ type: "success", message: "Brosur & Link Formulir Pendaftaran berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
-  const handleSavePengurusInti = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newData = { ...pengurusInti }; if (fileInti.ketua) newData.ketuaFoto = await uploadToCloudinary(fileInti.ketua, "image"); if (fileInti.ketua2) newData.ketuaFoto2 = await uploadToCloudinary(fileInti.ketua2, "image"); if (fileInti.sekretaris) newData.sekreFoto = await uploadToCloudinary(fileInti.sekretaris, "image"); if (fileInti.sekretaris2) newData.sekreFoto2 = await uploadToCloudinary(fileInti.sekretaris2, "image"); if (fileInti.bendahara) newData.bendaharaFoto = await uploadToCloudinary(fileInti.bendahara, "image"); if (fileInti.bendahara2) newData.bendaharaFoto2 = await uploadToCloudinary(fileInti.bendahara2, "image"); await setDoc(doc(db, "pengaturan", "pengurus_inti"), newData); setPengurusInti(newData); setFileInti({ ketua: null, ketua2: null, sekretaris: null, sekretaris2: null, bendahara: null, bendahara2: null }); setStatus({ type: "success", message: "Pengurus Inti berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
+  
+  // PERBAIKAN: Fungsi Save Pengurus Inti hanya menggunakan 1 foto
+  const handleSavePengurusInti = async (e) => { 
+    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); 
+    try { 
+      let newData = { ...pengurusInti }; 
+      if (fileInti.ketua) newData.ketuaFoto = await uploadToCloudinary(fileInti.ketua, "image"); 
+      if (fileInti.sekretaris) newData.sekreFoto = await uploadToCloudinary(fileInti.sekretaris, "image"); 
+      if (fileInti.bendahara) newData.bendaharaFoto = await uploadToCloudinary(fileInti.bendahara, "image"); 
+      await setDoc(doc(db, "pengaturan", "pengurus_inti"), newData); 
+      setPengurusInti(newData); 
+      setFileInti({ ketua: null, sekretaris: null, bendahara: null }); 
+      setStatus({ type: "success", message: "Pengurus Inti berhasil diperbarui!" }); 
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } 
+  };
 
   // -- FUNGSI EDIT / TAMBAH PER KATEGORI --
   const handleSubmitSejarah = async (e) => { e.preventDefault(); setLoading(true); try { if (editSejarahId) { await updateDoc(doc(db, "sejarah_asrama", editSejarahId), { judul: judulSejarah, isi: isiSejarah }); setStatus({ type: "success", message: "Sejarah diperbarui!" }); } else { await addDoc(collection(db, "sejarah_asrama"), { judul: judulSejarah, isi: isiSejarah, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Sejarah ditambahkan!" }); } setJudulSejarah(""); setIsiSejarah(""); setEditSejarahId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditSejarahClick = (item) => { setEditSejarahId(item.id); setJudulSejarah(item.judul); setIsiSejarah(item.isi); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
   const handleTambahDivisi = async (e) => { e.preventDefault(); setLoading(true); try { await addDoc(collection(db, "divisi_asrama"), { namaDivisi: namaDivisiBaru, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Divisi berhasil ditambahkan!" }); setNamaDivisiBaru(""); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
-  const handleEditAnggotaClick = (anggota) => { setEditAnggotaId(anggota.id); setFormAnggota({ divisiId: anggota.divisiId, nama: anggota.nama, peran: anggota.peran || "Anggota" }); setFileAnggota(null); setFileAnggota2(null); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  const handleTambahAnggota = async (e) => { e.preventDefault(); setLoading(true); try { let fotoUrl = ""; let fotoUrl2 = ""; if (editAnggotaId) { const existing = dataAnggota.find(a => a.id === editAnggotaId); fotoUrl = existing.foto; fotoUrl2 = existing.foto2 || existing.foto; if (fileAnggota) fotoUrl = await uploadToCloudinary(fileAnggota, "image"); if (fileAnggota2) fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); else if (fileAnggota) fotoUrl2 = fotoUrl; if (!fileAnggota && fotoUrl.includes("ui-avatars.com") && existing.nama !== formAnggota.nama) { fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; if (!existing.foto2 || existing.foto2.includes("ui-avatars.com")) fotoUrl2 = fotoUrl; } await updateDoc(doc(db, "anggota_divisi", editAnggotaId), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, foto2: fotoUrl2 }); setStatus({ type: "success", message: "Data Anggota diperbarui!" }); } else { fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; if (fileAnggota) fotoUrl = await uploadToCloudinary(fileAnggota, "image"); if (fileAnggota2) fotoUrl2 = await uploadToCloudinary(fileAnggota2, "image"); else fotoUrl2 = fotoUrl; await addDoc(collection(db, "anggota_divisi"), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, foto2: fotoUrl2, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Anggota ditambahkan!" }); } setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); setFileAnggota(null); setFileAnggota2(null); setEditAnggotaId(null); fetchAllData(); if(document.getElementById('foto1Anggota')) document.getElementById('foto1Anggota').value = ""; if(document.getElementById('foto2Anggota')) document.getElementById('foto2Anggota').value = ""; } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
+  
+  // PERBAIKAN: Hapus rujukan fileAnggota2 dari klik edit
+  const handleEditAnggotaClick = (anggota) => { setEditAnggotaId(anggota.id); setFormAnggota({ divisiId: anggota.divisiId, nama: anggota.nama, peran: anggota.peran || "Anggota" }); setFileAnggota(null); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  
+  // PERBAIKAN: Logika Tambah Anggota hanya menyimpan 1 foto
+  const handleTambahAnggota = async (e) => { 
+    e.preventDefault(); setLoading(true); 
+    try { 
+      let fotoUrl = ""; 
+      if (editAnggotaId) { 
+        const existing = dataAnggota.find(a => a.id === editAnggotaId); 
+        fotoUrl = existing.foto; 
+        if (fileAnggota) fotoUrl = await uploadToCloudinary(fileAnggota, "image"); 
+        if (!fileAnggota && fotoUrl.includes("ui-avatars.com") && existing.nama !== formAnggota.nama) { 
+          fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; 
+        } 
+        await updateDoc(doc(db, "anggota_divisi", editAnggotaId), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl }); 
+        setStatus({ type: "success", message: "Data Anggota diperbarui!" }); 
+      } else { 
+        fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; 
+        if (fileAnggota) fotoUrl = await uploadToCloudinary(fileAnggota, "image"); 
+        await addDoc(collection(db, "anggota_divisi"), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, createdAt: serverTimestamp() }); 
+        setStatus({ type: "success", message: "Anggota ditambahkan!" }); 
+      } 
+      setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); 
+      setFileAnggota(null); 
+      setEditAnggotaId(null); 
+      fetchAllData(); 
+      if(document.getElementById('foto1Anggota')) document.getElementById('foto1Anggota').value = ""; 
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } 
+  };
   
   const handleSubmitTimeline = async (e) => { e.preventDefault(); setLoading(true); try { if (editTimelineId) { await updateDoc(doc(db, "timeline_sejarah", editTimelineId), { tahun: tahunTimeline, judul: judulTimeline, deskripsi: deskripsiTimeline }); setStatus({ type: "success", message: "Timeline diperbarui!" }); } else { await addDoc(collection(db, "timeline_sejarah"), { tahun: tahunTimeline, judul: judulTimeline, deskripsi: deskripsiTimeline, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Timeline ditambahkan!" }); } setTahunTimeline(""); setJudulTimeline(""); setDeskripsiTimeline(""); setEditTimelineId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditTimelineClick = (item) => { setEditTimelineId(item.id); setTahunTimeline(item.tahun); setJudulTimeline(item.judul); setDeskripsiTimeline(item.deskripsi); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -201,25 +239,7 @@ export default function AdminDashboard() {
   const handleSubmitPenyewaan = async (e) => { e.preventDefault(); setLoading(true); try { let urls = editSewaId ? dataPenyewaan.find(d=>d.id===editSewaId).linkGambar : []; if (filesSewa.length > 0) { urls = []; for (const file of filesSewa) urls.push(await uploadToCloudinary(file, "image")); } if (editSewaId) { await updateDoc(doc(db, "daftar_penyewaan", editSewaId), { nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls }); setStatus({ type: "success", message: "Layanan diperbarui!" }); } else { await addDoc(collection(db, "daftar_penyewaan"), { nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Layanan ditambahkan!" }); } setNamaSewa(""); setDeskripsiSewa(""); setKategoriSewa("Tempat / Barang"); setHargaSewa(""); setNoHpSewa(""); setFilesSewa([]); setEditSewaId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditSewaClick = (item) => { setEditSewaId(item.id); setNamaSewa(item.nama); setKategoriSewa(item.kategori); setHargaSewa(item.harga); setNoHpSewa(item.noHpSewa); setDeskripsiSewa(item.deskripsi); setFilesSewa([]); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
-  // FUNGSI GALERI YANG BARU (DESKRIPSI DIHILANGKAN)
-  const handleSubmitGaleri = async (e) => { 
-    e.preventDefault(); setLoading(true); 
-    try { 
-      let urls = editGaleriId ? (dataGaleri.find(d=>d.id===editGaleriId).linkGambar || []) : []; 
-      if (filesGaleri.length > 0) { 
-        urls = []; 
-        for (const file of filesGaleri) urls.push(await uploadToCloudinary(file, "image")); 
-      } 
-      if (editGaleriId) { 
-        await updateDoc(doc(db, "fasilitas", editGaleriId), { judul: judulGaleri, warna: warnaGaleri, linkGambar: urls }); 
-        setStatus({ type: "success", message: "Galeri diperbarui!" }); 
-      } else { 
-        await addDoc(collection(db, "fasilitas"), { judul: judulGaleri, warna: warnaGaleri, linkGambar: urls, createdAt: serverTimestamp() }); 
-        setStatus({ type: "success", message: "Galeri ditambahkan!" }); 
-      } 
-      setJudulGaleri(""); setWarnaGaleri("#ffffff"); setFilesGaleri([]); setEditGaleriId(null); fetchAllData(); 
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } 
-  };
+  const handleSubmitGaleri = async (e) => { e.preventDefault(); setLoading(true); try { let urls = editGaleriId ? (dataGaleri.find(d=>d.id===editGaleriId).linkGambar || []) : []; if (filesGaleri.length > 0) { urls = []; for (const file of filesGaleri) urls.push(await uploadToCloudinary(file, "image")); } if (editGaleriId) { await updateDoc(doc(db, "fasilitas", editGaleriId), { judul: judulGaleri, warna: warnaGaleri, linkGambar: urls }); setStatus({ type: "success", message: "Galeri diperbarui!" }); } else { await addDoc(collection(db, "fasilitas"), { judul: judulGaleri, warna: warnaGaleri, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Galeri ditambahkan!" }); } setJudulGaleri(""); setWarnaGaleri("#ffffff"); setFilesGaleri([]); setEditGaleriId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditGaleriClick = (item) => { setEditGaleriId(item.id); setJudulGaleri(item.judul); setWarnaGaleri(item.warna || "#ffffff"); setFilesGaleri([]); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const handleSubmitKehidupan = async (e) => { e.preventDefault(); setLoading(true); try { let urls = editKehidupanId ? dataKehidupan.find(d=>d.id===editKehidupanId).linkGambar : []; if (filesGambar.length > 0) { urls = []; for (const file of filesGambar) urls.push(await uploadToCloudinary(file, "image")); } const finalKategori = kategori === "LAINNYA" ? customKategori.toUpperCase() : kategori; if (editKehidupanId) { await updateDoc(doc(db, "kehidupan", editKehidupanId), { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls }); setStatus({ type: "success", message: "Publikasi diperbarui!" }); } else { await addDoc(collection(db, "kehidupan"), { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls, tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Publikasi ditambahkan!" }); } setJudulKonten(""); setDeskripsi(""); setCustomKategori(""); setKategori("PRESTASI"); setFilesGambar([]); setEditKehidupanId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
@@ -336,9 +356,9 @@ export default function AdminDashboard() {
               <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">1. Pengurus Inti Asrama</h2> 
               <form onSubmit={handleSavePengurusInti} className="space-y-6"> 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
-                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Ketua Asrama</label> <input type="text" required value={pengurusInti.ketuaNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaNama: e.target.value})} placeholder="Nama Ketua..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> 
-                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Sekretaris</label> <input type="text" required value={pengurusInti.sekreNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreNama: e.target.value})} placeholder="Nama Sekretaris..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> 
-                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Bendahara</label> <input type="text" required value={pengurusInti.bendaharaNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaNama: e.target.value})} placeholder="Nama Bendahara..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Tampilan Belakang)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara2: e.target.files[0]})} className="w-full text-xs bg-amber-50 p-1 border border-amber-200 rounded" /> </div> 
+                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Ketua Asrama</label> <input type="text" required value={pengurusInti.ketuaNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaNama: e.target.value})} placeholder="Nama Ketua..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> </div> 
+                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Sekretaris</label> <input type="text" required value={pengurusInti.sekreNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreNama: e.target.value})} placeholder="Nama Sekretaris..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> </div> 
+                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> <label className="text-sm font-bold block mb-2 text-red-800">Bendahara</label> <input type="text" required value={pengurusInti.bendaharaNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaNama: e.target.value})} placeholder="Nama Bendahara..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> </div> 
                 </div> 
                 <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2.5 rounded-md font-bold w-full md:w-auto">Simpan Pengurus Inti</button> 
               </form> 
@@ -361,13 +381,13 @@ export default function AdminDashboard() {
                     <div> <label className="text-sm font-semibold mb-1 block">Nama Anggota</label> <input type="text" required value={formAnggota.nama} onChange={(e) => setFormAnggota({...formAnggota, nama: e.target.value})} className="w-full px-4 py-2 border rounded-md" /> </div> 
                     <div> <label className="text-sm font-semibold mb-1 block">Peran / Jabatan</label> <select required value={formAnggota.peran} onChange={(e) => setFormAnggota({...formAnggota, peran: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"> <option value="Anggota">Anggota</option> <option value="Koordinator">Koordinator</option> </select> </div> 
                   </div> 
-                  <div className="grid grid-cols-2 gap-2"> 
-                    <div> <label className="text-[11px] font-bold mb-1 block">Foto 1 {editAnggotaId && "(Abaikan jika tak diubah)"}</label> <input type="file" id="foto1Anggota" accept="image/*" onChange={(e) => setFileAnggota(e.target.files[0])} className="w-full text-xs border border-slate-200 p-1.5 rounded" /> </div> 
-                    <div> <label className="text-[11px] font-bold text-amber-600 mb-1 block">Foto 2 (Opsional)</label> <input type="file" id="foto2Anggota" accept="image/*" onChange={(e) => setFileAnggota2(e.target.files[0])} className="w-full text-xs border border-amber-200 p-1.5 rounded bg-amber-50" /> </div> 
+                  <div> 
+                    <label className="text-[11px] font-bold mb-1 block">Upload Foto Anggota {editAnggotaId && "(Abaikan jika tak diubah)"}</label> 
+                    <input type="file" id="foto1Anggota" accept="image/*" onChange={(e) => setFileAnggota(e.target.files[0])} className="w-full text-xs border border-slate-200 p-1.5 rounded" /> 
                   </div> 
                   <div className="flex flex-col sm:flex-row gap-2 mt-2">
                     <button type="submit" disabled={loading || !formAnggota.divisiId} className="w-full bg-red-800 hover:bg-red-900 text-white px-4 py-2.5 rounded-md font-bold">{editAnggotaId ? "Simpan Perubahan" : "Tambah Anggota"}</button>
-                    {editAnggotaId && <button type="button" onClick={() => { setEditAnggotaId(null); setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); setFileAnggota(null); setFileAnggota2(null); }} className="w-full bg-stone-500 text-white px-4 py-2.5 rounded-md font-bold">Batal Edit</button>}
+                    {editAnggotaId && <button type="button" onClick={() => { setEditAnggotaId(null); setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); setFileAnggota(null); }} className="w-full bg-stone-500 text-white px-4 py-2.5 rounded-md font-bold">Batal Edit</button>}
                   </div>
                 </form> 
               </div> 
