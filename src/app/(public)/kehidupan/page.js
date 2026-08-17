@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp, where, updateDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp, where, updateDoc, increment } from "firebase/firestore";
 import DomeGallery from "@/components/DomeGallery";
 
 const HeroSlider = ({ images, title, subtitle }) => { 
@@ -54,6 +54,9 @@ export default function Kehidupan() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
+  // State bantuan untuk melacak like secara lokal
+  const [localLikes, setLocalLikes] = useState({});
+
   // STATE SLIDER BERITA
   const [newsPage, setNewsPage] = useState(0);
   const newsPerPage = 2;
@@ -74,10 +77,9 @@ export default function Kehidupan() {
     fetchData();
   }, []);
 
-  // Menyusun struktur gambar galeri agar sesuai dengan format yang diminta DomeGallery
   const domeImages = dataGaleri.reduce((acc, item) => {
     const links = Array.isArray(item.linkGambar) ? item.linkGambar : (item.linkGambar ? [item.linkGambar] : []);
-    const mapped = links.map(src => ({ src, alt: item.judul || "Galeri Asrama" }));
+    const mapped = links.map(src => ({ src, alt: item.judul || "Galeri Asrama", color: item.warna || '#ffffff' }));
     return [...acc, ...mapped];
   }, []);
 
@@ -90,6 +92,7 @@ export default function Kehidupan() {
     } else {
       setShowLombaModal(false);
       setKomentarList([]);
+      setLocalLikes({});
       
       try {
         const targetId = String(item.id);
@@ -97,13 +100,17 @@ export default function Kehidupan() {
         const snap = await getDocs(q);
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
         comments.sort((a, b) => (b.waktu?.toMillis() || 0) - (a.waktu?.toMillis() || 0));
+        
+        let likesMap = {};
+        comments.forEach(c => { likesMap[c.id] = c.likes || 0; });
+        setLocalLikes(likesMap);
         setKomentarList(comments);
       } catch(e) { console.error(e); }
     }
   };
 
   const closeModal = () => { 
-    setSelectedItem(null); setShowLombaModal(false); setKomentarList([]); 
+    setSelectedItem(null); setShowLombaModal(false); setKomentarList([]); setLocalLikes({});
     setFormKomen({ nama: "", isi: "" }); 
     document.body.style.overflow = "auto"; 
   };
@@ -133,20 +140,40 @@ export default function Kehidupan() {
       const judulPostingan = selectedItem.judul || selectedItem.nama || "Postingan Publikasi";
       const newKomen = { postId: targetId, postJudul: judulPostingan, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), likes: 0, waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
-      setKomentarList([{id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }, ...komentarList]);
+      
+      const addedKomen = {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } };
+      setKomentarList([addedKomen, ...komentarList]);
+      setLocalLikes(prev => ({ ...prev, [docRef.id]: 0 }));
       setFormKomen({nama: "", isi: ""});
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
 
-  const handleLikeKomentar = async (komenId, currentLikes) => {
-    const liked = localStorage.getItem(`liked_${komenId}`);
-    if (liked) return;
-    try {
-      const newLikes = (currentLikes || 0) + 1;
-      await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: newLikes });
-      localStorage.setItem(`liked_${komenId}`, 'true');
-      setKomentarList(prev => prev.map(k => k.id === komenId ? { ...k, likes: newLikes } : k));
-    } catch (e) { console.error("Gagal menyukai komentar:", e); }
+  // LOGIKA LIKE / UNLIKE
+  const handleLikeKomentar = async (komenId) => {
+    if (typeof window === 'undefined') return;
+    const isCurrentlyLiked = localStorage.getItem(`liked_${komenId}`);
+
+    if (isCurrentlyLiked) {
+      try {
+        localStorage.removeItem(`liked_${komenId}`);
+        setLocalLikes(prev => ({ ...prev, [komenId]: Math.max(0, (prev[komenId] || 0) - 1) }));
+        await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: increment(-1) });
+      } catch (e) {
+        console.error("Gagal membatalkan like:", e);
+        localStorage.setItem(`liked_${komenId}`, 'true');
+        setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
+      }
+    } else {
+      try {
+        localStorage.setItem(`liked_${komenId}`, 'true');
+        setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
+        await updateDoc(doc(db, "komentar_publikasi", komenId), { likes: increment(1) });
+      } catch (e) { 
+        console.error("Gagal menyukai komentar:", e); 
+        localStorage.removeItem(`liked_${komenId}`);
+        setLocalLikes(prev => ({ ...prev, [komenId]: Math.max(0, (prev[komenId] || 0) - 1) }));
+      }
+    }
   };
 
   const totalNewsPages = Math.ceil(dataBerita.length / newsPerPage);
@@ -200,37 +227,40 @@ export default function Kehidupan() {
                         {komentarList.length === 0 ? (
                           <p className="text-sm text-[#78716c] italic">Belum ada komentar. Jadilah yang pertama!</p>
                         ) : (
-                          komentarList.map(k => (
-                            <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="font-bold text-sm text-[#1c1917]">{k.nama}</span>
-                                <span className="text-[10px] text-[#a8a29e]">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span>
-                              </div>
-                              <p className="text-sm text-[#44403c] mb-3">{k.isi}</p>
-
-                              <div className="flex items-center gap-4 mb-1">
-                                <button onClick={() => handleLikeKomentar(k.id, k.likes)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? 'text-red-600' : 'text-[#a8a29e] hover:text-red-600'}`}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill={typeof window !== 'undefined' && localStorage.getItem('liked_'+k.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                  {k.likes || 0} Suka
-                                </button>
-                              </div>
-
-                              {k.balasanAdmin && (
-                                <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
-                                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
-                                  </span>
-                                  <p className="text-sm text-[#44403c]">{k.balasanAdmin}</p>
+                          komentarList.map(k => {
+                            const isLiked = typeof window !== 'undefined' && localStorage.getItem(`liked_${k.id}`);
+                            return (
+                              <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-bold text-sm text-[#1c1917]">{k.nama}</span>
+                                  <span className="text-[10px] text-[#a8a29e]">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span>
                                 </div>
-                              )}
-                            </div>
-                          ))
+                                <p className="text-sm text-[#44403c] mb-3">{k.isi}</p>
+
+                                <div className="flex items-center gap-4 mb-1">
+                                  <button onClick={() => handleLikeKomentar(k.id)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${isLiked ? 'text-red-600' : 'text-[#a8a29e] hover:text-red-600'}`}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                    {localLikes[k.id] || 0} Suka
+                                  </button>
+                                </div>
+
+                                {k.balasanAdmin && (
+                                  <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
+                                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
+                                    </span>
+                                    <p className="text-sm text-[#44403c]">{k.balasanAdmin}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })
                         )}
                       </div>
                       <form onSubmit={submitKomentar} className="space-y-3 bg-stone-50 p-4 rounded border border-stone-200">
                         <input type="text" value={formKomen.nama} onChange={e => setFormKomen({...formKomen, nama: e.target.value})} placeholder="Nama (Opsional / Anonim)" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-[#1c1917]" />
                         <textarea required value={formKomen.isi} onChange={e => setFormKomen({...formKomen, isi: e.target.value})} placeholder="Tulis komentar..." rows="2" className="w-full px-3 py-2 text-sm border border-stone-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 text-[#1c1917]"></textarea>
-                        <button type="submit" disabled={isSubmittingKomen} className="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
+                        <button type="submit" disabled={isSubmittingKomen} className="bg-[#171412] text-white text-xs font-bold px-4 py-2.5 rounded hover:bg-amber-600 transition-colors w-full">{isSubmittingKomen ? 'Mengirim...' : 'Kirim Komentar'}</button>
                       </form>
                     </div>
                   </>
@@ -258,8 +288,8 @@ export default function Kehidupan() {
               images={domeImages} 
               grayscale={false} 
               overlayBlurColor="#fcfbf9"
-              minRadius={1400} // Membuat lingkaran jauh lebih besar (mendekati dinding melengkung) dan foto lebih besar
-              openedImageWidth="85vw" // Ukuran maksimum gambar saat ditekan
+              minRadius={1400} 
+              openedImageWidth="85vw" 
               openedImageHeight="85vh"
             />
           </div>
