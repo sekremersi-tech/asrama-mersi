@@ -122,23 +122,41 @@ export default function FasilitasAsrama() {
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
 
+  // LOGIKA LIKE / UNLIKE BARU
   const handleLikeKomentar = async (komenId) => {
     if (typeof window === 'undefined') return;
-    const liked = localStorage.getItem(`liked_${komenId}`);
-    if (liked) return;
+    const isCurrentlyLiked = localStorage.getItem(`liked_${komenId}`);
 
-    try {
-      localStorage.setItem(`liked_${komenId}`, 'true');
-      setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
+    if (isCurrentlyLiked) {
+      // PROSES UNLIKE (BATAL SUKA)
+      try {
+        localStorage.removeItem(`liked_${komenId}`);
+        setLocalLikes(prev => ({ ...prev, [komenId]: Math.max(0, (prev[komenId] || 0) - 1) }));
 
-      await updateDoc(doc(db, "komentar_publikasi", komenId), { 
-        likes: increment(1) 
-      });
+        await updateDoc(doc(db, "komentar_publikasi", komenId), { 
+          likes: increment(-1) 
+        });
+      } catch (e) {
+        console.error("Gagal membatalkan like:", e);
+        // Rollback jika gagal
+        localStorage.setItem(`liked_${komenId}`, 'true');
+        setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
+      }
+    } else {
+      // PROSES LIKE (SUKA)
+      try {
+        localStorage.setItem(`liked_${komenId}`, 'true');
+        setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
 
-    } catch (e) { 
-      console.error("Gagal menyukai komentar:", e); 
-      localStorage.removeItem(`liked_${komenId}`);
-      setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 1) - 1 }));
+        await updateDoc(doc(db, "komentar_publikasi", komenId), { 
+          likes: increment(1) 
+        });
+      } catch (e) { 
+        console.error("Gagal menyukai komentar:", e); 
+        // Rollback jika gagal
+        localStorage.removeItem(`liked_${komenId}`);
+        setLocalLikes(prev => ({ ...prev, [komenId]: Math.max(0, (prev[komenId] || 0) - 1) }));
+      }
     }
   };
 
@@ -318,7 +336,7 @@ export default function FasilitasAsrama() {
                                 <p className="text-sm text-[#44403c] mb-3">{k.isi}</p>
                                 
                                 <div className="flex items-center gap-4 mb-1">
-                                  <button onClick={() => handleLikeKomentar(k.id)} disabled={isLiked} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${isLiked ? 'text-red-600 cursor-default' : 'text-stone-400 hover:text-red-600'}`}>
+                                  <button onClick={() => handleLikeKomentar(k.id)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${isLiked ? 'text-red-600' : 'text-stone-400 hover:text-red-600'}`}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                                     {localLikes[k.id] || 0} Suka
                                   </button>
@@ -427,5 +445,3 @@ export default function FasilitasAsrama() {
     </div>
   );
 }
-
-
