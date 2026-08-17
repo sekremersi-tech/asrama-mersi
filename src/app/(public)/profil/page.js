@@ -157,21 +157,15 @@ export default function ProfilAsrama() {
       setTimeout(() => {
         setHalAktif(newIndex);
         setIsAnimasiFlip(false);
-      }, 400);
+      }, 400); // Tunggu animasi flip selesai sebelum mengganti konten
     }
   };
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora overflow-x-hidden relative">
       <style jsx global>{`
-        .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
         .backface-hidden { backface-visibility: hidden; }
-        .rotate-y-180 { transform: rotateY(180deg); }
-        .flip-next { animation: flipNext 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-origin: left center; }
-        .flip-prev { animation: flipPrev 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-origin: right center; }
-        @keyframes flipNext { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(-90deg); opacity: 0; } }
-        @keyframes flipPrev { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(90deg); opacity: 0; } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
         .animate-float { animation: float 6s ease-in-out infinite; }
         
@@ -197,24 +191,55 @@ export default function ProfilAsrama() {
           font-weight: 700;
           color: #991b1b; /* red-800 */
         }
+
+        /* ANIMASI BUKU 3D YANG LEBIH REALISTIS, UNIK & ESTETIK */
+        .perspective-1500 { perspective: 1500px; }
+        
+        .flip-next { animation: flipOutNext 0.4s ease-in forwards; transform-origin: left center; }
+        .page-enter-next { animation: flipInNext 0.4s ease-out forwards; transform-origin: right center; }
+        
+        .flip-prev { animation: flipOutPrev 0.4s ease-in forwards; transform-origin: right center; }
+        .page-enter-prev { animation: flipInPrev 0.4s ease-out forwards; transform-origin: left center; }
+
+        @keyframes flipOutNext {
+          0% { transform: rotateY(0deg) rotateZ(0deg) translateZ(0) translateY(0) scale(1); opacity: 1; }
+          50% { transform: rotateY(-45deg) rotateZ(-2deg) translateZ(40px) translateY(-10px) scale(1.02); opacity: 0.8; box-shadow: 20px 30px 50px rgba(0,0,0,0.15); }
+          100% { transform: rotateY(-90deg) rotateZ(-4deg) translateZ(0px) translateY(0) scale(0.95); opacity: 0; }
+        }
+        @keyframes flipInNext {
+          0% { transform: rotateY(90deg) rotateZ(4deg) translateZ(0px) scale(0.95); opacity: 0; }
+          50% { transform: rotateY(45deg) rotateZ(2deg) translateZ(40px) translateY(-10px) scale(1.02); opacity: 0.8; box-shadow: -20px 30px 50px rgba(0,0,0,0.15); }
+          100% { transform: rotateY(0deg) rotateZ(0deg) translateZ(0) scale(1); opacity: 1; }
+        }
+
+        @keyframes flipOutPrev {
+          0% { transform: rotateY(0deg) rotateZ(0deg) translateZ(0) translateY(0) scale(1); opacity: 1; }
+          50% { transform: rotateY(45deg) rotateZ(2deg) translateZ(40px) translateY(-10px) scale(1.02); opacity: 0.8; box-shadow: -20px 30px 50px rgba(0,0,0,0.15); }
+          100% { transform: rotateY(90deg) rotateZ(4deg) translateZ(0px) translateY(0) scale(0.95); opacity: 0; }
+        }
+        @keyframes flipInPrev {
+          0% { transform: rotateY(-90deg) rotateZ(-4deg) translateZ(0px) scale(0.95); opacity: 0; }
+          50% { transform: rotateY(-45deg) rotateZ(-2deg) translateZ(40px) translateY(-10px) scale(1.02); opacity: 0.8; box-shadow: 20px 30px 50px rgba(0,0,0,0.15); }
+          100% { transform: rotateY(0deg) rotateZ(0deg) translateZ(0) scale(1); opacity: 1; }
+        }
       `}</style>
 
       <HeroSlider images={bgProfil} title="Profil Asrama" />
 
-      {/* 1. SEJARAH - DESAIN BUKU ELEGAN */}
+      {/* 1. SEJARAH - DESAIN BUKU ELEGAN & ANIMASI UNIK */}
       <div id="sejarah" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="relative mt-12 perspective-1000">
+        <div className="relative mt-12 perspective-1500 transform-style-3d">
           
           {/* Tumpukan Kertas Belakang (Lebih Realistis) */}
           <div className="absolute inset-0 bg-[#d9d4c5] transform translate-y-3 -rotate-2 rounded-sm shadow-md"></div>
           <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-1.5 rotate-1 rounded-sm shadow-md"></div>
           
-          {/* Kertas Utama */}
-          <div className={`relative bg-[#fcfbf9] rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[450px] overflow-hidden ${isAnimasiFlip ? (arahFlip === 'next' ? 'flip-next' : 'flip-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500'}`}>
+          {/* Kertas Utama (Dengan kelas animasi baru) */}
+          <div className={`relative bg-[#fcfbf9] rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[450px] overflow-hidden ${isAnimasiFlip ? (arahFlip === 'next' ? 'flip-next' : 'flip-prev') : (arahFlip ? (arahFlip === 'next' ? 'page-enter-next' : 'page-enter-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500')}`}>
             
             {/* Efek Garis Lipatan Buku di Kiri & Pita Pembatas Buku */}
-            <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-black/5 to-transparent border-r border-black/5 pointer-events-none"></div>
-            <div className="absolute top-0 right-12 w-8 h-16 bg-red-800 shadow-md origin-top transform transition-transform hover:scale-y-110 pointer-events-none" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)" }}></div>
+            <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-black/5 to-transparent border-r border-black/5 pointer-events-none z-20"></div>
+            <div className="absolute top-0 right-12 w-8 h-16 bg-red-800 shadow-md origin-top transform transition-transform hover:scale-y-110 pointer-events-none z-20" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)" }}></div>
 
             <div className="p-8 md:p-14 lg:px-20 flex flex-col flex-grow relative z-10">
               {/* Header Kertas */}
