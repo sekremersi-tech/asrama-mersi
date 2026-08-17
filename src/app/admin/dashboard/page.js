@@ -73,12 +73,13 @@ export default function AdminDashboard() {
   const [dataSkripsi, setDataSkripsi] = useState([]);
   const [dataPesanAlumni, setDataPesanAlumni] = useState([]); 
   
-  // STATE LOG DATA
+  // STATE LOG DATA & PERMOHONAN
   const [dataLogUnduh, setDataLogUnduh] = useState([]);
   const [dataPendaftarLomba, setDataPendaftarLomba] = useState([]);
   const [dataPendaftarAsrama, setDataPendaftarAsrama] = useState([]);
   const [dataKomentar, setDataKomentar] = useState([]);
   const [dataPengunjung, setDataPengunjung] = useState([]); 
+  const [dataPermohonanSkripsi, setDataPermohonanSkripsi] = useState([]); 
 
   // STATE FORM INPUT & EDIT ID
   const [judulSejarah, setJudulSejarah] = useState(""); const [isiSejarah, setIsiSejarah] = useState(""); const [editSejarahId, setEditSejarahId] = useState(null); 
@@ -105,6 +106,7 @@ export default function AdminDashboard() {
   const [pageGaleri, setPageGaleri] = useState(1);
   const [pageKehidupan, setPageKehidupan] = useState(1);
   const [pageSkripsi, setPageSkripsi] = useState(1);
+  const [pagePermohonan, setPagePermohonan] = useState(1);
   const [pagePesanAlumni, setPagePesanAlumni] = useState(1); 
   const [pageDaftarAsrama, setPageDaftarAsrama] = useState(1);
   const [pageDaftarLomba, setPageDaftarLomba] = useState(1);
@@ -164,11 +166,37 @@ export default function AdminDashboard() {
     const asramaSnap = await getDocs(query(collection(db, "pendaftaran_asrama"), orderBy("waktuDaftar", "desc"))); setDataPendaftarAsrama(asramaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const komenSnap = await getDocs(query(collection(db, "komentar_publikasi"), orderBy("waktu", "desc"))); setDataKomentar(komenSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const pengSnap = await getDocs(query(collection(db, "log_pengunjung"), orderBy("waktu", "desc"))); setDataPengunjung(pengSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const mohonSkripsiSnap = await getDocs(query(collection(db, "permohonan_skripsi"), orderBy("waktu", "desc"))); setDataPermohonanSkripsi(mohonSkripsiSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
   const uploadToCloudinary = async (file, resourceType = "image") => { const formData = new FormData(); formData.append("file", file); formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: "POST", body: formData }); const data = await res.json(); if (data.error) throw new Error(data.error.message); return data.secure_url; };
   const handleDelete = async (koleksi, id) => { if (confirm("Yakin ingin menghapus data ini secara permanen?")) { await deleteDoc(doc(db, koleksi, id)); fetchAllData(); } };
   
+  // -- FUNGSI KONFIRMASI AKSES SKRIPSI --
+  const handleKirimAksesSkripsi = async (item) => {
+    try {
+      await updateDoc(doc(db, "permohonan_skripsi", item.id), { status: "Disetujui" });
+      const baseUrl = window.location.origin;
+      const secretLink = `${baseUrl}/skripsi-viewer?id=${item.skripsiId}&nama=${encodeURIComponent(item.nama)}&hp=${item.noHp}`;
+      let bersihkanNomor = item.noHp.replace(/\D/g, '');
+      if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
+      const pesanWa = `Halo ${item.nama},\n\nPermohonan akses skripsi Anda untuk judul *"${item.judulSkripsi}"* telah disetujui oleh Sekretariat Asrama Mersi.\n\nBerikut adalah link akses rahasia Anda (Hanya dapat melihat 3 halaman pertama & terproteksi):\n${secretLink}\n\nTerima kasih.`;
+      window.open(`https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(pesanWa)}`, "_blank");
+      fetchAllData();
+    } catch (error) {
+      alert("Gagal memperbarui status.");
+    }
+  };
+
+  const handleTolakSkripsi = async (item) => {
+    try {
+      await updateDoc(doc(db, "permohonan_skripsi", item.id), { status: "Ditolak" });
+      fetchAllData();
+    } catch (error) {
+      alert("Gagal menolak.");
+    }
+  };
+
   // -- PENGATURAN TEKS --
   const handleSaveTampilan = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newUrls = { ...tampilanUrls }; const keys = ["hero", "profil", "fasilitas", "kehidupan", "alumni", "gateway"]; for (let key of keys) { if (tampilanFiles[key] && tampilanFiles[key].length > 0) { let urls = []; for (const file of tampilanFiles[key]) { urls.push(await uploadToCloudinary(file, "image")); } newUrls[key] = urls; } } if (tampilanFiles.gateway && tampilanFiles.gateway.length > 0) { delete newUrls.gateway1; delete newUrls.gateway2; delete newUrls.gateway3; } await setDoc(doc(db, "pengaturan", "tampilan"), newUrls, { merge: true }); setTampilanUrls(newUrls); setTampilanFiles({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] }); setStatus({ type: "success", message: "Semua foto latar berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveProfilText = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "profilText"), profilText); await setDoc(doc(db, "pengaturan", "kontak"), kontak); setStatus({ type: "success", message: "Teks profil & Kontak berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
@@ -219,10 +247,7 @@ export default function AdminDashboard() {
         await addDoc(collection(db, "anggota_divisi"), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, createdAt: serverTimestamp() }); 
         setStatus({ type: "success", message: "Anggota ditambahkan!" }); 
       } 
-      setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); 
-      setFileAnggota(null); 
-      setEditAnggotaId(null); 
-      fetchAllData(); 
+      setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); setFileAnggota(null); setEditAnggotaId(null); fetchAllData(); 
       if(document.getElementById('foto1Anggota')) document.getElementById('foto1Anggota').value = ""; 
     } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } 
   };
@@ -441,8 +466,53 @@ export default function AdminDashboard() {
         {/* TAB KEHIDUPAN / PUBLIKASI */}
         {activeTab === "kehidupan" && allowedTabs.includes("kehidupan") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">{editKehidupanId ? "Edit Publikasi" : "Tambah Publikasi Baru"}</h2> <form onSubmit={handleSubmitKehidupan} className="space-y-4"> <input type="text" required value={judulKonten} onChange={(e) => setJudulKonten(e.target.value)} placeholder="Judul Berita..." className="w-full px-4 py-2 border rounded-md" /> <select value={kategori} onChange={(e) => setKategori(e.target.value)} className="w-full px-4 py-2 border rounded-md font-bold"> <option value="PRESTASI">Prestasi</option> <option value="MERSI X BK">MERSI X BK</option> <option value="LOMBA TERBUKA">Lomba Terbuka</option> <option value="LAINNYA">Lainnya... (Isi Manual)</option> </select> {kategori === "LAINNYA" && <input type="text" required value={customKategori} onChange={(e) => setCustomKategori(e.target.value)} placeholder="Tuliskan nama kategori..." className="w-full px-4 py-2 border border-amber-500 bg-amber-50 rounded-md" />} <textarea required rows="4" value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)} placeholder="Isi Berita..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="file" multiple accept="image/*" required={!editKehidupanId} onChange={(e) => setFilesGambar(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-slate-50" /> <div className="flex gap-2"><button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editKehidupanId ? "Simpan Perubahan" : "Publikasikan"}</button>{editKehidupanId && <button type="button" onClick={()=>{setEditKehidupanId(null); setJudulKonten(""); setDeskripsi("");}} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}</div> </form> </div> <div className="bg-white rounded-xl shadow-md p-6"> <h3 className="font-bold mb-4 border-b pb-2">Daftar Publikasi</h3> <div className="space-y-3"> {dataKehidupan.slice((pageKehidupan-1)*itemsPerPage, pageKehidupan*itemsPerPage).map(item => ( <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 border rounded-lg"> <div><div className="font-semibold text-sm line-clamp-1">{item.judul} <span className="text-red-600 text-xs">({item.kategori})</span></div><div className="text-xs text-slate-500">{item.tanggal}</div></div> <div className="flex gap-3"><button onClick={()=>handleEditKehidupanClick(item)} className="text-amber-600 text-xs font-bold">Edit</button><button onClick={()=>handleDelete("kehidupan", item.id)} className="text-red-500 text-xs font-bold">Hapus</button></div> </div> ))} </div> <Pagination totalItems={dataKehidupan.length} itemsPerPage={itemsPerPage} currentPage={pageKehidupan} setCurrentPage={setPageKehidupan}/> </div> </div> )}
         
-        {/* TAB SKRIPSI */}
-        {activeTab === "skripsi" && allowedTabs.includes("skripsi") && ( <div className="space-y-6"> <div className="bg-white rounded-xl shadow-md p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">{editSkripsiId ? "Edit Skripsi" : "Tambah Skripsi"}</h2> <form onSubmit={handleSubmitSkripsi} className="space-y-4"> <input type="text" required value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama Penulis..." className="w-full px-4 py-2 border rounded-md" /> <input type="text" required value={jurusan} onChange={(e) => setJurusan(e.target.value)} placeholder="Jurusan..." className="w-full px-4 py-2 border rounded-md" /> <textarea required rows="1" value={judulSkripsi} onChange={(e) => setJudulSkripsi(e.target.value)} placeholder="Judul Skripsi..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="number" required value={tahun} onChange={(e) => setTahun(e.target.value)} placeholder="Tahun..." className="w-full px-4 py-2 border rounded-md" /> <input type="file" accept=".pdf" required={!editSkripsiId} onChange={(e) => setFilePDF(e.target.files[0])} className="w-full text-sm border p-2 rounded bg-slate-50" /> <div className="flex gap-2"><button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editSkripsiId ? "Simpan Perubahan" : "Tambahkan"}</button>{editSkripsiId && <button type="button" onClick={()=>{setEditSkripsiId(null); setNama(""); setJurusan(""); setJudulSkripsi(""); setTahun("");}} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}</div> </form> </div> <div className="bg-white rounded-xl shadow-md p-6"> <h3 className="font-bold mb-4 border-b pb-2">Kelola Skripsi</h3> <div className="space-y-3"> {dataSkripsi.slice((pageSkripsi-1)*itemsPerPage, pageSkripsi*itemsPerPage).map(item => ( <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 border rounded-lg"> <div><div className="font-semibold text-sm">{item.nama} - {item.tahun}</div><div className="text-xs line-clamp-1">{item.judul}</div></div> <div className="flex gap-3"><button onClick={()=>handleEditSkripsiClick(item)} className="text-amber-600 text-xs font-bold">Edit</button><button onClick={()=>handleDelete("skripsi", item.id)} className="text-red-500 text-xs font-bold">Hapus</button></div> </div> ))} </div> <Pagination totalItems={dataSkripsi.length} itemsPerPage={itemsPerPage} currentPage={pageSkripsi} setCurrentPage={setPageSkripsi}/> </div> </div> )}
+        {/* --- KHUSUS TAB SKRIPSI (DITAMBAH TABEL APPROVAL) --- */}
+        {activeTab === "skripsi" && allowedTabs.includes("skripsi") && ( 
+          <div className="space-y-6"> 
+            
+            {/* Tabel Permohonan Akses Skripsi */}
+            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-amber-500 mb-8">
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h2 className="text-lg font-bold text-slate-900">Permohonan Akses Baca Skripsi</h2>
+                  <span className="text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-bold">Total: {dataPermohonanSkripsi.length}</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead><tr className="bg-slate-50 border-y text-slate-600"><th className="p-3">Waktu</th><th className="p-3">Identitas Pemohon</th><th className="p-3">Target Skripsi</th><th className="p-3 text-center">Status & Aksi</th></tr></thead>
+                  <tbody className="divide-y">
+                    {dataPermohonanSkripsi.length === 0 ? <tr><td colSpan="4" className="p-8 text-center text-slate-500">Belum ada permohonan akses.</td></tr> : (
+                      dataPermohonanSkripsi.slice((pagePermohonan-1)*itemsPerPage, pagePermohonan*itemsPerPage).map(item => (
+                        <tr key={item.id} className="hover:bg-slate-50">
+                          <td className="p-3 text-xs">{item.waktu ? new Date(item.waktu.toDate()).toLocaleString('id-ID') : '-'}</td>
+                          <td className="p-3">
+                            <b>{item.nama}</b><br/>
+                            <span className="text-xs text-stone-500">{item.instansi}</span><br/>
+                            <span className="text-xs font-semibold text-amber-700">{item.noHp}</span>
+                          </td>
+                          <td className="p-3">
+                            <span className="text-xs font-bold bg-slate-200 px-2 py-0.5 rounded">{item.judulSkripsi}</span><br/>
+                            <span className="text-[10px] text-stone-500 italic mt-1 block">Alasan: "{item.tujuan}"</span>
+                          </td>
+                          <td className="p-3 text-center">
+                            {item.status === "Menunggu" ? (
+                              <div className="flex gap-2 justify-center">
+                                <button onClick={() => handleKirimAksesSkripsi(item)} className="bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold hover:bg-green-700">Setujui & WA</button>
+                                <button onClick={() => handleTolakSkripsi(item)} className="bg-stone-200 text-stone-700 text-xs px-3 py-1.5 rounded font-bold hover:bg-stone-300">Tolak</button>
+                              </div>
+                            ) : (
+                              <span className={`text-xs font-bold px-2 py-1 rounded ${item.status === 'Disetujui' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.status}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination totalItems={dataPermohonanSkripsi.length} itemsPerPage={itemsPerPage} currentPage={pagePermohonan} setCurrentPage={setPagePermohonan}/>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">{editSkripsiId ? "Edit Skripsi" : "Tambah Skripsi"}</h2> <form onSubmit={handleSubmitSkripsi} className="space-y-4"> <input type="text" required value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama Penulis..." className="w-full px-4 py-2 border rounded-md" /> <input type="text" required value={jurusan} onChange={(e) => setJurusan(e.target.value)} placeholder="Jurusan..." className="w-full px-4 py-2 border rounded-md" /> <textarea required rows="1" value={judulSkripsi} onChange={(e) => setJudulSkripsi(e.target.value)} placeholder="Judul Skripsi..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="number" required value={tahun} onChange={(e) => setTahun(e.target.value)} placeholder="Tahun..." className="w-full px-4 py-2 border rounded-md" /> <input type="file" accept=".pdf" required={!editSkripsiId} onChange={(e) => setFilePDF(e.target.files[0])} className="w-full text-sm border p-2 rounded bg-slate-50" /> <div className="flex gap-2"><button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editSkripsiId ? "Simpan Perubahan" : "Tambahkan"}</button>{editSkripsiId && <button type="button" onClick={()=>{setEditSkripsiId(null); setNama(""); setJurusan(""); setJudulSkripsi(""); setTahun("");}} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}</div> </form> </div> <div className="bg-white rounded-xl shadow-md p-6"> <h3 className="font-bold mb-4 border-b pb-2">Kelola Skripsi</h3> <div className="space-y-3"> {dataSkripsi.slice((pageSkripsi-1)*itemsPerPage, pageSkripsi*itemsPerPage).map(item => ( <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 border rounded-lg"> <div><div className="font-semibold text-sm">{item.nama} - {item.tahun}</div><div className="text-xs line-clamp-1">{item.judul}</div></div> <div className="flex gap-3"><button onClick={()=>handleEditSkripsiClick(item)} className="text-amber-600 text-xs font-bold">Edit</button><button onClick={()=>handleDelete("skripsi", item.id)} className="text-red-500 text-xs font-bold">Hapus</button></div> </div> ))} </div> <Pagination totalItems={dataSkripsi.length} itemsPerPage={itemsPerPage} currentPage={pageSkripsi} setCurrentPage={setPageSkripsi}/> </div> </div> )}
         
         {/* TAB SUARA ALUMNI (BARU) */}
         {activeTab === "suara_alumni" && allowedTabs.includes("suara_alumni") && (
