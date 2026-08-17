@@ -96,7 +96,7 @@ function SecureViewerContent() {
         pointerEvents: isBlurred ? "none" : "auto" 
       }} 
     >
-      {/* Peringatan Saat Layar Tidak Fokus */}
+      {/* Peringatan Saat Layar Tidak Fokus (Anti-Screenshot PC) */}
       {isBlurred && (
         <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center text-red-500 font-bold p-8 text-center gap-6 shadow-[0_0_100px_rgba(220,38,38,0.5)]">
           <div className="bg-red-500/20 p-6 rounded-full border-2 border-red-500/50">
@@ -111,7 +111,7 @@ function SecureViewerContent() {
         </div>
       )}
 
-      {/* Header Info - Minimalis Tanpa Logo Asrama */}
+      {/* Header Info - Minimalis */}
       <div className="bg-[#171412] border-b border-[#292524] py-4 px-6 md:px-12 sticky top-0 z-40 flex flex-col md:flex-row justify-between items-start md:items-center shadow-md gap-4">
         <div className="max-w-3xl">
           <h1 className="text-stone-200 font-bold font-playfair text-lg md:text-xl line-clamp-2 leading-snug mb-1">{skripsi.judul}</h1>
@@ -123,14 +123,15 @@ function SecureViewerContent() {
         </div>
       </div>
 
-      {/* Area Dokumen dengan Watermark Rapat */}
+      {/* Area Dokumen dengan Watermark */}
       <div className={`relative max-w-4xl mx-auto py-12 px-4 transition-all duration-300 ${isBlurred ? 'blur-[10px] opacity-30 grayscale' : 'opacity-100'}`}>
         
-        {/* WATERMARK BERJALAN YANG SANGAT RAPAT (Anti-Screenshot HP) */}
-        <div className="fixed inset-0 z-30 pointer-events-none overflow-hidden opacity-[0.08] mix-blend-overlay flex justify-center items-center">
-          <div className="w-[300%] h-[300%] flex flex-wrap justify-center items-center gap-4 rotate-[-35deg]">
-            {Array.from({ length: 400 }).map((_, i) => (
-              <span key={i} className="text-xl md:text-3xl font-black text-black uppercase tracking-widest whitespace-nowrap drop-shadow-md">
+        {/* WATERMARK FORENSIK (SANGAT JELAS & TEBAL UNTUK ANTI-SCREENSHOT HP) */}
+        <div className="fixed inset-0 z-30 pointer-events-none overflow-hidden flex justify-center items-center">
+          {/* Opacity dinaikkan jadi 0.12 dan warna teks hitam solid, pasti merusak hasil screenshot */}
+          <div className="w-[300%] h-[300%] flex flex-wrap justify-center items-center gap-x-8 gap-y-16 rotate-[-35deg] opacity-[0.12]">
+            {Array.from({ length: 300 }).map((_, i) => (
+              <span key={i} className="text-2xl md:text-4xl font-black text-stone-900 uppercase tracking-widest whitespace-nowrap">
                 DIBACA OLEH {namaPeminta} ({hpPeminta}) - HAK CIPTA MERSI 
               </span>
             ))}
