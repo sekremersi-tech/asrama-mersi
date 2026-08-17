@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
-import ProfileCard from "@/components/ProfileCard"; // Import komponen 3D Profile Card
+import ProfileCard from "@/components/ProfileCard";
 
 const HeroSlider = ({ images, title }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
@@ -286,14 +286,15 @@ export default function ProfilAsrama() {
 
         {loading ? <p className="text-center text-stone-500">Memuat struktur organisasi...</p> : (
           <>
-            {/* PENGURUS INTI: KETUA DI TENGAH */}
+            {/* PENGURUS INTI: KETUA DI TENGAH DITINGGIKAN */}
             {pengurusInti && (
               <div className="mb-20">
                 <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10 pb-4 border-b border-stone-200 max-w-xs mx-auto">Pengurus Inti</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center max-w-5xl mx-auto">
-                  {/* Kolom 1: Sekretaris */}
+                {/* justify-items-center dan items-start agar formasi piramida terlihat */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 justify-items-center items-start max-w-5xl mx-auto pt-8">
+                  {/* Kolom 1: Sekretaris (Lebih Kecil, Turun) */}
                   {pengurusInti.sekreNama && (
-                    <div className="w-full max-w-[300px]">
+                    <div className="w-full max-w-[260px] md:mt-16">
                       <ProfileCard 
                         name={pengurusInti.sekreNama} 
                         status="Sekretaris" 
@@ -304,9 +305,9 @@ export default function ProfilAsrama() {
                       />
                     </div>
                   )}
-                  {/* Kolom 2: Ketua (Di Tengah) */}
+                  {/* Kolom 2: Ketua (Di Tengah, Ditinggikan / Margin Negatif) */}
                   {pengurusInti.ketuaNama && (
-                    <div className="w-full max-w-[300px]">
+                    <div className="w-full max-w-[260px] md:-mt-8 relative z-10">
                       <ProfileCard 
                         name={pengurusInti.ketuaNama} 
                         status="Ketua Asrama" 
@@ -317,9 +318,9 @@ export default function ProfilAsrama() {
                       />
                     </div>
                   )}
-                  {/* Kolom 3: Bendahara */}
+                  {/* Kolom 3: Bendahara (Lebih Kecil, Turun) */}
                   {pengurusInti.bendaharaNama && (
-                    <div className="w-full max-w-[300px]">
+                    <div className="w-full max-w-[260px] md:mt-16">
                       <ProfileCard 
                         name={pengurusInti.bendaharaNama} 
                         status="Bendahara" 
@@ -359,7 +360,7 @@ export default function ProfilAsrama() {
                               {koordinators.length > 0 && (
                                 <div className="flex justify-center flex-wrap gap-8">
                                   {koordinators.map(koor => (
-                                    <div key={koor.id} className="w-full max-w-[280px]">
+                                    <div key={koor.id} className="w-full max-w-[250px]">
                                       <ProfileCard 
                                         name={koor.nama} 
                                         status={koor.peran} 
@@ -377,7 +378,7 @@ export default function ProfilAsrama() {
                               {anggotas.length > 0 && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 justify-items-center">
                                   {anggotas.map(anggota => (
-                                    <div key={anggota.id} className="w-full max-w-[280px]">
+                                    <div key={anggota.id} className="w-full max-w-[240px]">
                                       <ProfileCard 
                                         name={anggota.nama} 
                                         status={anggota.peran || "Anggota"} 
