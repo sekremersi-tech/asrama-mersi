@@ -168,8 +168,8 @@ export default function ProfilAsrama() {
         .transform-style-3d { transform-style: preserve-3d; }
         .backface-hidden { backface-visibility: hidden; }
         .rotate-y-180 { transform: rotateY(180deg); }
-        .flip-next { animation: flipNext 0.4s ease-in forwards; transform-origin: left center; }
-        .flip-prev { animation: flipPrev 0.4s forwards; transform-origin: right center; }
+        .flip-next { animation: flipNext 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-origin: left center; }
+        .flip-prev { animation: flipPrev 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-origin: right center; }
         @keyframes flipNext { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(-90deg); opacity: 0; } }
         @keyframes flipPrev { 0% { transform: rotateY(0deg); opacity: 1; } 100% { transform: rotateY(90deg); opacity: 0; } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
@@ -185,31 +185,67 @@ export default function ProfilAsrama() {
         .pc-shine { filter: brightness(0.4) contrast(1.1) saturate(0.3) opacity(0.3) !important; }
         .pc-card:hover .pc-shine, .pc-card.active .pc-shine { filter: brightness(0.6) contrast(1.2) saturate(0.5) !important; }
         .pc-glare { opacity: 0.1 !important; }
+
+        /* DROP CAP KLASIK UNTUK CERITA SEJARAH */
+        .drop-cap::first-letter {
+          float: left;
+          font-size: 4rem;
+          line-height: 0.8;
+          padding-right: 0.15em;
+          padding-top: 0.05em;
+          font-family: 'Playfair Display', serif;
+          font-weight: 700;
+          color: #991b1b; /* red-800 */
+        }
       `}</style>
 
       <HeroSlider images={bgProfil} title="Profil Asrama" />
 
-      {/* 1. SEJARAH */}
-      <div id="sejarah" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="text-center mb-10"><div className="w-12 h-1 bg-red-800 mx-auto rounded-full mb-6"></div></div>
-        <div className="relative mt-8 perspective-1000">
-          <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-4 -rotate-1 rounded-sm shadow-md"></div>
-          <div className="absolute inset-0 bg-[#f4f2ec] transform translate-y-2 rotate-1 rounded-sm shadow-md"></div>
+      {/* 1. SEJARAH - DESAIN BUKU ELEGAN */}
+      <div id="sejarah" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="relative mt-12 perspective-1000">
           
-          <div className={`relative bg-[#fcfbf9] p-8 md:p-14 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[400px] ${isAnimasiFlip ? (arahFlip === 'next' ? 'flip-next' : 'flip-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500'}`}>
-            <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
-              <span className="text-amber-600 font-bold italic font-serif text-lg">{halamanSejarah[halAktif]?.judul}</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair">Catatan Sejarah</h2>
-            </div>
-            <div className="flex-grow flex items-center overflow-hidden">
-              <p className="text-stone-700 leading-relaxed text-lg md:text-xl text-justify whitespace-pre-line font-lora">
-                {loading ? "Memuat catatan lembar sejarah..." : halamanSejarah[halAktif]?.isi}
-              </p>
-            </div>
-            <div className="mt-12 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase">
-              <button onClick={() => changePage(halAktif - 1, 'prev')} disabled={halAktif === 0 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-500 hover:text-red-800'}`}>← Balik Lembar</button>
-              <span className="text-stone-400 font-serif italic text-base lowercase">{halAktif + 1} / {halamanSejarah.length || 1}</span>
-              <button onClick={() => changePage(halAktif + 1, 'next')} disabled={halAktif === halamanSejarah.length - 1 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === halamanSejarah.length - 1 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-900 hover:text-amber-600'}`}>Lanjut Baca →</button>
+          {/* Tumpukan Kertas Belakang (Lebih Realistis) */}
+          <div className="absolute inset-0 bg-[#d9d4c5] transform translate-y-3 -rotate-2 rounded-sm shadow-md"></div>
+          <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-1.5 rotate-1 rounded-sm shadow-md"></div>
+          
+          {/* Kertas Utama */}
+          <div className={`relative bg-[#fcfbf9] rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[450px] overflow-hidden ${isAnimasiFlip ? (arahFlip === 'next' ? 'flip-next' : 'flip-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500'}`}>
+            
+            {/* Efek Garis Lipatan Buku di Kiri & Pita Pembatas Buku */}
+            <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-black/5 to-transparent border-r border-black/5 pointer-events-none"></div>
+            <div className="absolute top-0 right-12 w-8 h-16 bg-red-800 shadow-md origin-top transform transition-transform hover:scale-y-110 pointer-events-none" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)" }}></div>
+
+            <div className="p-8 md:p-14 lg:px-20 flex flex-col flex-grow relative z-10">
+              {/* Header Kertas */}
+              <div className="flex flex-col-reverse md:flex-row justify-between items-start md:items-center mb-10 border-b-2 border-stone-200 pb-6 gap-4">
+                <span className="text-amber-600 font-bold tracking-widest uppercase font-sans text-sm pl-2 md:pl-0 border-l-4 md:border-l-0 border-amber-500">{halamanSejarah[halAktif]?.judul}</span>
+                <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair tracking-wide">Catatan Sejarah</h2>
+              </div>
+              
+              {/* Isi Kertas dengan Drop Cap */}
+              <div className="flex-grow flex items-center">
+                <p className="text-stone-700 leading-[2.2] text-lg text-justify whitespace-pre-line font-lora drop-cap">
+                  {loading ? "Menyibak lembaran sejarah..." : halamanSejarah[halAktif]?.isi}
+                </p>
+              </div>
+              
+              {/* Footer / Navigasi Kertas */}
+              <div className="mt-12 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase pt-6 border-t border-stone-100">
+                <button onClick={() => changePage(halAktif - 1, 'prev')} disabled={halAktif === 0 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-600 hover:text-red-800'}`}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg> Balik Lembar
+                </button>
+                
+                <div className="flex items-center gap-4">
+                  <div className="h-px w-8 bg-stone-300 hidden md:block"></div>
+                  <span className="text-stone-400 font-serif italic text-base normal-case">{halAktif + 1} / {halamanSejarah.length || 1}</span>
+                  <div className="h-px w-8 bg-stone-300 hidden md:block"></div>
+                </div>
+
+                <button onClick={() => changePage(halAktif + 1, 'next')} disabled={halAktif === halamanSejarah.length - 1 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === halamanSejarah.length - 1 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-900 hover:text-amber-600'}`}>
+                  Lanjut Baca <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
