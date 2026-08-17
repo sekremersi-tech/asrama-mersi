@@ -428,5 +428,4 @@ export default function FasilitasAsrama() {
   );
 }
 
-berikut file fasiltitas/page.js
-tolong lakukan perbaikan yang sama dengan beranda agar bisa di klik menyukainya
+
