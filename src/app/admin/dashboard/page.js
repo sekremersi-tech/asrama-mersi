@@ -58,7 +58,6 @@ export default function AdminDashboard() {
 
   // STATE DATA
   const [dataSejarah, setDataSejarah] = useState([]);
-  // PERBAIKAN: Hapus state foto2 (karena 3D Profile Card cuma butuh 1 foto)
   const [pengurusInti, setPengurusInti] = useState({ ketuaNama: "", ketuaFoto: "", sekreNama: "", sekreFoto: "", bendaharaNama: "", bendaharaFoto: "" });
   const [fileInti, setFileInti] = useState({ ketua: null, sekretaris: null, bendahara: null });
   
@@ -84,7 +83,6 @@ export default function AdminDashboard() {
   // STATE FORM INPUT & EDIT ID
   const [judulSejarah, setJudulSejarah] = useState(""); const [isiSejarah, setIsiSejarah] = useState(""); const [editSejarahId, setEditSejarahId] = useState(null); 
   const [namaDivisiBaru, setNamaDivisiBaru] = useState("");
-  // PERBAIKAN: Hapus fileAnggota2
   const [formAnggota, setFormAnggota] = useState({ divisiId: "", nama: "", peran: "Anggota" }); const [fileAnggota, setFileAnggota] = useState(null); const [editAnggotaId, setEditAnggotaId] = useState(null);
   
   const [konteksFoto, setKonteksFoto] = useState(""); const [filesFotoProfil, setFilesFotoProfil] = useState([]); const [editFotoProfId, setEditFotoProfId] = useState(null);
@@ -197,13 +195,21 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleResetStatusSkripsi = async (id) => {
+    try {
+      await updateDoc(doc(db, "permohonan_skripsi", id), { status: "Menunggu" });
+      fetchAllData();
+    } catch (error) {
+      alert("Gagal mengembalikan status.");
+    }
+  };
+
   // -- PENGATURAN TEKS --
   const handleSaveTampilan = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newUrls = { ...tampilanUrls }; const keys = ["hero", "profil", "fasilitas", "kehidupan", "alumni", "gateway"]; for (let key of keys) { if (tampilanFiles[key] && tampilanFiles[key].length > 0) { let urls = []; for (const file of tampilanFiles[key]) { urls.push(await uploadToCloudinary(file, "image")); } newUrls[key] = urls; } } if (tampilanFiles.gateway && tampilanFiles.gateway.length > 0) { delete newUrls.gateway1; delete newUrls.gateway2; delete newUrls.gateway3; } await setDoc(doc(db, "pengaturan", "tampilan"), newUrls, { merge: true }); setTampilanUrls(newUrls); setTampilanFiles({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] }); setStatus({ type: "success", message: "Semua foto latar berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveProfilText = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "profilText"), profilText); await setDoc(doc(db, "pengaturan", "kontak"), kontak); setStatus({ type: "success", message: "Teks profil & Kontak berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveStatusAsrama = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "statusAsrama"), statusAsrama); setStatus({ type: "success", message: "Status Asrama berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveBrosur = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let currentBrosurUrl = brosurUrl; if (fileBrosur) { currentBrosurUrl = await uploadToCloudinary(fileBrosur, "image"); setBrosurUrl(currentBrosurUrl); setFileBrosur(null); } await setDoc(doc(db, "pengaturan", "brosur"), { link: currentBrosurUrl, linkFormulir: linkFormulir }); setStatus({ type: "success", message: "Brosur & Link Formulir Pendaftaran berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   
-  // PERBAIKAN: Fungsi Save Pengurus Inti hanya menggunakan 1 foto
   const handleSavePengurusInti = async (e) => { 
     e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); 
     try { 
@@ -224,10 +230,8 @@ export default function AdminDashboard() {
   
   const handleTambahDivisi = async (e) => { e.preventDefault(); setLoading(true); try { await addDoc(collection(db, "divisi_asrama"), { namaDivisi: namaDivisiBaru, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Divisi berhasil ditambahkan!" }); setNamaDivisiBaru(""); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   
-  // PERBAIKAN: Hapus rujukan fileAnggota2 dari klik edit
   const handleEditAnggotaClick = (anggota) => { setEditAnggotaId(anggota.id); setFormAnggota({ divisiId: anggota.divisiId, nama: anggota.nama, peran: anggota.peran || "Anggota" }); setFileAnggota(null); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
-  // PERBAIKAN: Logika Tambah Anggota hanya menyimpan 1 foto
   const handleTambahAnggota = async (e) => { 
     e.preventDefault(); setLoading(true); 
     try { 
@@ -270,7 +274,7 @@ export default function AdminDashboard() {
   const handleSubmitKehidupan = async (e) => { e.preventDefault(); setLoading(true); try { let urls = editKehidupanId ? dataKehidupan.find(d=>d.id===editKehidupanId).linkGambar : []; if (filesGambar.length > 0) { urls = []; for (const file of filesGambar) urls.push(await uploadToCloudinary(file, "image")); } const finalKategori = kategori === "LAINNYA" ? customKategori.toUpperCase() : kategori; if (editKehidupanId) { await updateDoc(doc(db, "kehidupan", editKehidupanId), { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls }); setStatus({ type: "success", message: "Publikasi diperbarui!" }); } else { await addDoc(collection(db, "kehidupan"), { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls, tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Publikasi ditambahkan!" }); } setJudulKonten(""); setDeskripsi(""); setCustomKategori(""); setKategori("PRESTASI"); setFilesGambar([]); setEditKehidupanId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditKehidupanClick = (item) => { setEditKehidupanId(item.id); setJudulKonten(item.judul); setDeskripsi(item.deskripsi); if (["PRESTASI", "MERSI X BK", "LOMBA TERBUKA"].includes(item.kategori)) { setKategori(item.kategori); setCustomKategori(""); } else { setKategori("LAINNYA"); setCustomKategori(item.kategori); } setFilesGambar([]); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
-  const handleSubmitSkripsi = async (e) => { e.preventDefault(); setLoading(true); try { let linkPDF = editSkripsiId ? dataSkripsi.find(d=>d.id===editSkripsiId).linkPDF : "#"; if (filePDF) { let rawUrl = await uploadToCloudinary(filePDF, "image"); linkPDF = rawUrl.replace("/upload/", "/upload/fl_attachment/"); } if (editSkripsiId) { await updateDoc(doc(db, "skripsi", editSkripsiId), { nama, jurusan, judul: judulSkripsi, tahun, linkPDF }); setStatus({ type: "success", message: "Skripsi diperbarui!" }); } else { await addDoc(collection(db, "skripsi"), { nama, jurusan, judul: judulSkripsi, tahun, linkPDF, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Skripsi ditambahkan!" }); } setNama(""); setJurusan(""); setJudulSkripsi(""); setTahun(""); setFilePDF(null); setEditSkripsiId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
+  const handleSubmitSkripsi = async (e) => { e.preventDefault(); setLoading(true); try { let linkPDF = editSkripsiId ? dataSkripsi.find(d=>d.id===editSkripsiId).linkPDF : ""; if (filePDF) { let rawUrl = await uploadToCloudinary(filePDF, "image"); linkPDF = rawUrl.replace("/upload/", "/upload/fl_attachment/"); } if (editSkripsiId) { await updateDoc(doc(db, "skripsi", editSkripsiId), { nama, jurusan, judul: judulSkripsi, tahun, linkPDF }); setStatus({ type: "success", message: "Skripsi diperbarui!" }); } else { await addDoc(collection(db, "skripsi"), { nama, jurusan, judul: judulSkripsi, tahun, linkPDF, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Skripsi ditambahkan!" }); } setNama(""); setJurusan(""); setJudulSkripsi(""); setTahun(""); setFilePDF(null); setEditSkripsiId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditSkripsiClick = (item) => { setEditSkripsiId(item.id); setNama(item.nama); setJurusan(item.jurusan); setJudulSkripsi(item.judul); setTahun(item.tahun); setFilePDF(null); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const handleSubmitPesanAlumni = async (e) => { 
@@ -494,14 +498,20 @@ export default function AdminDashboard() {
                             <span className="text-[10px] text-stone-500 italic mt-1 block">Alasan: "{item.tujuan}"</span>
                           </td>
                           <td className="p-3 text-center">
-                            {item.status === "Menunggu" ? (
-                              <div className="flex gap-2 justify-center">
-                                <button onClick={() => handleKirimAksesSkripsi(item)} className="bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold hover:bg-green-700">Setujui & WA</button>
-                                <button onClick={() => handleTolakSkripsi(item)} className="bg-stone-200 text-stone-700 text-xs px-3 py-1.5 rounded font-bold hover:bg-stone-300">Tolak</button>
-                              </div>
-                            ) : (
-                              <span className={`text-xs font-bold px-2 py-1 rounded ${item.status === 'Disetujui' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.status}</span>
-                            )}
+                            <div className="flex flex-col items-center gap-2">
+                              {item.status === "Menunggu" ? (
+                                <div className="flex gap-1 justify-center">
+                                  <button onClick={() => handleKirimAksesSkripsi(item)} className="bg-green-600 text-white text-[10px] px-2 py-1 rounded font-bold hover:bg-green-700">Setujui & WA</button>
+                                  <button onClick={() => handleTolakSkripsi(item)} className="bg-stone-200 text-stone-700 text-[10px] px-2 py-1 rounded font-bold hover:bg-stone-300">Tolak</button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className={`text-[10px] font-bold px-2 py-1 rounded ${item.status === 'Disetujui' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.status}</span>
+                                  <button onClick={() => handleResetStatusSkripsi(item.id)} className="text-[10px] text-amber-600 hover:text-amber-800 underline font-bold" title="Reset Status">Ubah Status</button>
+                                </div>
+                              )}
+                              <button onClick={() => handleDelete("permohonan_skripsi", item.id)} className="text-red-500 text-[10px] hover:text-red-700 font-bold mt-1">Hapus Data</button>
+                            </div>
                           </td>
                         </tr>
                       ))
