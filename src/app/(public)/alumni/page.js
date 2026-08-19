@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs, query, orderBy, addDoc, serverTimestamp, where } from "firebase/firestore";
 
@@ -265,12 +265,9 @@ export default function JejakPrestasi() {
         @keyframes slideNextIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slidePrevOut { to { transform: translateX(50px); opacity: 0; } }
         @keyframes slidePrevIn { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* MODAL LANYARD ALUMNI (DETAIL LENGKAP) */}
+      {/* MODAL FOTO FULL ALUMNI (DETAIL LENGKAP TANPA LANYARD) */}
       {selectedAlumni && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8 animate-[fadeIn_0.3s_ease-out]" onClick={closeAlumniModal}>
           <button onClick={closeAlumniModal} className="absolute top-4 md:top-8 right-4 md:right-8 text-white hover:text-amber-500 transition-colors z-50 p-2">
@@ -279,28 +276,14 @@ export default function JejakPrestasi() {
           
           <div className="bg-[#fcfbf9] w-full max-w-4xl max-h-[90vh] md:h-auto rounded-xl shadow-2xl flex flex-col md:flex-row overflow-hidden" onClick={e => e.stopPropagation()}>
             
-            {/* Kiri: Desain ID Card / Lanyard */}
-            <div className="w-full md:w-2/5 bg-slate-800 p-8 flex flex-col items-center justify-center relative border-r border-slate-700 overflow-hidden">
-              
-              {/* Tali Lanyard & Penjepit */}
-              <div className="absolute top-0 w-6 h-16 bg-slate-900 border-x border-slate-700 flex flex-col items-center justify-between py-2">
-                 <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
-                 <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
-                 <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
-              </div>
-              <div className="absolute top-16 w-10 h-4 border-2 border-slate-600 rounded-b-lg"></div>
-
-              {/* ID Card Badan */}
-              <div className="bg-white p-4 pb-6 mt-16 rounded-lg shadow-xl w-full max-w-[240px] text-center relative border border-slate-200">
-                 {/* Lubang ID Card */}
-                 <div className="w-12 h-2.5 bg-slate-800 mx-auto rounded-full mb-4 shadow-inner absolute -top-1.5 left-1/2 -translate-x-1/2"></div>
-                 
-                 <div className="text-red-800 font-bold text-xs uppercase tracking-widest mb-3 mt-4 border-b-2 border-red-800 pb-1 w-fit mx-auto">ALUMNI MERSI</div>
-                 
-                 <img src={selectedAlumni.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedAlumni.nama)}&background=991b1b&color=fff`} className="w-32 h-32 mx-auto object-cover rounded-md shadow-md border-2 border-stone-100 mb-4" alt={selectedAlumni.nama} />
-                 
-                 <h3 className="font-bold text-stone-900 font-playfair text-lg leading-tight uppercase line-clamp-2 px-2">{selectedAlumni.nama}</h3>
-                 <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest mt-2 bg-stone-100 py-1 rounded">CLEARANCE L1</p>
+            {/* Kiri: Desain Foto Full Bingkai Minimalis */}
+            <div className="w-full md:w-2/5 bg-slate-800 p-8 flex items-center justify-center relative border-r border-slate-700">
+              <div className="bg-white p-3 rounded-lg shadow-2xl w-full max-w-[280px] aspect-[3/4] transition-transform duration-300 hover:scale-105">
+                 <img 
+                    src={selectedAlumni.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedAlumni.nama)}&background=991b1b&color=fff`} 
+                    className="w-full h-full object-cover rounded border border-stone-200" 
+                    alt={selectedAlumni.nama} 
+                 />
               </div>
             </div>
 
@@ -464,19 +447,19 @@ export default function JejakPrestasi() {
           </div>
           
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-2/3">
-            <select value={filterAngkatan} onChange={(e) => setFilterAngkatan(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+            <select value={filterAngkatan} onChange={(e) => setFilterAngkatan(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm text-stone-800 focus:ring-2 focus:ring-amber-500 outline-none">
               <option value="">Semua Angkatan</option>
               {optionAngkatan.map(opt => <option key={opt} value={opt}>Angkatan {opt}</option>)}
             </select>
-            <select value={filterAsal} onChange={(e) => setFilterAsal(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+            <select value={filterAsal} onChange={(e) => setFilterAsal(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm text-stone-800 focus:ring-2 focus:ring-amber-500 outline-none">
               <option value="">Semua Asal</option>
               {optionAsal.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
-            <select value={filterKampus} onChange={(e) => setFilterKampus(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+            <select value={filterKampus} onChange={(e) => setFilterKampus(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm text-stone-800 focus:ring-2 focus:ring-amber-500 outline-none">
               <option value="">Semua Kampus</option>
               {optionKampus.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
-            <select value={filterJurusan} onChange={(e) => setFilterJurusan(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+            <select value={filterJurusan} onChange={(e) => setFilterJurusan(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm text-stone-800 focus:ring-2 focus:ring-amber-500 outline-none">
               <option value="">Semua Jurusan</option>
               {optionJurusan.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
