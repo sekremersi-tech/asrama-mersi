@@ -58,7 +58,7 @@ export default function JejakPrestasi() {
   const [currentPage, setCurrentPage] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [animDirection, setAnimDirection] = useState("");
-  const itemsPerPage = 6;
+  const itemsPerPage = 10;
   const alumniPerPage = 9;
 
   const [showSkripsiModal, setShowSkripsiModal] = useState(false);
@@ -116,6 +116,22 @@ export default function JejakPrestasi() {
     }
   };
 
+  const changeSkripsiPage = (newIndex, direction) => {
+    const filteredLength = dataSkripsi.filter(item => {
+      const q = searchSkripsi.toLowerCase();
+      return item.judul?.toLowerCase().includes(q) || item.nama?.toLowerCase().includes(q) || item.tahun?.toString().includes(q) || item.jurusan?.toLowerCase().includes(q);
+    }).length;
+
+    if (newIndex >= 0 && newIndex < Math.ceil(filteredLength / skripsiPerPage)) {
+      setSkripsiAnimDirection(direction);
+      setIsSkripsiAnimating(true);
+      setTimeout(() => {
+        setSkripsiPage(newIndex);
+        setIsSkripsiAnimating(false);
+      }, 400); 
+    }
+  };
+
   const openModal = async (item) => { 
     setSelectedItem(item); setModalImageIdx(0); document.body.style.overflow = "hidden"; 
     setKomentarList([]); setFormKomen({ nama: "", isi: "" }); 
@@ -144,10 +160,15 @@ export default function JejakPrestasi() {
     } catch (err) { alert("Gagal mengirim komentar!"); } finally { setIsSubmittingKomen(false); }
   };
 
+  // LOGIKA PENGAJUAN AKSES SKRIPSI
   const handleAjukanAkses = async (e) => {
     e.preventDefault();
-    if (!formPermohonan.noHp.startsWith("08")) return alert("Gagal: Nomor HP / WA harus diawali dengan angka 08");
-    if (formPermohonan.noHp.length < 11) return alert("Gagal: Nomor HP / WA tidak valid. Minimal 11 angka.");
+    if (!formPermohonan.noHp.startsWith("08")) {
+      return alert("Gagal: Nomor HP / WA harus diawali dengan angka 08");
+    }
+    if (formPermohonan.noHp.length < 11) {
+      return alert("Gagal: Nomor HP / WA tidak valid. Minimal harus 11 angka.");
+    }
 
     setIsSubmittingPermohonan(true);
     try {
@@ -167,13 +188,16 @@ export default function JejakPrestasi() {
       document.body.style.overflow = "auto";
     } catch (error) { 
       alert("Gagal memproses permohonan. Coba lagi."); 
-    } finally { setIsSubmittingPermohonan(false); }
+    } finally { 
+      setIsSubmittingPermohonan(false); 
+    }
   };
 
+  // FUNGSI CHAT WA UNTUK TANYA LINK REPOSITORY KAMPUS
   const handleTanyaLinkResmi = (skripsi) => {
     let bersihkanNomor = kontak.noTelpon.replace(/\D/g, '');
     if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
-    const text = `Halo Admin Mersi, saya pengunjung website asrama. Saya tertarik dengan skripsi berjudul *"${skripsi.judul}"* karya ${skripsi.nama}. Bolehkah saya meminta link repositori resmi universitasnya?`;
+    const text = `Halo Admin Asrama Mersi,\n\nSaya pengunjung website asrama. Saya tertarik dengan skripsi berjudul *"${skripsi.judul}"* karya ${skripsi.nama}. \n\nBolehkah saya meminta link repositori resmi universitasnya? Terima kasih.`;
     window.open(`https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -223,6 +247,7 @@ export default function JejakPrestasi() {
   const totalAlumniPages = Math.ceil(filteredAlumni.length / alumniPerPage);
   const currentDataAlumni = filteredAlumni.slice(alumniPage * alumniPerPage, (alumniPage + 1) * alumniPerPage);
 
+
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora relative overflow-x-hidden">
       <style jsx global>{`
@@ -234,9 +259,6 @@ export default function JejakPrestasi() {
         @keyframes slideNextIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slidePrevOut { to { transform: translateX(50px); opacity: 0; } }
         @keyframes slidePrevIn { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       {/* MODAL POP-UP PRESTASI */}
@@ -289,7 +311,7 @@ export default function JejakPrestasi() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={() => {setShowSkripsiModal(false); document.body.style.overflow = "auto";}}>
           <div className="bg-white p-8 rounded-lg shadow-2xl max-w-md w-full border-t-4 border-red-800" onClick={e => e.stopPropagation()}>
             <h3 className="font-playfair text-2xl font-bold text-stone-900 mb-2">Akses Skripsi</h3>
-            <p className="text-sm text-stone-500 mb-6 pb-4 border-b border-stone-100">Silakan isi form ini untuk memohon akses baca skripsi. Link akses rahasia (hanya pratinjau halaman pertama) akan dikirimkan via WhatsApp setelah disetujui.</p>
+            <p className="text-sm text-stone-500 mb-6 pb-4 border-b border-stone-100">Silakan isi form ini untuk memohon akses baca skripsi. Link akses rahasia (hanya baca halaman pertama) akan dikirimkan via WhatsApp setelah permohonan disetujui.</p>
             <form onSubmit={handleAjukanAkses} className="space-y-4 font-sans">
               <div>
                 <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nama Lengkap</label>
@@ -330,7 +352,7 @@ export default function JejakPrestasi() {
         </div>
       </div>
 
-      {/* 2. DATABASE ALUMNI INTERAKTIF */}
+      {/* 2. DATABASE ALUMNI INTERAKTIF DENGAN FILTER */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         
         {/* Filter Section */}
