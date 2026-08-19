@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, addDoc, serverTimestamp, where, doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, orderBy, addDoc, serverTimestamp, where } from "firebase/firestore";
 
 const HeroSlider = ({ images, title }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
@@ -33,21 +33,21 @@ const HeroSlider = ({ images, title }) => {
 export default function JejakPrestasi() {
   const [bgAlumni, setBgAlumni] = useState([]);
   const [profilText, setProfilText] = useState({ jejakAlumni: "" });
+  const [kontak, setKontak] = useState({ noTelpon: "" }); // Untuk link WA
   const [dataPrestasi, setDataPrestasi] = useState([]);
   const [dataSkripsi, setDataSkripsi] = useState([]);
   
-  // STATE PESAN ALUMNI
+  // STATE PANGKALAN DATA ALUMNI
   const [dataPesanAlumni, setDataPesanAlumni] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // REFS UNTUK AUTO-SCROLL INFINITE LOOP & DRAG
-  const scrollRef = useRef(null);
-  const contentRef = useRef(null);
-  const requestRef = useRef(null);
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const scrollLeft = useRef(0);
-  const [isPaused, setIsPaused] = useState(false);
+  // STATE FILTER ALUMNI
+  const [searchAlumni, setSearchAlumni] = useState("");
+  const [filterAngkatan, setFilterAngkatan] = useState("");
+  const [filterAsal, setFilterAsal] = useState("");
+  const [filterKampus, setFilterKampus] = useState("");
+  const [filterJurusan, setFilterJurusan] = useState("");
+  const [alumniPage, setAlumniPage] = useState(0);
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalImageIdx, setModalImageIdx] = useState(0);
@@ -58,12 +58,13 @@ export default function JejakPrestasi() {
   const [currentPage, setCurrentPage] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [animDirection, setAnimDirection] = useState("");
-  const itemsPerPage = 10;
+  const itemsPerPage = 6;
+  const alumniPerPage = 9;
 
   const [showSkripsiModal, setShowSkripsiModal] = useState(false);
   const [selectedSkripsi, setSelectedSkripsi] = useState(null);
   
-  // STATE PERMOHONAN SKRIPSI (MENGGANTIKAN FORM UNDUH)
+  // STATE PERMOHONAN SKRIPSI
   const [formPermohonan, setFormPermohonan] = useState({ nama: "", instansi: "", noHp: "", tujuan: "" });
   const [isSubmittingPermohonan, setIsSubmittingPermohonan] = useState(false);
 
@@ -82,6 +83,9 @@ export default function JejakPrestasi() {
         const snapText = await getDoc(doc(db, "pengaturan", "profilText"));
         if (snapText.exists()) setProfilText(snapText.data());
 
+        const snapKontak = await getDoc(doc(db, "pengaturan", "kontak"));
+        if (snapKontak.exists()) setKontak(snapKontak.data());
+
         const berSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
         const allBerita = berSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const prestasiData = allBerita.filter(item => item.kategori === "PRESTASI");
@@ -90,7 +94,6 @@ export default function JejakPrestasi() {
         const skrSnap = await getDocs(query(collection(db, "skripsi"), orderBy("tahun", "desc")));
         setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         
-        // MENGAMBIL DATA PESAN ALUMNI
         const pesanSnap = await getDocs(query(collection(db, "pesan_alumni"), orderBy("createdAt", "desc")));
         setDataPesanAlumni(pesanSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
@@ -99,56 +102,8 @@ export default function JejakPrestasi() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    setSkripsiPage(0);
-  }, [searchSkripsi]);
-
-  // LOGIKA ANIMASI AUTO-SCROLL YANG SANGAT MULUS (SMOOTH LOOPING)
-  const animateScroll = () => {
-    if (scrollRef.current && contentRef.current) {
-      if (!isPaused && !isDragging.current) {
-        scrollRef.current.scrollLeft += 1; // Kecepatan geser otomatis
-      }
-      
-      // Hitung lebar persis 1 grup elemen
-      const singleSetWidth = contentRef.current.offsetWidth;
-      
-      // Jika scroll melebihi batas 1 grup (bergerak ke kanan), reset secara halus
-      if (scrollRef.current.scrollLeft >= singleSetWidth) {
-        scrollRef.current.scrollLeft -= singleSetWidth;
-      } 
-      // Jika ditarik mundur hingga mentok ke kiri, lompat halus ke posisi tengah
-      else if (scrollRef.current.scrollLeft <= 0 && isDragging.current) {
-        scrollRef.current.scrollLeft += singleSetWidth;
-      }
-    }
-    requestRef.current = requestAnimationFrame(animateScroll);
-  };
-
-  useEffect(() => {
-    if (dataPesanAlumni.length > 0) {
-      requestRef.current = requestAnimationFrame(animateScroll);
-    }
-    return () => cancelAnimationFrame(requestRef.current);
-  }, [dataPesanAlumni, isPaused]);
-
-  // EVENT HANDLER UNTUK DRAG (MOUSE DI PC)
-  const handleMouseDown = (e) => {
-    isDragging.current = true;
-    startX.current = e.pageX - scrollRef.current.offsetLeft;
-    scrollLeft.current = scrollRef.current.scrollLeft;
-  };
-  const handleMouseLeaveOrUp = () => {
-    isDragging.current = false;
-  };
-  const handleMouseMove = (e) => {
-    if (!isDragging.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX.current) * 1.5; 
-    scrollRef.current.scrollLeft = scrollLeft.current - walk;
-  };
-
+  useEffect(() => { setSkripsiPage(0); }, [searchSkripsi]);
+  useEffect(() => { setAlumniPage(0); }, [searchAlumni, filterAngkatan, filterAsal, filterKampus, filterJurusan]);
 
   const changePage = (newIndex, direction) => {
     if (newIndex >= 0 && newIndex < Math.ceil(dataPrestasi.length / itemsPerPage)) {
@@ -157,22 +112,6 @@ export default function JejakPrestasi() {
       setTimeout(() => {
         setCurrentPage(newIndex);
         setIsAnimating(false);
-      }, 400); 
-    }
-  };
-
-  const changeSkripsiPage = (newIndex, direction) => {
-    const filteredLength = dataSkripsi.filter(item => {
-      const q = searchSkripsi.toLowerCase();
-      return item.judul?.toLowerCase().includes(q) || item.nama?.toLowerCase().includes(q) || item.tahun?.toString().includes(q) || item.jurusan?.toLowerCase().includes(q);
-    }).length;
-
-    if (newIndex >= 0 && newIndex < Math.ceil(filteredLength / skripsiPerPage)) {
-      setSkripsiAnimDirection(direction);
-      setIsSkripsiAnimating(true);
-      setTimeout(() => {
-        setSkripsiPage(newIndex);
-        setIsSkripsiAnimating(false);
       }, 400); 
     }
   };
@@ -205,15 +144,10 @@ export default function JejakPrestasi() {
     } catch (err) { alert("Gagal mengirim komentar!"); } finally { setIsSubmittingKomen(false); }
   };
 
-  // LOGIKA BARU PENGAJUAN AKSES SKRIPSI
   const handleAjukanAkses = async (e) => {
     e.preventDefault();
-    if (!formPermohonan.noHp.startsWith("08")) {
-      return alert("Gagal: Nomor HP / WA harus diawali dengan angka 08");
-    }
-    if (formPermohonan.noHp.length < 11) {
-      return alert("Gagal: Nomor HP / WA tidak valid. Minimal harus 11 angka.");
-    }
+    if (!formPermohonan.noHp.startsWith("08")) return alert("Gagal: Nomor HP / WA harus diawali dengan angka 08");
+    if (formPermohonan.noHp.length < 11) return alert("Gagal: Nomor HP / WA tidak valid. Minimal 11 angka.");
 
     setIsSubmittingPermohonan(true);
     try {
@@ -233,9 +167,14 @@ export default function JejakPrestasi() {
       document.body.style.overflow = "auto";
     } catch (error) { 
       alert("Gagal memproses permohonan. Coba lagi."); 
-    } finally { 
-      setIsSubmittingPermohonan(false); 
-    }
+    } finally { setIsSubmittingPermohonan(false); }
+  };
+
+  const handleTanyaLinkResmi = (skripsi) => {
+    let bersihkanNomor = kontak.noTelpon.replace(/\D/g, '');
+    if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
+    const text = `Halo Admin Mersi, saya pengunjung website asrama. Saya tertarik dengan skripsi berjudul *"${skripsi.judul}"* karya ${skripsi.nama}. Bolehkah saya meminta link repositori resmi universitasnya?`;
+    window.open(`https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
@@ -245,6 +184,7 @@ export default function JejakPrestasi() {
   const totalPages = Math.ceil(dataPrestasi.length / itemsPerPage);
   const currentDataPrestasi = dataPrestasi.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
+  // LOGIKA PENCARIAN & FILTER SKRIPSI
   const filteredSkripsi = dataSkripsi.filter(item => {
     const q = searchSkripsi.toLowerCase();
     return (
@@ -257,22 +197,31 @@ export default function JejakPrestasi() {
   const totalSkripsiPages = Math.ceil(filteredSkripsi.length / skripsiPerPage);
   const currentDataSkripsi = filteredSkripsi.slice(skripsiPage * skripsiPerPage, (skripsiPage + 1) * skripsiPerPage);
 
+  // MENGAMBIL OPSI UNIK UNTUK FILTER ALUMNI
+  const optionAngkatan = [...new Set(dataPesanAlumni.map(a => a.angkatanAsrama))].filter(Boolean).sort((a,b)=>b-a);
+  const optionAsal = [...new Set(dataPesanAlumni.map(a => a.asal))].filter(Boolean).sort();
+  const optionKampus = [...new Set(dataPesanAlumni.map(a => a.kuliah))].filter(Boolean).sort();
+  const optionJurusan = [...new Set(dataPesanAlumni.map(a => a.jurusan))].filter(Boolean).sort();
 
-  // KOMPONEN RENDER ITEM KESAN ALUMNI
-  const renderPesanAlumni = (item, idx, groupName) => (
-    <div key={`${groupName}-${item.id}-${idx}`} className="w-[300px] md:w-[380px] shrink-0 flex">
-      <div className="bg-white p-6 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] flex flex-col justify-between h-full min-h-[220px] w-full cursor-grab active:cursor-grabbing">
-        <p className="text-stone-600 italic font-lora text-sm md:text-base mb-6 leading-relaxed flex-grow whitespace-pre-wrap select-none pointer-events-none">"{item.pesan}"</p>
-        <div className="flex items-center gap-3 pt-4 border-t border-stone-100 select-none pointer-events-none">
-          <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm select-none" draggable="false" alt={item.nama} />
-          <div className="flex flex-col">
-            <span className="font-bold text-stone-900 text-sm font-sans line-clamp-1 select-none">{item.nama}</span>
-            <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase font-sans mt-0.5 select-none">Lulus {item.tahunLulus}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // LOGIKA PENCARIAN & FILTER ALUMNI
+  const filteredAlumni = dataPesanAlumni.filter(item => {
+    const q = searchAlumni.toLowerCase();
+    const matchSearch = 
+      item.nama?.toLowerCase().includes(q) || 
+      item.pekerjaan?.toLowerCase().includes(q) || 
+      item.skripsi?.toLowerCase().includes(q) ||
+      item.pesan?.toLowerCase().includes(q);
+    
+    const matchAngkatan = filterAngkatan ? item.angkatanAsrama?.toString() === filterAngkatan : true;
+    const matchAsal = filterAsal ? item.asal === filterAsal : true;
+    const matchKampus = filterKampus ? item.kuliah === filterKampus : true;
+    const matchJurusan = filterJurusan ? item.jurusan === filterJurusan : true;
+
+    return matchSearch && matchAngkatan && matchAsal && matchKampus && matchJurusan;
+  });
+
+  const totalAlumniPages = Math.ceil(filteredAlumni.length / alumniPerPage);
+  const currentDataAlumni = filteredAlumni.slice(alumniPage * alumniPerPage, (alumniPage + 1) * alumniPerPage);
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora relative overflow-x-hidden">
@@ -286,14 +235,8 @@ export default function JejakPrestasi() {
         @keyframes slidePrevOut { to { transform: translateX(50px); opacity: 0; } }
         @keyframes slidePrevIn { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         
-        /* SEMBUNYIKAN SCROLLBAR PADA CONTAINER DRAG */
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       {/* MODAL POP-UP PRESTASI */}
@@ -341,57 +284,28 @@ export default function JejakPrestasi() {
         </div>
       )}
 
-      {/* MODAL PERMOHONAN AKSES SKRIPSI (PENGGANTI MODAL UNDUH) */}
+      {/* MODAL PERMOHONAN AKSES SKRIPSI */}
       {showSkripsiModal && selectedSkripsi && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={() => {setShowSkripsiModal(false); document.body.style.overflow = "auto";}}>
           <div className="bg-white p-8 rounded-lg shadow-2xl max-w-md w-full border-t-4 border-red-800" onClick={e => e.stopPropagation()}>
             <h3 className="font-playfair text-2xl font-bold text-stone-900 mb-2">Akses Skripsi</h3>
-            <p className="text-sm text-stone-500 mb-6 pb-4 border-b border-stone-100">Silakan isi form ini untuk memohon akses baca skripsi. Link akses rahasia (hanya baca 3 halaman pertama) akan dikirimkan via WhatsApp setelah permohonan disetujui.</p>
+            <p className="text-sm text-stone-500 mb-6 pb-4 border-b border-stone-100">Silakan isi form ini untuk memohon akses baca skripsi. Link akses rahasia (hanya pratinjau halaman pertama) akan dikirimkan via WhatsApp setelah disetujui.</p>
             <form onSubmit={handleAjukanAkses} className="space-y-4 font-sans">
               <div>
                 <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nama Lengkap</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={formPermohonan.nama} 
-                  onChange={(e) => setFormPermohonan({...formPermohonan, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} 
-                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
-                  placeholder="Hanya isi dengan huruf..." 
-                />
+                <input type="text" required value={formPermohonan.nama} onChange={(e) => setFormPermohonan({...formPermohonan, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Hanya isi dengan huruf..." />
               </div>
               <div>
                 <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Instansi / Asal Kampus</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={formPermohonan.instansi} 
-                  onChange={(e) => setFormPermohonan({...formPermohonan, instansi: e.target.value})} 
-                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
-                  placeholder="Nama instansi atau kampus Anda" 
-                />
+                <input type="text" required value={formPermohonan.instansi} onChange={(e) => setFormPermohonan({...formPermohonan, instansi: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Nama instansi atau kampus Anda" />
               </div>
               <div>
                 <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nomor WA / HP Aktif</label>
-                <input 
-                  type="tel" 
-                  required 
-                  maxLength={14}
-                  value={formPermohonan.noHp} 
-                  onChange={(e) => setFormPermohonan({...formPermohonan, noHp: e.target.value.replace(/\D/g, '')})} 
-                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
-                  placeholder="Awali dengan 08..." 
-                />
+                <input type="tel" required maxLength={14} value={formPermohonan.noHp} onChange={(e) => setFormPermohonan({...formPermohonan, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Awali dengan 08..." />
               </div>
               <div>
                 <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Tujuan Membaca Skripsi</label>
-                <textarea 
-                  required 
-                  rows="2"
-                  value={formPermohonan.tujuan} 
-                  onChange={(e) => setFormPermohonan({...formPermohonan, tujuan: e.target.value})} 
-                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" 
-                  placeholder="Contoh: Untuk referensi penelitian..." 
-                ></textarea>
+                <textarea required rows="2" value={formPermohonan.tujuan} onChange={(e) => setFormPermohonan({...formPermohonan, tujuan: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Contoh: Untuk referensi penelitian..." ></textarea>
               </div>
               <button type="submit" disabled={isSubmittingPermohonan} className="w-full bg-[#171412] hover:bg-red-800 text-white font-bold py-3 rounded transition-colors mt-2">
                 {isSubmittingPermohonan ? "Memproses..." : "Ajukan Permohonan Akses"}
@@ -403,66 +317,123 @@ export default function JejakPrestasi() {
 
       <HeroSlider images={bgAlumni} title="Jejak & Prestasi" />
 
-      {/* 1. JEJAK ALUMNI */}
+      {/* 1. JEJAK ALUMNI (INTRO) */}
       <div id="jejak" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-4">Jejak Alumni</h2>
+          <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-4">Pangkalan Data Alumni</h2>
           <div className="w-12 h-1 bg-red-800 mx-auto rounded-full"></div>
         </div>
-        <div className="bg-white p-8 md:p-12 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db]">
+        <div className="bg-white p-8 md:p-12 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] mb-8">
           <p className="text-stone-600 leading-relaxed text-lg text-center whitespace-pre-line font-lora italic">
             {loading ? "Memuat catatan jejak alumni..." : `"${profilText.jejakAlumni}"`}
           </p>
         </div>
       </div>
 
-      {/* 1.5 SUARA ALUMNI (AUTO SCROLL INFINITE DRAGABLE) */}
-      <div className="w-full mt-20 mb-20 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 border-b border-[#e8e4db] pb-4">
-          <h3 className="text-2xl font-bold text-stone-900 font-playfair mb-2">Suara Alumni</h3>
-          <p className="text-stone-500 text-sm">Kesan, pesan, dan inspirasi dari purna asrama. Geser untuk membaca lebih lanjut.</p>
+      {/* 2. DATABASE ALUMNI INTERAKTIF */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        
+        {/* Filter Section */}
+        <div className="bg-white p-6 rounded-sm shadow-md border border-[#e8e4db] mb-8 flex flex-col lg:flex-row gap-4">
+          <div className="w-full lg:w-1/3 relative">
+            <input 
+              type="text" 
+              placeholder="Cari nama, pekerjaan, skripsi..." 
+              value={searchAlumni}
+              onChange={(e) => setSearchAlumni(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-sans text-sm text-stone-800"
+            />
+            <svg className="absolute left-3 top-3.5 text-stone-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+          
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-2/3">
+            <select value={filterAngkatan} onChange={(e) => setFilterAngkatan(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+              <option value="">Semua Angkatan</option>
+              {optionAngkatan.map(opt => <option key={opt} value={opt}>Angkatan {opt}</option>)}
+            </select>
+            <select value={filterAsal} onChange={(e) => setFilterAsal(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+              <option value="">Semua Asal Daerah</option>
+              {optionAsal.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterKampus} onChange={(e) => setFilterKampus(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+              <option value="">Semua Kampus</option>
+              {optionKampus.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterJurusan} onChange={(e) => setFilterJurusan(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+              <option value="">Semua Jurusan</option>
+              {optionJurusan.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+          </div>
         </div>
 
+        {/* Grid Alumni Cards */}
         {loading ? (
-          <p className="text-center text-stone-500">Memuat pesan alumni...</p>
-        ) : dataPesanAlumni.length === 0 ? (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <p className="text-center text-stone-500 bg-white p-8 border border-[#e8e4db] rounded-sm shadow-sm">Belum ada pesan alumni yang ditambahkan.</p>
-          </div>
+          <p className="text-center text-stone-500 py-10">Mencari data alumni...</p>
+        ) : currentDataAlumni.length === 0 ? (
+          <p className="text-center text-stone-500 bg-white p-12 border border-[#e8e4db] rounded-sm shadow-sm">Data alumni tidak ditemukan dengan filter tersebut.</p>
         ) : (
-          <div 
-            className="w-full overflow-hidden py-4 px-4"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => { setIsPaused(false); handleMouseLeaveOrUp(); }}
-          >
-            {/* CONTAINER DRAGABLE */}
-            <div 
-              ref={scrollRef}
-              className="flex overflow-x-auto hide-scrollbar w-full pb-4"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseLeaveOrUp}
-              onTouchStart={() => setIsPaused(true)}
-              onTouchEnd={() => setIsPaused(false)}
-              style={{ WebkitOverflowScrolling: 'touch' }} 
-            >
-              {/* SET 1 (Sebagai Pengukur Utama) */}
-              <div ref={contentRef} className="flex gap-6 pr-6 shrink-0 items-stretch">
-                {dataPesanAlumni.map((item, idx) => renderPesanAlumni(item, idx, 'set1'))}
-              </div>
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {currentDataAlumni.map((item, idx) => (
+                <div key={item.id} className="bg-white rounded-sm shadow-lg border border-[#e8e4db] overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
+                  <div className="h-3 bg-red-800 w-full"></div>
+                  <div className="p-6 flex flex-col h-full">
+                    
+                    <div className="flex gap-4 items-start mb-6 pb-6 border-b border-stone-100">
+                      <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-20 h-20 object-cover rounded-full shadow-sm border-2 border-white ring-1 ring-stone-200" alt={item.nama} />
+                      <div>
+                        <h3 className="font-playfair font-bold text-xl text-stone-900 leading-tight mb-1">{item.nama}</h3>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {item.angkatanAsrama && <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Angk. {item.angkatanAsrama}</span>}
+                          {item.asal && <span className="bg-stone-100 text-stone-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">{item.asal}</span>}
+                        </div>
+                      </div>
+                    </div>
 
-              {/* DUPLIKASI SET UNTUK LOOPING MULUS (Membuat 3 Set Tambahan) */}
-              {[2, 3, 4].map(setNum => (
-                <div key={`set-${setNum}`} className="flex gap-6 pr-6 shrink-0 items-stretch">
-                  {dataPesanAlumni.map((item, idx) => renderPesanAlumni(item, idx, `set${setNum}`))}
+                    <div className="space-y-3 flex-grow font-sans text-sm">
+                      {item.pekerjaan && (
+                        <div className="flex gap-3">
+                          <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                          <span className="text-stone-700">{item.pekerjaan}</span>
+                        </div>
+                      )}
+                      {(item.kuliah || item.jurusan) && (
+                        <div className="flex gap-3">
+                          <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"></path></svg>
+                          <span className="text-stone-700">{item.kuliah} <span className="text-stone-400">|</span> {item.jurusan}</span>
+                        </div>
+                      )}
+                      {item.skripsi && (
+                        <div className="flex gap-3 pt-2">
+                          <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                          <span className="text-stone-600 italic line-clamp-3 text-xs">"{item.skripsi}"</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {item.pesan && (
+                      <div className="mt-6 pt-4 border-t border-stone-100">
+                        <p className="text-stone-500 font-lora italic text-sm line-clamp-4">"{item.pesan}"</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
+
+            {/* Navigasi Pagination */}
+            {totalAlumniPages > 1 && (
+              <div className="mt-12 flex justify-between items-center text-sm font-bold tracking-widest font-sans uppercase">
+                <button onClick={() => setAlumniPage(p => Math.max(0, p - 1))} disabled={alumniPage === 0} className={`flex items-center gap-2 transition-colors ${alumniPage === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-600 hover:text-red-800'}`}>← Prev</button>
+                <span className="text-stone-400 font-serif italic text-base lowercase">{alumniPage + 1} / {totalAlumniPages}</span>
+                <button onClick={() => setAlumniPage(p => Math.min(totalAlumniPages - 1, p + 1))} disabled={alumniPage >= totalAlumniPages - 1} className={`flex items-center gap-2 transition-colors ${alumniPage >= totalAlumniPages - 1 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-900 hover:text-amber-600'}`}>Next →</button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* 2. LIST PRESTASI */}
+      {/* 3. LIST PRESTASI */}
       <div id="prestasi" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-24 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-10">
           <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Tinta Emas</h4>
@@ -513,7 +484,7 @@ export default function JejakPrestasi() {
         )}
       </div>
 
-      {/* 3. REPOSITORI SKRIPSI */}
+      {/* 4. REPOSITORI SKRIPSI DENGAN TOMBOL WA BARU */}
       <div id="repositori" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-32 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="flex items-center gap-5 mb-12">
           <div className="w-16 h-16 bg-red-800 rounded-md flex items-center justify-center text-white shrink-0 shadow-sm">
@@ -549,14 +520,14 @@ export default function JejakPrestasi() {
                 {currentDataSkripsi.length === 0 ? (
                   <div className="text-center py-16 italic text-stone-500">Skripsi tidak ditemukan...</div>
                 ) : (
-                  <table className="w-full text-left font-serif text-stone-800 min-w-[700px]">
+                  <table className="w-full text-left font-serif text-stone-800 min-w-[800px]">
                     <thead className="border-b-2 border-stone-300 font-sans text-xs tracking-widest text-stone-500 uppercase">
                       <tr>
                         <th className="py-3 px-4 w-12 text-center">No</th>
                         <th className="py-3 px-4 w-64">Penulis & Jurusan</th>
                         <th className="py-3 px-4">Judul Skripsi</th>
                         <th className="py-3 px-4 w-20 text-center">Tahun</th>
-                        <th className="py-3 px-4 w-40 text-center">Aksi</th>
+                        <th className="py-3 px-4 w-52 text-center">Aksi / Akses</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-200">
@@ -572,13 +543,24 @@ export default function JejakPrestasi() {
                             <td className="py-5 px-4 italic leading-relaxed text-[15px] pr-8 group-hover:text-red-900 transition-colors">"{item.judul}"</td>
                             <td className="py-5 px-4 text-center font-sans font-bold text-stone-600 bg-stone-50/50">{item.tahun}</td>
                             <td className="py-5 px-4 text-center">
-                              <button 
-                                onClick={() => { setSelectedSkripsi(item); setShowSkripsiModal(true); document.body.style.overflow = "hidden"; }} 
-                                className="w-full bg-[#171412] hover:bg-stone-800 text-white py-2.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2 font-sans shadow-sm"
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                AKSES PDF
-                              </button>
+                              <div className="flex flex-col gap-2">
+                                <button 
+                                  onClick={() => { setSelectedSkripsi(item); setShowSkripsiModal(true); document.body.style.overflow = "hidden"; }} 
+                                  className="w-full bg-[#171412] hover:bg-stone-800 text-white py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2 font-sans shadow-sm"
+                                  title="Pratinjau Halaman Depan"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                  PREVIEW BAB 1
+                                </button>
+                                <button 
+                                  onClick={() => handleTanyaLinkResmi(item)} 
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2 font-sans shadow-sm"
+                                  title="Tanya link repository kampus via WhatsApp"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                  LINK REPO (WA)
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
