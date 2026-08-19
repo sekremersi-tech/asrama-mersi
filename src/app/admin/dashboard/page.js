@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, where, updateDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, updateDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
 // PENGATURAN HAK AKSES TAB UNTUK MASING-MASING DIVISI
@@ -21,7 +21,7 @@ const TAB_ROLES = {
 const TAB_NAMES = {
   tampilan: "Pengaturan Web & Foto", status: "Pendaftaran & Status", kepengurusan: "Kepengurusan",
   timeline: "Timeline", fotoprofil: "Foto Profil", fasilitas: "Fasilitas Asrama",
-  penyewaan: "Penyewaan", galeri: "Galeri", kehidupan: "Media Publikasi", skripsi: "Skripsi", suara_alumni: "Suara Alumni", log: "Log Data"
+  penyewaan: "Penyewaan", galeri: "Galeri", kehidupan: "Media Publikasi", skripsi: "Skripsi", suara_alumni: "Data Alumni", log: "Log Data"
 };
 
 // KOMPONEN PAGINATION BERSAMA
@@ -60,7 +60,6 @@ export default function AdminDashboard() {
   const [dataSejarah, setDataSejarah] = useState([]);
   const [pengurusInti, setPengurusInti] = useState({ ketuaNama: "", ketuaFoto: "", sekreNama: "", sekreFoto: "", bendaharaNama: "", bendaharaFoto: "" });
   const [fileInti, setFileInti] = useState({ ketua: null, sekretaris: null, bendahara: null });
-  
   const [dataDivisi, setDataDivisi] = useState([]);
   const [dataAnggota, setDataAnggota] = useState([]);
   const [dataFotoProfil, setDataFotoProfil] = useState([]);
@@ -71,8 +70,6 @@ export default function AdminDashboard() {
   const [dataKehidupan, setDataKehidupan] = useState([]);
   const [dataSkripsi, setDataSkripsi] = useState([]);
   const [dataPesanAlumni, setDataPesanAlumni] = useState([]); 
-  
-  // STATE LOG DATA & PERMOHONAN
   const [dataLogUnduh, setDataLogUnduh] = useState([]);
   const [dataPendaftarLomba, setDataPendaftarLomba] = useState([]);
   const [dataPendaftarAsrama, setDataPendaftarAsrama] = useState([]);
@@ -84,7 +81,6 @@ export default function AdminDashboard() {
   const [judulSejarah, setJudulSejarah] = useState(""); const [isiSejarah, setIsiSejarah] = useState(""); const [editSejarahId, setEditSejarahId] = useState(null); 
   const [namaDivisiBaru, setNamaDivisiBaru] = useState("");
   const [formAnggota, setFormAnggota] = useState({ divisiId: "", nama: "", peran: "Anggota" }); const [fileAnggota, setFileAnggota] = useState(null); const [editAnggotaId, setEditAnggotaId] = useState(null);
-  
   const [konteksFoto, setKonteksFoto] = useState(""); const [filesFotoProfil, setFilesFotoProfil] = useState([]); const [editFotoProfId, setEditFotoProfId] = useState(null);
   const [tahunTimeline, setTahunTimeline] = useState(""); const [judulTimeline, setJudulTimeline] = useState(""); const [deskripsiTimeline, setDeskripsiTimeline] = useState(""); const [editTimelineId, setEditTimelineId] = useState(null);
   const [namaFasilitas, setNamaFasilitas] = useState(""); const [deskripsiFasilitas, setDeskripsiFasilitas] = useState(""); const [filesFasilitas, setFilesFasilitas] = useState([]); const [editFasilitId, setEditFasilitId] = useState(null);
@@ -92,8 +88,12 @@ export default function AdminDashboard() {
   const [judulGaleri, setJudulGaleri] = useState(""); const [warnaGaleri, setWarnaGaleri] = useState("#ffffff"); const [filesGaleri, setFilesGaleri] = useState([]); const [editGaleriId, setEditGaleriId] = useState(null);
   const [judulKonten, setJudulKonten] = useState(""); const [kategori, setKategori] = useState("PRESTASI"); const [customKategori, setCustomKategori] = useState(""); const [deskripsi, setDeskripsi] = useState(""); const [filesGambar, setFilesGambar] = useState([]); const [editKehidupanId, setEditKehidupanId] = useState(null);
   const [nama, setNama] = useState(""); const [jurusan, setJurusan] = useState(""); const [judulSkripsi, setJudulSkripsi] = useState(""); const [tahun, setTahun] = useState(""); const [filePDF, setFilePDF] = useState(null); const [editSkripsiId, setEditSkripsiId] = useState(null);
-  const [namaAlumni, setNamaAlumni] = useState(""); const [tahunLulus, setTahunLulus] = useState(""); const [pesanAlumni, setPesanAlumni] = useState(""); const [fileFotoAlumni, setFileFotoAlumni] = useState(null); const [editPesanId, setEditPesanId] = useState(null);
   const [replyKomenId, setReplyKomenId] = useState(null); const [replyText, setReplyText] = useState("");
+
+  // STATE FORM ALUMNI LENGKAP (BARU)
+  const [formAlumni, setFormAlumni] = useState({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", pesan: "" });
+  const [fileFotoAlumni, setFileFotoAlumni] = useState(null);
+  const [editPesanId, setEditPesanId] = useState(null);
 
   // PAGINATION STATES 
   const [pageSejarah, setPageSejarah] = useState(1);
@@ -158,13 +158,16 @@ export default function AdminDashboard() {
     const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "desc")));  setDataGaleri(galSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const kehSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc"))); setDataKehidupan(kehSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const skrSnap = await getDocs(query(collection(db, "skripsi"), orderBy("tahun", "desc"))); setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    const pesanSnap = await getDocs(query(collection(db, "pesan_alumni"), orderBy("createdAt", "desc"))); setDataPesanAlumni(pesanSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const logSnap = await getDocs(query(collection(db, "log_unduh_skripsi"), orderBy("waktuAkses", "desc"))); setDataLogUnduh(logSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const lombaSnap = await getDocs(query(collection(db, "pendaftaran_lomba"), orderBy("waktuDaftar", "desc"))); setDataPendaftarLomba(lombaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const asramaSnap = await getDocs(query(collection(db, "pendaftaran_asrama"), orderBy("waktuDaftar", "desc"))); setDataPendaftarAsrama(asramaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const komenSnap = await getDocs(query(collection(db, "komentar_publikasi"), orderBy("waktu", "desc"))); setDataKomentar(komenSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const pengSnap = await getDocs(query(collection(db, "log_pengunjung"), orderBy("waktu", "desc"))); setDataPengunjung(pengSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const mohonSkripsiSnap = await getDocs(query(collection(db, "permohonan_skripsi"), orderBy("waktu", "desc"))); setDataPermohonanSkripsi(mohonSkripsiSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    
+    // MENGAMBIL DATA ALUMNI (YANG BARU)
+    const pesanSnap = await getDocs(query(collection(db, "pesan_alumni"), orderBy("createdAt", "desc"))); 
+    setDataPesanAlumni(pesanSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
   const uploadToCloudinary = async (file, resourceType = "image") => { const formData = new FormData(); formData.append("file", file); formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET); const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: "POST", body: formData }); const data = await res.json(); if (data.error) throw new Error(data.error.message); return data.secure_url; };
@@ -178,7 +181,7 @@ export default function AdminDashboard() {
       const secretLink = `${baseUrl}/skripsi-viewer?id=${item.skripsiId}&nama=${encodeURIComponent(item.nama)}&hp=${item.noHp}`;
       let bersihkanNomor = item.noHp.replace(/\D/g, '');
       if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
-      const pesanWa = `Halo ${item.nama},\n\nPermohonan akses skripsi Anda untuk judul *"${item.judulSkripsi}"* telah disetujui oleh Sekretariat Asrama Mersi.\n\nBerikut adalah link akses rahasia Anda (Hanya dapat melihat 3 halaman pertama & terproteksi):\n${secretLink}\n\nTerima kasih.`;
+      const pesanWa = `Halo ${item.nama},\n\nPermohonan akses skripsi Anda untuk judul *"${item.judulSkripsi}"* telah disetujui oleh Sekretariat Asrama Mersi.\n\nBerikut adalah link akses rahasia Anda (Hanya pratinjau halaman pertama):\n${secretLink}\n\nTerima kasih.`;
       window.open(`https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(pesanWa)}`, "_blank");
       fetchAllData();
     } catch (error) {
@@ -190,114 +193,93 @@ export default function AdminDashboard() {
     try {
       await updateDoc(doc(db, "permohonan_skripsi", item.id), { status: "Ditolak" });
       fetchAllData();
-    } catch (error) {
-      alert("Gagal menolak.");
-    }
+    } catch (error) { alert("Gagal menolak."); }
   };
 
   const handleResetStatusSkripsi = async (id) => {
     try {
       await updateDoc(doc(db, "permohonan_skripsi", id), { status: "Menunggu" });
       fetchAllData();
-    } catch (error) {
-      alert("Gagal mengembalikan status.");
-    }
+    } catch (error) { alert("Gagal mengembalikan status."); }
   };
 
-  // -- PENGATURAN TEKS --
   const handleSaveTampilan = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newUrls = { ...tampilanUrls }; const keys = ["hero", "profil", "fasilitas", "kehidupan", "alumni", "gateway"]; for (let key of keys) { if (tampilanFiles[key] && tampilanFiles[key].length > 0) { let urls = []; for (const file of tampilanFiles[key]) { urls.push(await uploadToCloudinary(file, "image")); } newUrls[key] = urls; } } if (tampilanFiles.gateway && tampilanFiles.gateway.length > 0) { delete newUrls.gateway1; delete newUrls.gateway2; delete newUrls.gateway3; } await setDoc(doc(db, "pengaturan", "tampilan"), newUrls, { merge: true }); setTampilanUrls(newUrls); setTampilanFiles({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] }); setStatus({ type: "success", message: "Semua foto latar berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveProfilText = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "profilText"), profilText); await setDoc(doc(db, "pengaturan", "kontak"), kontak); setStatus({ type: "success", message: "Teks profil & Kontak berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveStatusAsrama = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { await setDoc(doc(db, "pengaturan", "statusAsrama"), statusAsrama); setStatus({ type: "success", message: "Status Asrama berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSaveBrosur = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let currentBrosurUrl = brosurUrl; if (fileBrosur) { currentBrosurUrl = await uploadToCloudinary(fileBrosur, "image"); setBrosurUrl(currentBrosurUrl); setFileBrosur(null); } await setDoc(doc(db, "pengaturan", "brosur"), { link: currentBrosurUrl, linkFormulir: linkFormulir }); setStatus({ type: "success", message: "Brosur & Link Formulir Pendaftaran berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
-  
-  const handleSavePengurusInti = async (e) => { 
-    e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); 
-    try { 
-      let newData = { ...pengurusInti }; 
-      if (fileInti.ketua) newData.ketuaFoto = await uploadToCloudinary(fileInti.ketua, "image"); 
-      if (fileInti.sekretaris) newData.sekreFoto = await uploadToCloudinary(fileInti.sekretaris, "image"); 
-      if (fileInti.bendahara) newData.bendaharaFoto = await uploadToCloudinary(fileInti.bendahara, "image"); 
-      await setDoc(doc(db, "pengaturan", "pengurus_inti"), newData); 
-      setPengurusInti(newData); 
-      setFileInti({ ketua: null, sekretaris: null, bendahara: null }); 
-      setStatus({ type: "success", message: "Pengurus Inti berhasil diperbarui!" }); 
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } 
-  };
+  const handleSavePengurusInti = async (e) => { e.preventDefault(); setLoading(true); setStatus({ type: "", message: "" }); try { let newData = { ...pengurusInti }; if (fileInti.ketua) newData.ketuaFoto = await uploadToCloudinary(fileInti.ketua, "image"); if (fileInti.sekretaris) newData.sekreFoto = await uploadToCloudinary(fileInti.sekretaris, "image"); if (fileInti.bendahara) newData.bendaharaFoto = await uploadToCloudinary(fileInti.bendahara, "image"); await setDoc(doc(db, "pengaturan", "pengurus_inti"), newData); setPengurusInti(newData); setFileInti({ ketua: null, sekretaris: null, bendahara: null }); setStatus({ type: "success", message: "Pengurus Inti berhasil diperbarui!" }); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
 
-  // -- FUNGSI EDIT / TAMBAH PER KATEGORI --
   const handleSubmitSejarah = async (e) => { e.preventDefault(); setLoading(true); try { if (editSejarahId) { await updateDoc(doc(db, "sejarah_asrama", editSejarahId), { judul: judulSejarah, isi: isiSejarah }); setStatus({ type: "success", message: "Sejarah diperbarui!" }); } else { await addDoc(collection(db, "sejarah_asrama"), { judul: judulSejarah, isi: isiSejarah, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Sejarah ditambahkan!" }); } setJudulSejarah(""); setIsiSejarah(""); setEditSejarahId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditSejarahClick = (item) => { setEditSejarahId(item.id); setJudulSejarah(item.judul); setIsiSejarah(item.isi); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  
   const handleTambahDivisi = async (e) => { e.preventDefault(); setLoading(true); try { await addDoc(collection(db, "divisi_asrama"), { namaDivisi: namaDivisiBaru, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Divisi berhasil ditambahkan!" }); setNamaDivisiBaru(""); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
-  
   const handleEditAnggotaClick = (anggota) => { setEditAnggotaId(anggota.id); setFormAnggota({ divisiId: anggota.divisiId, nama: anggota.nama, peran: anggota.peran || "Anggota" }); setFileAnggota(null); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  
-  const handleTambahAnggota = async (e) => { 
-    e.preventDefault(); setLoading(true); 
-    try { 
-      let fotoUrl = ""; 
-      if (editAnggotaId) { 
-        const existing = dataAnggota.find(a => a.id === editAnggotaId); 
-        fotoUrl = existing.foto; 
-        if (fileAnggota) fotoUrl = await uploadToCloudinary(fileAnggota, "image"); 
-        if (!fileAnggota && fotoUrl.includes("ui-avatars.com") && existing.nama !== formAnggota.nama) { 
-          fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; 
-        } 
-        await updateDoc(doc(db, "anggota_divisi", editAnggotaId), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl }); 
-        setStatus({ type: "success", message: "Data Anggota diperbarui!" }); 
-      } else { 
-        fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; 
-        if (fileAnggota) fotoUrl = await uploadToCloudinary(fileAnggota, "image"); 
-        await addDoc(collection(db, "anggota_divisi"), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, createdAt: serverTimestamp() }); 
-        setStatus({ type: "success", message: "Anggota ditambahkan!" }); 
-      } 
-      setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); setFileAnggota(null); setEditAnggotaId(null); fetchAllData(); 
-      if(document.getElementById('foto1Anggota')) document.getElementById('foto1Anggota').value = ""; 
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } 
-  };
-  
+  const handleTambahAnggota = async (e) => { e.preventDefault(); setLoading(true); try { let fotoUrl = ""; if (editAnggotaId) { const existing = dataAnggota.find(a => a.id === editAnggotaId); fotoUrl = existing.foto; if (fileAnggota) fotoUrl = await uploadToCloudinary(fileAnggota, "image"); if (!fileAnggota && fotoUrl.includes("ui-avatars.com") && existing.nama !== formAnggota.nama) { fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; } await updateDoc(doc(db, "anggota_divisi", editAnggotaId), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl }); setStatus({ type: "success", message: "Data Anggota diperbarui!" }); } else { fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; if (fileAnggota) fotoUrl = await uploadToCloudinary(fileAnggota, "image"); await addDoc(collection(db, "anggota_divisi"), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Anggota ditambahkan!" }); } setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); setFileAnggota(null); setEditAnggotaId(null); fetchAllData(); if(document.getElementById('foto1Anggota')) document.getElementById('foto1Anggota').value = ""; } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleSubmitTimeline = async (e) => { e.preventDefault(); setLoading(true); try { if (editTimelineId) { await updateDoc(doc(db, "timeline_sejarah", editTimelineId), { tahun: tahunTimeline, judul: judulTimeline, deskripsi: deskripsiTimeline }); setStatus({ type: "success", message: "Timeline diperbarui!" }); } else { await addDoc(collection(db, "timeline_sejarah"), { tahun: tahunTimeline, judul: judulTimeline, deskripsi: deskripsiTimeline, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Timeline ditambahkan!" }); } setTahunTimeline(""); setJudulTimeline(""); setDeskripsiTimeline(""); setEditTimelineId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditTimelineClick = (item) => { setEditTimelineId(item.id); setTahunTimeline(item.tahun); setJudulTimeline(item.judul); setDeskripsiTimeline(item.deskripsi); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-
   const handleSubmitFotoProfil = async (e) => { e.preventDefault(); setLoading(true); try { let urls = editFotoProfId ? dataFotoProfil.find(d=>d.id===editFotoProfId).linkGambar : []; if (filesFotoProfil.length > 0) { urls = []; for (const file of filesFotoProfil) urls.push(await uploadToCloudinary(file, "image")); } if (editFotoProfId) { await updateDoc(doc(db, "profil_galeri", editFotoProfId), { konteks: konteksFoto, linkGambar: urls }); setStatus({ type: "success", message: "Foto Profil diperbarui!" }); } else { await addDoc(collection(db, "profil_galeri"), { konteks: konteksFoto, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Foto Profil ditambahkan!" }); } setKonteksFoto(""); setFilesFotoProfil([]); setEditFotoProfId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditFotoProfClick = (item) => { setEditFotoProfId(item.id); setKonteksFoto(item.konteks); setFilesFotoProfil([]); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-
   const handleSubmitFasilitas = async (e) => { e.preventDefault(); setLoading(true); try { let urls = editFasilitId ? dataFasilitas.find(d=>d.id===editFasilitId).linkGambar : []; if (filesFasilitas.length > 0) { urls = []; for (const file of filesFasilitas) urls.push(await uploadToCloudinary(file, "image")); } if (editFasilitId) { await updateDoc(doc(db, "daftar_fasilitas", editFasilitId), { nama: namaFasilitas, deskripsi: deskripsiFasilitas, linkGambar: urls }); setStatus({ type: "success", message: "Fasilitas diperbarui!" }); } else { await addDoc(collection(db, "daftar_fasilitas"), { nama: namaFasilitas, deskripsi: deskripsiFasilitas, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Fasilitas ditambahkan!" }); } setNamaFasilitas(""); setDeskripsiFasilitas(""); setFilesFasilitas([]); setEditFasilitId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditFasilitasClick = (item) => { setEditFasilitId(item.id); setNamaFasilitas(item.nama); setDeskripsiFasilitas(item.deskripsi); setFilesFasilitas([]); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-
   const handleSubmitPenyewaan = async (e) => { e.preventDefault(); setLoading(true); try { let urls = editSewaId ? dataPenyewaan.find(d=>d.id===editSewaId).linkGambar : []; if (filesSewa.length > 0) { urls = []; for (const file of filesSewa) urls.push(await uploadToCloudinary(file, "image")); } if (editSewaId) { await updateDoc(doc(db, "daftar_penyewaan", editSewaId), { nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls }); setStatus({ type: "success", message: "Layanan diperbarui!" }); } else { await addDoc(collection(db, "daftar_penyewaan"), { nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Layanan ditambahkan!" }); } setNamaSewa(""); setDeskripsiSewa(""); setKategoriSewa("Tempat / Barang"); setHargaSewa(""); setNoHpSewa(""); setFilesSewa([]); setEditSewaId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditSewaClick = (item) => { setEditSewaId(item.id); setNamaSewa(item.nama); setKategoriSewa(item.kategori); setHargaSewa(item.harga); setNoHpSewa(item.noHpSewa); setDeskripsiSewa(item.deskripsi); setFilesSewa([]); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-
   const handleSubmitGaleri = async (e) => { e.preventDefault(); setLoading(true); try { let urls = editGaleriId ? (dataGaleri.find(d=>d.id===editGaleriId).linkGambar || []) : []; if (filesGaleri.length > 0) { urls = []; for (const file of filesGaleri) urls.push(await uploadToCloudinary(file, "image")); } if (editGaleriId) { await updateDoc(doc(db, "fasilitas", editGaleriId), { judul: judulGaleri, warna: warnaGaleri, linkGambar: urls }); setStatus({ type: "success", message: "Galeri diperbarui!" }); } else { await addDoc(collection(db, "fasilitas"), { judul: judulGaleri, warna: warnaGaleri, linkGambar: urls, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Galeri ditambahkan!" }); } setJudulGaleri(""); setWarnaGaleri("#ffffff"); setFilesGaleri([]); setEditGaleriId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditGaleriClick = (item) => { setEditGaleriId(item.id); setJudulGaleri(item.judul); setWarnaGaleri(item.warna || "#ffffff"); setFilesGaleri([]); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-
   const handleSubmitKehidupan = async (e) => { e.preventDefault(); setLoading(true); try { let urls = editKehidupanId ? dataKehidupan.find(d=>d.id===editKehidupanId).linkGambar : []; if (filesGambar.length > 0) { urls = []; for (const file of filesGambar) urls.push(await uploadToCloudinary(file, "image")); } const finalKategori = kategori === "LAINNYA" ? customKategori.toUpperCase() : kategori; if (editKehidupanId) { await updateDoc(doc(db, "kehidupan", editKehidupanId), { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls }); setStatus({ type: "success", message: "Publikasi diperbarui!" }); } else { await addDoc(collection(db, "kehidupan"), { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls, tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Publikasi ditambahkan!" }); } setJudulKonten(""); setDeskripsi(""); setCustomKategori(""); setKategori("PRESTASI"); setFilesGambar([]); setEditKehidupanId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditKehidupanClick = (item) => { setEditKehidupanId(item.id); setJudulKonten(item.judul); setDeskripsi(item.deskripsi); if (["PRESTASI", "MERSI X BK", "LOMBA TERBUKA"].includes(item.kategori)) { setKategori(item.kategori); setCustomKategori(""); } else { setKategori("LAINNYA"); setCustomKategori(item.kategori); } setFilesGambar([]); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-
   const handleSubmitSkripsi = async (e) => { e.preventDefault(); setLoading(true); try { let linkPDF = editSkripsiId ? dataSkripsi.find(d=>d.id===editSkripsiId).linkPDF : ""; if (filePDF) { let rawUrl = await uploadToCloudinary(filePDF, "image"); linkPDF = rawUrl.replace("/upload/", "/upload/fl_attachment/"); } if (editSkripsiId) { await updateDoc(doc(db, "skripsi", editSkripsiId), { nama, jurusan, judul: judulSkripsi, tahun, linkPDF }); setStatus({ type: "success", message: "Skripsi diperbarui!" }); } else { await addDoc(collection(db, "skripsi"), { nama, jurusan, judul: judulSkripsi, tahun, linkPDF, createdAt: serverTimestamp() }); setStatus({ type: "success", message: "Skripsi ditambahkan!" }); } setNama(""); setJurusan(""); setJudulSkripsi(""); setTahun(""); setFilePDF(null); setEditSkripsiId(null); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
   const handleEditSkripsiClick = (item) => { setEditSkripsiId(item.id); setNama(item.nama); setJurusan(item.jurusan); setJudulSkripsi(item.judul); setTahun(item.tahun); setFilePDF(null); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const handleReplyKomentar = async (id) => { if (!replyText.trim()) return; setLoading(true); try { await updateDoc(doc(db, "komentar_publikasi", id), { balasanAdmin: replyText }); setStatus({ type: "success", message: "Balasan berhasil dikirim!" }); setReplyKomenId(null); setReplyText(""); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
+  const handleDeleteBalasan = async (id) => { if (confirm("Hapus balasan admin ini?")) { await updateDoc(doc(db, "komentar_publikasi", id), { balasanAdmin: "" }); fetchAllData(); } };
 
+  // --- LOGIKA SUBMIT DATA ALUMNI YANG BARU & LENGKAP ---
   const handleSubmitPesanAlumni = async (e) => { 
     e.preventDefault(); setLoading(true); 
     try { 
       let fotoUrl = editPesanId ? dataPesanAlumni.find(d=>d.id===editPesanId).foto : ""; 
       if (fileFotoAlumni) { fotoUrl = await uploadToCloudinary(fileFotoAlumni, "image"); } 
       
+      const payload = { 
+        nama: formAlumni.nama, 
+        asal: formAlumni.asal,
+        kuliah: formAlumni.kuliah,
+        jurusan: formAlumni.jurusan,
+        angkatanAsrama: formAlumni.angkatanAsrama,
+        pekerjaan: formAlumni.pekerjaan,
+        skripsi: formAlumni.skripsi,
+        pesan: formAlumni.pesan, 
+        foto: fotoUrl 
+      };
+
       if (editPesanId) { 
-        await updateDoc(doc(db, "pesan_alumni", editPesanId), { nama: namaAlumni, tahunLulus: tahunLulus, pesan: pesanAlumni, foto: fotoUrl }); 
-        setStatus({ type: "success", message: "Pesan alumni diperbarui!" }); 
+        await updateDoc(doc(db, "pesan_alumni", editPesanId), payload); 
+        setStatus({ type: "success", message: "Data alumni diperbarui!" }); 
       } else { 
-        await addDoc(collection(db, "pesan_alumni"), { nama: namaAlumni, tahunLulus: tahunLulus, pesan: pesanAlumni, foto: fotoUrl, createdAt: serverTimestamp() }); 
-        setStatus({ type: "success", message: "Pesan alumni ditambahkan!" }); 
+        await addDoc(collection(db, "pesan_alumni"), { ...payload, createdAt: serverTimestamp() }); 
+        setStatus({ type: "success", message: "Data alumni ditambahkan!" }); 
       } 
-      setNamaAlumni(""); setTahunLulus(""); setPesanAlumni(""); setFileFotoAlumni(null); setEditPesanId(null); fetchAllData(); 
+      
+      // Reset Form
+      setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", pesan: "" }); 
+      setFileFotoAlumni(null); setEditPesanId(null); fetchAllData(); 
       if(document.getElementById('fotoAlumni')) document.getElementById('fotoAlumni').value = "";
     } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } 
   };
-  const handleEditPesanClick = (item) => { setEditPesanId(item.id); setNamaAlumni(item.nama); setTahunLulus(item.tahunLulus); setPesanAlumni(item.pesan); setFileFotoAlumni(null); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-
-  const handleReplyKomentar = async (id) => { if (!replyText.trim()) return; setLoading(true); try { await updateDoc(doc(db, "komentar_publikasi", id), { balasanAdmin: replyText }); setStatus({ type: "success", message: "Balasan berhasil dikirim!" }); setReplyKomenId(null); setReplyText(""); fetchAllData(); } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setLoading(false); } };
-  const handleDeleteBalasan = async (id) => { if (confirm("Hapus balasan admin ini?")) { await updateDoc(doc(db, "komentar_publikasi", id), { balasanAdmin: "" }); fetchAllData(); } };
+  
+  const handleEditPesanClick = (item) => { 
+    setEditPesanId(item.id); 
+    setFormAlumni({
+      nama: item.nama || "",
+      asal: item.asal || "",
+      kuliah: item.kuliah || "",
+      jurusan: item.jurusan || "",
+      angkatanAsrama: item.angkatanAsrama || "",
+      pekerjaan: item.pekerjaan || "",
+      skripsi: item.skripsi || "",
+      pesan: item.pesan || ""
+    });
+    setFileFotoAlumni(null); 
+    window.scrollTo({ top: 0, behavior: 'smooth' }); 
+  };
 
   if (!authReady) return <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">Memeriksa Akses...</div>;
 
@@ -524,55 +506,121 @@ export default function AdminDashboard() {
 
             <div className="bg-white rounded-xl shadow-md p-6"> <h2 className="text-lg font-bold mb-4 border-b pb-2">{editSkripsiId ? "Edit Skripsi" : "Tambah Skripsi"}</h2> <form onSubmit={handleSubmitSkripsi} className="space-y-4"> <input type="text" required value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama Penulis..." className="w-full px-4 py-2 border rounded-md" /> <input type="text" required value={jurusan} onChange={(e) => setJurusan(e.target.value)} placeholder="Jurusan..." className="w-full px-4 py-2 border rounded-md" /> <textarea required rows="1" value={judulSkripsi} onChange={(e) => setJudulSkripsi(e.target.value)} placeholder="Judul Skripsi..." className="w-full px-4 py-2 border rounded-md"></textarea> <input type="number" required value={tahun} onChange={(e) => setTahun(e.target.value)} placeholder="Tahun..." className="w-full px-4 py-2 border rounded-md" /> <input type="file" accept=".pdf" required={!editSkripsiId} onChange={(e) => setFilePDF(e.target.files[0])} className="w-full text-sm border p-2 rounded bg-slate-50" /> <div className="flex gap-2"><button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editSkripsiId ? "Simpan Perubahan" : "Tambahkan"}</button>{editSkripsiId && <button type="button" onClick={()=>{setEditSkripsiId(null); setNama(""); setJurusan(""); setJudulSkripsi(""); setTahun("");}} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}</div> </form> </div> <div className="bg-white rounded-xl shadow-md p-6"> <h3 className="font-bold mb-4 border-b pb-2">Kelola Skripsi</h3> <div className="space-y-3"> {dataSkripsi.slice((pageSkripsi-1)*itemsPerPage, pageSkripsi*itemsPerPage).map(item => ( <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 border rounded-lg"> <div><div className="font-semibold text-sm">{item.nama} - {item.tahun}</div><div className="text-xs line-clamp-1">{item.judul}</div></div> <div className="flex gap-3"><button onClick={()=>handleEditSkripsiClick(item)} className="text-amber-600 text-xs font-bold">Edit</button><button onClick={()=>handleDelete("skripsi", item.id)} className="text-red-500 text-xs font-bold">Hapus</button></div> </div> ))} </div> <Pagination totalItems={dataSkripsi.length} itemsPerPage={itemsPerPage} currentPage={pageSkripsi} setCurrentPage={setPageSkripsi}/> </div> </div> )}
         
-        {/* TAB SUARA ALUMNI (BARU) */}
+        {/* --- TAB SUARA ALUMNI (DIUBAH JADI PANGKALAN DATA ALUMNI LENGKAP) --- */}
         {activeTab === "suara_alumni" && allowedTabs.includes("suara_alumni") && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-bold mb-4 border-b pb-2">{editPesanId ? "Edit Suara Alumni" : "Tambah Suara Alumni"}</h2>
+              <h2 className="text-lg font-bold mb-4 border-b pb-2">{editPesanId ? "Edit Data Alumni" : "Tambah Data Alumni Baru"}</h2>
               <form onSubmit={handleSubmitPesanAlumni} className="space-y-4">
+                
+                {/* Baris 1: Nama & Asal Daerah */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-semibold mb-1 block">Nama Alumni</label>
-                    <input type="text" required value={namaAlumni} onChange={(e) => setNamaAlumni(e.target.value)} placeholder="Nama Lengkap..." className="w-full px-4 py-2 border rounded-md" />
+                    <label className="text-sm font-semibold mb-1 block">Nama Lengkap</label>
+                    <input type="text" required value={formAlumni.nama} onChange={(e) => setFormAlumni({...formAlumni, nama: e.target.value})} placeholder="Nama Alumni..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold mb-1 block">Tahun Lulus</label>
-                    <input type="text" required value={tahunLulus} onChange={(e) => setTahunLulus(e.target.value)} placeholder="Contoh: 2023" className="w-full px-4 py-2 border rounded-md" />
+                    <label className="text-sm font-semibold mb-1 block">Asal Daerah / Kota</label>
+                    <input type="text" required value={formAlumni.asal} onChange={(e) => setFormAlumni({...formAlumni, asal: e.target.value})} placeholder="Contoh: Padang, Bukittinggi..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                 </div>
-                <textarea required rows="3" value={pesanAlumni} onChange={(e) => setPesanAlumni(e.target.value)} placeholder="Kesan dan pesan singkat..." className="w-full px-4 py-2 border rounded-md"></textarea>
+
+                {/* Baris 2: Kuliah & Jurusan */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Kampus / Universitas</label>
+                    <input type="text" required value={formAlumni.kuliah} onChange={(e) => setFormAlumni({...formAlumni, kuliah: e.target.value})} placeholder="Contoh: UNY, UGM, UIN..." className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Program Studi / Jurusan</label>
+                    <input type="text" required value={formAlumni.jurusan} onChange={(e) => setFormAlumni({...formAlumni, jurusan: e.target.value})} placeholder="Contoh: Teknik Elektro..." className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                </div>
+
+                {/* Baris 3: Tahun Masuk Asrama & Pekerjaan */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Tahun Masuk Asrama (Angkatan)</label>
+                    <input type="number" required value={formAlumni.angkatanAsrama} onChange={(e) => setFormAlumni({...formAlumni, angkatanAsrama: e.target.value})} placeholder="Contoh: 2018" className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Pekerjaan Saat Ini</label>
+                    <input type="text" required value={formAlumni.pekerjaan} onChange={(e) => setFormAlumni({...formAlumni, pekerjaan: e.target.value})} placeholder="Contoh: Guru, Engineer, PNS..." className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                </div>
+
+                {/* Baris 4: Judul Skripsi */}
                 <div>
-                  <label className="text-sm font-semibold mb-1 block">Foto Profil (Opsional)</label>
+                  <label className="text-sm font-semibold mb-1 block">Judul Skripsi (Opsional)</label>
+                  <textarea rows="2" value={formAlumni.skripsi} onChange={(e) => setFormAlumni({...formAlumni, skripsi: e.target.value})} placeholder="Judul Skripsi alumni saat lulus..." className="w-full px-4 py-2 border rounded-md"></textarea>
+                </div>
+
+                {/* Baris 5: Kesan Pesan */}
+                <div>
+                  <label className="text-sm font-semibold mb-1 block">Kata-kata / Kesan Pesan untuk Asrama</label>
+                  <textarea required rows="3" value={formAlumni.pesan} onChange={(e) => setFormAlumni({...formAlumni, pesan: e.target.value})} placeholder="Kesan dan pesan singkat..." className="w-full px-4 py-2 border rounded-md"></textarea>
+                </div>
+
+                {/* Foto */}
+                <div>
+                  <label className="text-sm font-semibold mb-1 block">Foto Profil (Opsional jika sudah ada)</label>
                   <input type="file" id="fotoAlumni" accept="image/*" onChange={(e) => setFileFotoAlumni(e.target.files[0])} className="w-full text-sm border p-2 rounded bg-slate-50" />
                 </div>
+
                 <div className="flex gap-2">
-                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editPesanId ? "Simpan Perubahan" : "Tambahkan Suara"}</button>
-                  {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setNamaAlumni(""); setTahunLulus(""); setPesanAlumni(""); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
+                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editPesanId ? "Simpan Perubahan Data" : "Tambahkan ke Database"}</button>
+                  {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", pesan: "" }); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
                 </div>
               </form>
             </div>
             
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="font-bold mb-4 border-b pb-2">Daftar Suara Alumni</h3>
+            {/* Tabel Daftar Alumni */}
+            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-stone-800">
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h3 className="font-bold text-lg text-slate-900">Database Alumni Asrama</h3>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataPesanAlumni.length}</span>
+              </div>
+
               {dataPesanAlumni.length === 0 ? (
-                <p className="text-sm text-stone-500 italic">Belum ada pesan yang ditambahkan.</p>
+                <p className="text-sm text-stone-500 italic text-center py-8">Belum ada data alumni yang ditambahkan.</p>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {dataPesanAlumni.slice((pagePesanAlumni - 1) * itemsPerPage, pagePesanAlumni * itemsPerPage).map(item => (
-                    <div key={item.id} className="bg-slate-50 border rounded-lg flex gap-4 p-4">
-                      <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-16 h-16 object-cover rounded-full shrink-0 border border-slate-200" alt="Profil" />
-                      <div className="flex flex-col justify-between w-full">
-                        <div>
-                          <h4 className="font-bold text-sm text-stone-900">{item.nama} <span className="text-xs text-amber-600 font-normal">(Lulus {item.tahunLulus})</span></h4>
-                          <p className="text-xs text-slate-600 line-clamp-2 mt-1">"{item.pesan}"</p>
-                        </div>
-                        <div className="flex gap-3 text-xs font-bold mt-2 self-end">
-                          <button onClick={() => handleEditPesanClick(item)} className="text-amber-600 hover:underline">Edit</button>
-                          <button onClick={() => handleDelete("pesan_alumni", item.id)} className="text-red-500 hover:underline">Hapus</button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm whitespace-nowrap">
+                    <thead>
+                      <tr className="bg-slate-50 border-y text-slate-600">
+                        <th className="p-3">Profil</th>
+                        <th className="p-3">Akademik</th>
+                        <th className="p-3">Angkatan & Asal</th>
+                        <th className="p-3">Pekerjaan</th>
+                        <th className="p-3 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {dataPesanAlumni.slice((pagePesanAlumni - 1) * itemsPerPage, pagePesanAlumni * itemsPerPage).map(item => (
+                        <tr key={item.id} className="hover:bg-slate-50">
+                          <td className="p-3 flex items-center gap-3">
+                            <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-10 h-10 object-cover rounded-full border border-slate-200" alt="Profil" />
+                            <div className="font-bold text-stone-900">{item.nama}</div>
+                          </td>
+                          <td className="p-3">
+                            <span className="font-semibold">{item.kuliah}</span><br/>
+                            <span className="text-[10px] text-stone-500">{item.jurusan}</span>
+                          </td>
+                          <td className="p-3">
+                            <span className="bg-stone-200 px-2 py-0.5 rounded text-xs font-bold">{item.angkatanAsrama}</span><br/>
+                            <span className="text-[10px] text-stone-500">{item.asal}</span>
+                          </td>
+                          <td className="p-3 text-xs">{item.pekerjaan}</td>
+                          <td className="p-3 text-center">
+                            <div className="flex flex-col gap-1">
+                              <button onClick={() => handleEditPesanClick(item)} className="text-amber-600 text-xs font-bold hover:underline">Edit</button>
+                              <button onClick={() => handleDelete("pesan_alumni", item.id)} className="text-red-500 text-[10px] hover:underline">Hapus</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
               <Pagination totalItems={dataPesanAlumni.length} itemsPerPage={itemsPerPage} currentPage={pagePesanAlumni} setCurrentPage={setPagePesanAlumni} />
