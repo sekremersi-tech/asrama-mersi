@@ -16,7 +16,6 @@ function SecureViewerContent() {
   const [error, setError] = useState("");
   const [isBlurred, setIsBlurred] = useState(false);
 
-  // Mencegah screenshot desktop dengan memburamkan saat window tidak fokus
   useEffect(() => {
     const handleBlur = () => setIsBlurred(true);
     const handleFocus = () => setIsBlurred(false);
@@ -96,7 +95,6 @@ function SecureViewerContent() {
         pointerEvents: isBlurred ? "none" : "auto" 
       }} 
     >
-      {/* Peringatan Saat Layar Tidak Fokus (Anti-Screenshot PC) */}
       {isBlurred && (
         <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center text-red-500 font-bold p-8 text-center gap-6 shadow-[0_0_100px_rgba(220,38,38,0.5)]">
           <div className="bg-red-500/20 p-6 rounded-full border-2 border-red-500/50">
@@ -111,7 +109,6 @@ function SecureViewerContent() {
         </div>
       )}
 
-      {/* Header Info - Minimalis */}
       <div className="bg-[#171412] border-b border-[#292524] py-4 px-6 md:px-12 sticky top-0 z-40 flex flex-col md:flex-row justify-between items-start md:items-center shadow-md gap-4">
         <div className="max-w-3xl">
           <h1 className="text-stone-200 font-bold font-playfair text-lg md:text-xl line-clamp-2 leading-snug mb-1">{skripsi.judul}</h1>
@@ -119,16 +116,13 @@ function SecureViewerContent() {
         </div>
         <div className="bg-[#450a0a] border border-[#7f1d1d] text-red-200 px-4 py-2 rounded-sm text-xs font-bold whitespace-nowrap shadow-sm shrink-0 uppercase tracking-wider flex items-center gap-2">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          HANYA BACA (3 HALAMAN)
+          HANYA BACA (HALAMAN 1)
         </div>
       </div>
 
-      {/* Area Dokumen dengan Watermark */}
       <div className={`relative max-w-4xl mx-auto py-12 px-4 transition-all duration-300 ${isBlurred ? 'blur-[10px] opacity-30 grayscale' : 'opacity-100'}`}>
         
-        {/* WATERMARK FORENSIK (SANGAT JELAS & TEBAL UNTUK ANTI-SCREENSHOT HP) */}
         <div className="fixed inset-0 z-30 pointer-events-none overflow-hidden flex justify-center items-center">
-          {/* Opacity dinaikkan jadi 0.12 dan warna teks hitam solid, pasti merusak hasil screenshot */}
           <div className="w-[300%] h-[300%] flex flex-wrap justify-center items-center gap-x-8 gap-y-16 rotate-[-35deg] opacity-[0.12]">
             {Array.from({ length: 300 }).map((_, i) => (
               <span key={i} className="text-2xl md:text-4xl font-black text-stone-900 uppercase tracking-widest whitespace-nowrap">
@@ -138,9 +132,9 @@ function SecureViewerContent() {
           </div>
         </div>
 
-        {/* Gambar Halaman 1, 2, 3 */}
+        {/* Gambar HANYA HALAMAN 1 */}
         <div className="space-y-12 relative z-20 flex flex-col items-center">
-          {[1, 2, 3].map((page) => (
+          {[1].map((page) => (
             <div key={page} className="bg-white rounded-sm shadow-[0_10px_40px_rgba(0,0,0,0.5)] relative w-full max-w-[800px] border border-stone-200 overflow-hidden">
               <div className="absolute top-4 right-4 bg-stone-900/80 backdrop-blur-sm text-stone-200 text-xs font-bold px-3 py-1.5 rounded-sm z-10 pointer-events-none uppercase tracking-widest shadow-sm">Hal {page}</div>
               <img 
@@ -159,9 +153,9 @@ function SecureViewerContent() {
 
         <div className="mt-20 text-center text-stone-500 text-sm font-lora border-t border-stone-800 pt-8 pb-12 relative z-40 bg-[#1c1917]">
           <p className="mb-2 text-amber-500 font-bold uppercase tracking-widest text-xs">Batas Pratinjau Tercapai</p>
-          <p className="mb-2">Anda telah mencapai batas halaman yang diizinkan untuk pratinjau.</p>
+          <p className="mb-2">Anda hanya diizinkan untuk melihat pratinjau halaman pertama (Bab 1 / Cover).</p>
           <p className="text-stone-600 text-xs max-w-lg mx-auto leading-relaxed mt-4">
-            Dokumen ini dilindungi oleh watermark dinamis. Dilarang menyalin, merekam layar, atau menyebarkan dokumen ini tanpa izin tertulis dari pengurus Asrama Merapi Singgalang.
+            Jika tertarik untuk membaca lebih lanjut, silakan hubungi Sekretaris Asrama untuk meminta link repositori resmi universitas terkait.
           </p>
         </div>
 
