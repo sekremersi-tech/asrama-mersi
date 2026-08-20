@@ -18,7 +18,6 @@ const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
   }, [imgArray.length]);
 
   return (
-    // PERBAIKAN DI SINI: Menggunakan min-h-[90vh] dan py-28 agar konten tidak terpotong
     <section className="relative min-h-[90vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden bg-[#171412] py-28 md:py-32">
       <div className="absolute inset-0 w-full h-full bg-[#171412]">
         {imgArray.map((bg, i) => (
@@ -32,13 +31,14 @@ const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
       </div>
 
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-12 md:mt-16 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        {/* PENAMBAHAN 2 LOGO ASRAMA */}
-        <div className="flex justify-center items-center gap-6 mb-6">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-sm rounded-full p-2 border border-white/20 shadow-lg flex items-center justify-center">
-            <img src="/mersi.png" alt="Logo Mersi" className="w-full h-full object-contain drop-shadow-md" />
+        
+        {/* PERBAIKAN LOGO: Lingkaran Putih Solid di Belakang Logo */}
+        <div className="flex justify-center items-center gap-4 md:gap-6 mb-8">
+          <div className="w-20 h-20 md:w-28 md:h-28 bg-white rounded-full p-3 md:p-4 shadow-[0_0_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
+            <img src="/mersi.png" alt="Logo Mersi" className="w-full h-full object-contain" />
           </div>
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-sm rounded-full p-2 border border-white/20 shadow-lg flex items-center justify-center">
-            <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-full h-full object-contain drop-shadow-md" />
+          <div className="w-20 h-20 md:w-28 md:h-28 bg-white rounded-full p-3 md:p-4 shadow-[0_0_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
+            <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-full h-full object-contain" />
           </div>
         </div>
 
@@ -121,6 +121,7 @@ export default function Beranda() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
+  // State bantuan untuk melacak like secara lokal
   const [localLikes, setLocalLikes] = useState({});
 
   useEffect(() => {
@@ -171,6 +172,7 @@ export default function Beranda() {
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
         comments.sort((a, b) => (b.waktu?.toMillis() || 0) - (a.waktu?.toMillis() || 0));
 
+        // Setup local likes
         let likesMap = {};
         comments.forEach(c => { 
           likesMap[c.id] = c.likes || 0; 
@@ -263,11 +265,13 @@ export default function Beranda() {
     }
   };
 
+  // LOGIKA LIKE / UNLIKE
   const handleLikeKomentar = async (komenId) => {
     if (typeof window === 'undefined') return;
     const isCurrentlyLiked = localStorage.getItem(`liked_${komenId}`);
 
     if (isCurrentlyLiked) {
+      // PROSES UNLIKE (BATAL SUKA)
       try {
         localStorage.removeItem(`liked_${komenId}`);
         setLocalLikes(prev => ({ ...prev, [komenId]: Math.max(0, (prev[komenId] || 0) - 1) }));
@@ -278,6 +282,7 @@ export default function Beranda() {
         setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
       }
     } else {
+      // PROSES LIKE (SUKA)
       try {
         localStorage.setItem(`liked_${komenId}`, 'true');
         setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
@@ -409,7 +414,7 @@ export default function Beranda() {
                                 <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
                                   <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> 
-                                    Admin Mersi
+                                    Admin
                                   </span>
                                   <p className="text-sm text-[#44403c]">{k.balasanAdmin}</p>
                                 </div>
