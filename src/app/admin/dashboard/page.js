@@ -68,21 +68,49 @@ export default function AdminDashboard() {
   const [authReady, setAuthReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
 
   // STATE PENGATURAN UMUM
   const [tampilanUrls, setTampilanUrls] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
   const [tampilanFiles, setTampilanFiles] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
-  const [profilText, setProfilText] = useState({ visi: "", misi: "", jejakAlumni: "" });
-  const [kontak, setKontak] = useState({ namaKetua: "", noTelpon: "", noHumas: "", noSkripsi: "" });
-  const [statusAsrama, setStatusAsrama] = useState({ kamar: "", penghuni: "", ketersediaan: "Tersedia" });
-  const [brosurUrl, setBrosurUrl] = useState("");
+  
+  // STATE MERSI & BK DIPISAH
+  const [profilText, setProfilText] = useState({ visi_mersi: "", misi_mersi: "", visi_bk: "", misi_bk: "", jejakAlumni: "" });
+  const [kontak, setKontak] = useState({ 
+    namaKetuaMersi: "", noTelponMersi: "", 
+    namaKetuaBk: "", noTelponBk: "", 
+    noHumas: "", noSkripsi: "", 
+    email: "", namaIg: "", linkIg: "", namaTiktok: "", linkTiktok: "" 
+  });
+  
+  const [statusAsrama, setStatusAsrama] = useState({ 
+    kamarMersi: "", penghuniMersi: "", ketersediaanMersi: "Tersedia",
+    kamarBk: "", penghuniBk: "", ketersediaanBk: "Tersedia"
+  });
+  
+  const [brosurUrls, setBrosurUrls] = useState({ mersi: [], bk: [] });
   const [linkFormulir, setLinkFormulir] = useState("");
-  const [fileBrosur, setFileBrosur] = useState(null);
+  const [filesBrosurMersi, setFilesBrosurMersi] = useState([]);
+  const [filesBrosurBk, setFilesBrosurBk] = useState([]);
 
-  // STATE DATA
+  // PENGURUS INTI DIPISAH MERSI & BK
+  const [pengurusInti, setPengurusInti] = useState({ 
+    ketuaMersiNama: "", ketuaMersiFoto: "", sekreMersiNama: "", sekreMersiFoto: "", bendaharaMersiNama: "", bendaharaMersiFoto: "",
+    ketuaBkNama: "", ketuaBkFoto: "", sekreBkNama: "", sekreBkFoto: "", bendaharaBkNama: "", bendaharaBkFoto: "" 
+  });
+  const [fileInti, setFileInti] = useState({ 
+    ketuaMersi: null, sekreMersi: null, bendaharaMersi: null, 
+    ketuaBk: null, sekreBk: null, bendaharaBk: null 
+  });
+
+  // STATE PILIHAN ASRAMA PADA FORM INPUT (Mersi / BK)
+  const [asramaSejarah, setAsramaSejarah] = useState("mersi");
+  const [asramaDivisi, setAsramaDivisi] = useState("mersi");
+  const [asramaFasilitas, setAsramaFasilitas] = useState("mersi");
+  const [asramaSewa, setAsramaSewa] = useState("mersi");
+
+  // STATE DATA TABEL
   const [dataSejarah, setDataSejarah] = useState([]);
-  const [pengurusInti, setPengurusInti] = useState({ ketuaNama: "", ketuaFoto: "", sekreNama: "", sekreFoto: "", bendaharaNama: "", bendaharaFoto: "" });
-  const [fileInti, setFileInti] = useState({ ketua: null, sekretaris: null, bendahara: null });
   const [dataDivisi, setDataDivisi] = useState([]);
   const [dataAnggota, setDataAnggota] = useState([]);
   const [dataFotoProfil, setDataFotoProfil] = useState([]);
@@ -154,7 +182,6 @@ export default function AdminDashboard() {
   const [replyKomenId, setReplyKomenId] = useState(null); 
   const [replyText, setReplyText] = useState("");
 
-  // STATE FORM ALUMNI LENGKAP (DITAMBAH PRESTASI)
   const [formAlumni, setFormAlumni] = useState({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" });
   const [fileFotoAlumni, setFileFotoAlumni] = useState(null);
   const [editPesanId, setEditPesanId] = useState(null);
@@ -181,7 +208,10 @@ export default function AdminDashboard() {
     import("firebase/auth").then(({ onAuthStateChanged }) => {
       onAuthStateChanged(auth, (user) => {
         if (!user) { router.push("/admin/login"); return; }
+        
         const email = user.email || "";
+        setCurrentUserEmail(email);
+        
         let currRole = "sekre"; 
         
         if (email.startsWith("humas")) currRole = "humas";
@@ -196,6 +226,15 @@ export default function AdminDashboard() {
         setRole(currRole); 
         setAllowedTabs(tabsForRole); 
         setActiveTab(tabsForRole[0]); 
+
+        // OTOMATISKAN PILIHAN ASRAMA BERDASARKAN EMAIL LOGIN
+        const isBkAdmin = email.includes("@bk.com");
+        const defaultAsrama = isBkAdmin ? "bk" : "mersi";
+        setAsramaSejarah(defaultAsrama);
+        setAsramaDivisi(defaultAsrama);
+        setAsramaFasilitas(defaultAsrama);
+        setAsramaSewa(defaultAsrama);
+
         setAuthReady(true);
         fetchAllData();
       });
@@ -203,39 +242,93 @@ export default function AdminDashboard() {
   }, []);
 
   const fetchAllData = async () => {
+    // Tampilan
     const docSnap = await getDoc(doc(db, "pengaturan", "tampilan"));
     if (docSnap.exists()) setTampilanUrls(docSnap.data());
     
+    // Profil Text
     const docProfil = await getDoc(doc(db, "pengaturan", "profilText"));
-    if (docProfil.exists()) setProfilText(docProfil.data());
+    if (docProfil.exists()) {
+      const p = docProfil.data();
+      setProfilText({
+        visi_mersi: p.visi_mersi || p.visi || "", 
+        misi_mersi: p.misi_mersi || p.misi || "",
+        visi_bk: p.visi_bk || "", 
+        misi_bk: p.misi_bk || "", 
+        jejakAlumni: p.jejakAlumni || ""
+      });
+    }
     
+    // Kontak
     const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
     if (docKontak.exists()) {
       const kd = docKontak.data();
-      setKontak({ namaKetua: kd.namaKetua||"", noTelpon: kd.noTelpon||"", noHumas: kd.noHumas||"", noSkripsi: kd.noSkripsi||"" });
+      setKontak({ 
+        namaKetuaMersi: kd.namaKetuaMersi || kd.namaKetua || "", 
+        noTelponMersi: kd.noTelponMersi || kd.noTelpon || "", 
+        namaKetuaBk: kd.namaKetuaBk || "", 
+        noTelponBk: kd.noTelponBk || "", 
+        noHumas: kd.noHumas || "", 
+        noSkripsi: kd.noSkripsi || "", 
+        email: kd.email || "", 
+        namaIg: kd.namaIg || "", 
+        linkIg: kd.linkIg || "", 
+        namaTiktok: kd.namaTiktok || "", 
+        linkTiktok: kd.linkTiktok || ""
+      });
     }
     
+    // Status Asrama
     const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
-    if (docStatus.exists()) setStatusAsrama(docStatus.data());
+    if (docStatus.exists()) {
+      const d = docStatus.data();
+      setStatusAsrama({
+        kamarMersi: d.kamarMersi || d.kamar || "", 
+        penghuniMersi: d.penghuniMersi || d.penghuni || "", 
+        ketersediaanMersi: d.ketersediaanMersi || d.ketersediaan || "Tersedia",
+        kamarBk: d.kamarBk || "", 
+        penghuniBk: d.penghuniBk || "", 
+        ketersediaanBk: d.ketersediaanBk || "Tersedia"
+      });
+    }
     
+    // Brosur
     const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
     if (docBrosur.exists()) { 
-      setBrosurUrl(docBrosur.data().link || ""); 
-      setLinkFormulir(docBrosur.data().linkFormulir || ""); 
+      const d = docBrosur.data();
+      setBrosurUrls({
+        mersi: Array.isArray(d.linkMersi) ? d.linkMersi : (d.linkMersi ? [d.linkMersi] : (d.link ? [d.link] : [])),
+        bk: Array.isArray(d.linkBk) ? d.linkBk : (d.linkBk ? [d.linkBk] : [])
+      });
+      setLinkFormulir(d.linkFormulir || ""); 
     }
 
+    // Sejarah
     const sejSnap = await getDocs(query(collection(db, "sejarah_asrama"), orderBy("createdAt", "asc"))); 
     setDataSejarah(sejSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
+    // Pengurus Inti
     const docInti = await getDoc(doc(db, "pengaturan", "pengurus_inti")); 
-    if (docInti.exists()) setPengurusInti(docInti.data());
+    if (docInti.exists()) {
+      const d = docInti.data();
+      setPengurusInti({
+        ketuaMersiNama: d.ketuaMersiNama || d.ketuaNama || "", ketuaMersiFoto: d.ketuaMersiFoto || d.ketuaFoto || "",
+        sekreMersiNama: d.sekreMersiNama || d.sekreNama || "", sekreMersiFoto: d.sekreMersiFoto || d.sekreFoto || "",
+        bendaharaMersiNama: d.bendaharaMersiNama || d.bendaharaNama || "", bendaharaMersiFoto: d.bendaharaMersiFoto || d.bendaharaFoto || "",
+        ketuaBkNama: d.ketuaBkNama || "", ketuaBkFoto: d.ketuaBkFoto || "",
+        sekreBkNama: d.sekreBkNama || "", sekreBkFoto: d.sekreBkFoto || "",
+        bendaharaBkNama: d.bendaharaBkNama || "", bendaharaBkFoto: d.bendaharaBkFoto || ""
+      });
+    }
     
+    // Divisi & Anggota
     const divSnap = await getDocs(query(collection(db, "divisi_asrama"), orderBy("createdAt", "asc"))); 
     setDataDivisi(divSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
     const angSnap = await getDocs(query(collection(db, "anggota_divisi"), orderBy("createdAt", "asc"))); 
     setDataAnggota(angSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
+    // Lainnya
     const fotoProfSnap = await getDocs(query(collection(db, "profil_galeri"), orderBy("createdAt", "desc"))); 
     setDataFotoProfil(fotoProfSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
@@ -307,7 +400,7 @@ export default function AdminDashboard() {
       const secretLink = `${baseUrl}/skripsi-viewer?id=${item.skripsiId}&nama=${encodeURIComponent(item.nama)}&hp=${item.noHp}`;
       let bersihkanNomor = item.noHp.replace(/\D/g, '');
       if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
-      const pesanWa = `Halo ${item.nama},\n\nPermohonan akses skripsi Anda untuk judul *"${item.judulSkripsi}"* telah disetujui oleh Sekretariat Asrama Mersi.\n\nBerikut adalah link akses rahasia Anda (Hanya pratinjau halaman pertama):\n${secretLink}\n\nTerima kasih.`;
+      const pesanWa = `Halo ${item.nama},\n\nPermohonan akses skripsi Anda untuk judul *"${item.judulSkripsi}"* telah disetujui.\n\nBerikut adalah link akses rahasia Anda (Hanya pratinjau halaman pertama):\n${secretLink}\n\nTerima kasih.`;
       window.open(`https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(pesanWa)}`, "_blank");
       fetchAllData();
     } catch (error) { 
@@ -333,6 +426,7 @@ export default function AdminDashboard() {
     }
   };
 
+  // --- SAVE FUNCTIONS ---
   const handleSaveTampilan = async (e) => { 
     e.preventDefault(); 
     setLoading(true); 
@@ -372,7 +466,7 @@ export default function AdminDashboard() {
     try { 
       await setDoc(doc(db, "pengaturan", "profilText"), profilText); 
       await setDoc(doc(db, "pengaturan", "kontak"), kontak); 
-      setStatus({ type: "success", message: "Teks profil & Kontak berhasil diperbarui!" }); 
+      setStatus({ type: "success", message: "Teks profil & Semua Kontak berhasil diperbarui!" }); 
     } catch (error) { 
       setStatus({ type: "error", message: error.message }); 
     } finally { 
@@ -399,13 +493,26 @@ export default function AdminDashboard() {
     setLoading(true); 
     setStatus({ type: "", message: "" }); 
     try { 
-      let currentBrosurUrl = brosurUrl; 
-      if (fileBrosur) { 
-        currentBrosurUrl = await uploadToCloudinary(fileBrosur, "image"); 
-        setBrosurUrl(currentBrosurUrl); 
-        setFileBrosur(null); 
-      } 
-      await setDoc(doc(db, "pengaturan", "brosur"), { link: currentBrosurUrl, linkFormulir: linkFormulir }); 
+      let newUrlsMersi = [...brosurUrls.mersi];
+      if (filesBrosurMersi.length > 0) {
+        newUrlsMersi = [];
+        for (const file of filesBrosurMersi) {
+          newUrlsMersi.push(await uploadToCloudinary(file, "image"));
+        }
+      }
+      
+      let newUrlsBk = [...brosurUrls.bk];
+      if (filesBrosurBk.length > 0) {
+        newUrlsBk = [];
+        for (const file of filesBrosurBk) {
+          newUrlsBk.push(await uploadToCloudinary(file, "image"));
+        }
+      }
+
+      await setDoc(doc(db, "pengaturan", "brosur"), { linkMersi: newUrlsMersi, linkBk: newUrlsBk, linkFormulir: linkFormulir }); 
+      setBrosurUrls({ mersi: newUrlsMersi, bk: newUrlsBk });
+      setFilesBrosurMersi([]); 
+      setFilesBrosurBk([]);
       setStatus({ type: "success", message: "Brosur & Link Formulir Pendaftaran berhasil diperbarui!" }); 
     } catch (error) { 
       setStatus({ type: "error", message: error.message }); 
@@ -420,12 +527,17 @@ export default function AdminDashboard() {
     setStatus({ type: "", message: "" }); 
     try { 
       let newData = { ...pengurusInti }; 
-      if (fileInti.ketua) newData.ketuaFoto = await uploadToCloudinary(fileInti.ketua, "image"); 
-      if (fileInti.sekretaris) newData.sekreFoto = await uploadToCloudinary(fileInti.sekretaris, "image"); 
-      if (fileInti.bendahara) newData.bendaharaFoto = await uploadToCloudinary(fileInti.bendahara, "image"); 
+      if (fileInti.ketuaMersi) newData.ketuaMersiFoto = await uploadToCloudinary(fileInti.ketuaMersi, "image"); 
+      if (fileInti.sekreMersi) newData.sekreMersiFoto = await uploadToCloudinary(fileInti.sekreMersi, "image"); 
+      if (fileInti.bendaharaMersi) newData.bendaharaMersiFoto = await uploadToCloudinary(fileInti.bendaharaMersi, "image"); 
+      
+      if (fileInti.ketuaBk) newData.ketuaBkFoto = await uploadToCloudinary(fileInti.ketuaBk, "image"); 
+      if (fileInti.sekreBk) newData.sekreBkFoto = await uploadToCloudinary(fileInti.sekreBk, "image"); 
+      if (fileInti.bendaharaBk) newData.bendaharaBkFoto = await uploadToCloudinary(fileInti.bendaharaBk, "image"); 
+
       await setDoc(doc(db, "pengaturan", "pengurus_inti"), newData); 
       setPengurusInti(newData); 
-      setFileInti({ ketua: null, sekretaris: null, bendahara: null }); 
+      setFileInti({ ketuaMersi: null, sekreMersi: null, bendaharaMersi: null, ketuaBk: null, sekreBk: null, bendaharaBk: null }); 
       setStatus({ type: "success", message: "Pengurus Inti berhasil diperbarui!" }); 
     } catch (error) { 
       setStatus({ type: "error", message: error.message }); 
@@ -439,10 +551,10 @@ export default function AdminDashboard() {
     setLoading(true); 
     try { 
       if (editSejarahId) { 
-        await updateDoc(doc(db, "sejarah_asrama", editSejarahId), { judul: judulSejarah, isi: isiSejarah }); 
+        await updateDoc(doc(db, "sejarah_asrama", editSejarahId), { asrama: asramaSejarah, judul: judulSejarah, isi: isiSejarah }); 
         setStatus({ type: "success", message: "Sejarah diperbarui!" }); 
       } else { 
-        await addDoc(collection(db, "sejarah_asrama"), { judul: judulSejarah, isi: isiSejarah, createdAt: serverTimestamp() }); 
+        await addDoc(collection(db, "sejarah_asrama"), { asrama: asramaSejarah, judul: judulSejarah, isi: isiSejarah, createdAt: serverTimestamp() }); 
         setStatus({ type: "success", message: "Sejarah ditambahkan!" }); 
       } 
       setJudulSejarah(""); 
@@ -458,6 +570,7 @@ export default function AdminDashboard() {
 
   const handleEditSejarahClick = (item) => { 
     setEditSejarahId(item.id); 
+    setAsramaSejarah(item.asrama || 'mersi');
     setJudulSejarah(item.judul); 
     setIsiSejarah(item.isi); 
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
@@ -467,7 +580,7 @@ export default function AdminDashboard() {
     e.preventDefault(); 
     setLoading(true); 
     try { 
-      await addDoc(collection(db, "divisi_asrama"), { namaDivisi: namaDivisiBaru, createdAt: serverTimestamp() }); 
+      await addDoc(collection(db, "divisi_asrama"), { asrama: asramaDivisi, namaDivisi: namaDivisiBaru, createdAt: serverTimestamp() }); 
       setStatus({ type: "success", message: "Divisi berhasil ditambahkan!" }); 
       setNamaDivisiBaru(""); 
       fetchAllData(); 
@@ -489,6 +602,9 @@ export default function AdminDashboard() {
     e.preventDefault(); 
     setLoading(true); 
     try { 
+      const selectedDiv = dataDivisi.find(d => d.id === formAnggota.divisiId);
+      const divAsrama = selectedDiv ? (selectedDiv.asrama || 'mersi') : 'mersi';
+
       let fotoUrl = ""; 
       if (editAnggotaId) { 
         const existing = dataAnggota.find(a => a.id === editAnggotaId); 
@@ -499,14 +615,14 @@ export default function AdminDashboard() {
         if (!fileAnggota && fotoUrl.includes("ui-avatars.com") && existing.nama !== formAnggota.nama) { 
           fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; 
         } 
-        await updateDoc(doc(db, "anggota_divisi", editAnggotaId), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl }); 
+        await updateDoc(doc(db, "anggota_divisi", editAnggotaId), { asrama: divAsrama, divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl }); 
         setStatus({ type: "success", message: "Data Anggota diperbarui!" }); 
       } else { 
         fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; 
         if (fileAnggota) {
           fotoUrl = await uploadToCloudinary(fileAnggota, "image"); 
         }
-        await addDoc(collection(db, "anggota_divisi"), { divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, createdAt: serverTimestamp() }); 
+        await addDoc(collection(db, "anggota_divisi"), { asrama: divAsrama, divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, createdAt: serverTimestamp() }); 
         setStatus({ type: "success", message: "Anggota ditambahkan!" }); 
       } 
       setFormAnggota({ divisiId: "", nama: "", peran: "Anggota" }); 
@@ -600,10 +716,10 @@ export default function AdminDashboard() {
         }
       } 
       if (editFasilitId) { 
-        await updateDoc(doc(db, "daftar_fasilitas", editFasilitId), { nama: namaFasilitas, deskripsi: deskripsiFasilitas, linkGambar: urls }); 
+        await updateDoc(doc(db, "daftar_fasilitas", editFasilitId), { asrama: asramaFasilitas, nama: namaFasilitas, deskripsi: deskripsiFasilitas, linkGambar: urls }); 
         setStatus({ type: "success", message: "Fasilitas diperbarui!" }); 
       } else { 
-        await addDoc(collection(db, "daftar_fasilitas"), { nama: namaFasilitas, deskripsi: deskripsiFasilitas, linkGambar: urls, createdAt: serverTimestamp() }); 
+        await addDoc(collection(db, "daftar_fasilitas"), { asrama: asramaFasilitas, nama: namaFasilitas, deskripsi: deskripsiFasilitas, linkGambar: urls, createdAt: serverTimestamp() }); 
         setStatus({ type: "success", message: "Fasilitas ditambahkan!" }); 
       } 
       setNamaFasilitas(""); 
@@ -620,6 +736,7 @@ export default function AdminDashboard() {
 
   const handleEditFasilitasClick = (item) => { 
     setEditFasilitId(item.id); 
+    setAsramaFasilitas(item.asrama || 'mersi');
     setNamaFasilitas(item.nama); 
     setDeskripsiFasilitas(item.deskripsi); 
     setFilesFasilitas([]); 
@@ -638,10 +755,10 @@ export default function AdminDashboard() {
         }
       } 
       if (editSewaId) { 
-        await updateDoc(doc(db, "daftar_penyewaan", editSewaId), { nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls }); 
+        await updateDoc(doc(db, "daftar_penyewaan", editSewaId), { asrama: asramaSewa, nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls }); 
         setStatus({ type: "success", message: "Layanan diperbarui!" }); 
       } else { 
-        await addDoc(collection(db, "daftar_penyewaan"), { nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls, createdAt: serverTimestamp() }); 
+        await addDoc(collection(db, "daftar_penyewaan"), { asrama: asramaSewa, nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls, createdAt: serverTimestamp() }); 
         setStatus({ type: "success", message: "Layanan ditambahkan!" }); 
       } 
       setNamaSewa(""); 
@@ -661,6 +778,7 @@ export default function AdminDashboard() {
 
   const handleEditSewaClick = (item) => { 
     setEditSewaId(item.id); 
+    setAsramaSewa(item.asrama || 'mersi');
     setNamaSewa(item.nama); 
     setKategoriSewa(item.kategori); 
     setHargaSewa(item.harga); 
@@ -838,7 +956,7 @@ export default function AdminDashboard() {
         angkatanAsrama: formAlumni.angkatanAsrama,
         pekerjaan: formAlumni.pekerjaan,
         skripsi: formAlumni.skripsi,
-        prestasi: formAlumni.prestasi, // Tambahan Prestasi/Jurnal
+        prestasi: formAlumni.prestasi,
         pesan: formAlumni.pesan, 
         foto: fotoUrl 
       };
@@ -875,7 +993,7 @@ export default function AdminDashboard() {
       angkatanAsrama: item.angkatanAsrama || "",
       pekerjaan: item.pekerjaan || "",
       skripsi: item.skripsi || "",
-      prestasi: item.prestasi || "", // Tambahan Prestasi/Jurnal
+      prestasi: item.prestasi || "",
       pesan: item.pesan || ""
     });
     setFileFotoAlumni(null); 
@@ -900,7 +1018,7 @@ export default function AdminDashboard() {
       `}</style>
       <nav className="bg-slate-900 text-white shadow-md sticky top-0 z-50 p-4 px-8 flex justify-between items-center">
         <div className="font-serif font-bold text-xl flex items-center gap-2">
-          <img src="/mersi.png" alt="Logo" className="w-6 h-6 object-contain" /> Admin Mersi 
+          <img src="/mersi.png" alt="Logo" className="w-6 h-6 object-contain" /> Admin Asrama 
           <span className="text-xs bg-red-800 px-2 py-0.5 rounded-full ml-2 font-sans font-normal uppercase tracking-wider">{role === "puki" ? "PUBLIKASI" : role}</span>
         </div>
         <button onClick={() => {signOut(auth); router.push("/admin/login")}} className="bg-red-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700">Logout</button>
@@ -936,75 +1054,125 @@ export default function AdminDashboard() {
                   <h2 className="text-lg font-bold mb-4 border-b pb-2">Edit Teks Website Asrama</h2> 
                   <form onSubmit={handleSaveProfilText} className="space-y-6"> 
                     <div className="space-y-4"> 
-                      <h3 className="font-semibold text-red-800 border-l-2 pl-2">Kontak Asrama (Footer, Pendaftaran & Skripsi)</h3> 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"> 
+                      <h3 className="font-semibold text-red-800 border-l-2 pl-2">Kontak Asrama (Footer & Pendaftaran)</h3> 
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> 
+                        <div className="bg-red-50/50 p-3 rounded border border-red-100">
+                          <label className="text-sm block mb-1 font-bold text-red-800">Nama Ketua Mersi</label>
+                          <input required type="text" value={kontak.namaKetuaMersi || ""} onChange={(e) => setKontak({...kontak, namaKetuaMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded" />
+                        </div> 
+                        <div className="bg-red-50/50 p-3 rounded border border-red-100">
+                          <label className="text-sm block mb-1 font-bold text-red-800">No WA Ketua Mersi</label>
+                          <input required type="text" value={kontak.noTelponMersi || ""} onChange={(e) => setKontak({...kontak, noTelponMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0812..." />
+                        </div> 
+                        <div className="bg-stone-50 p-3 rounded border border-stone-200 row-span-2">
+                          <label className="text-sm block mb-1 font-bold text-stone-700">Email Utama Asrama</label>
+                          <input required type="email" value={kontak.email || ""} onChange={(e) => setKontak({...kontak, email: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="sekre@gmail.com" />
+                          
+                          <label className="text-sm block mb-1 font-bold text-stone-700">No WA Admin Skripsi</label>
+                          <input required type="text" value={kontak.noSkripsi || ""} onChange={(e) => setKontak({...kontak, noSkripsi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="Cth: 0823..." />
+                          
+                          <label className="text-sm block mb-1 font-bold text-stone-700">No WA Humas</label>
+                          <input required type="text" value={kontak.noHumas || ""} onChange={(e) => setKontak({...kontak, noHumas: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0852..." />
+                        </div> 
+                        
+                        <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
+                          <label className="text-sm block mb-1 font-bold text-amber-700">Nama Ketua BK</label>
+                          <input required type="text" value={kontak.namaKetuaBk || ""} onChange={(e) => setKontak({...kontak, namaKetuaBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" />
+                        </div> 
+                        <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
+                          <label className="text-sm block mb-1 font-bold text-amber-700">No WA Ketua BK</label>
+                          <input required type="text" value={kontak.noTelponBk || ""} onChange={(e) => setKontak({...kontak, noTelponBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0852..." />
+                        </div> 
+                      </div> 
+                      
+                      <h3 className="font-semibold text-blue-800 border-l-2 border-blue-500 pl-2 mt-6">Sosial Media Asrama</h3> 
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 border rounded-lg"> 
                         <div>
-                          <label className="text-sm block mb-1">Nama Ketua</label>
-                          <input required type="text" value={kontak.namaKetua || ""} onChange={(e) => setKontak({...kontak, namaKetua: e.target.value})} className="w-full px-4 py-2 border rounded-md" />
+                          <label className="text-xs font-bold block mb-1 text-slate-600">Tampilan Nama Instagram</label>
+                          <input required type="text" value={kontak.namaIg || ""} onChange={(e) => setKontak({...kontak, namaIg: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="@asramamersi" />
+                          <label className="text-xs font-bold block mb-1 text-slate-600">Link URL Akun Instagram</label>
+                          <input required type="url" value={kontak.linkIg || ""} onChange={(e) => setKontak({...kontak, linkIg: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="https://instagram.com/..." />
                         </div> 
                         <div>
-                          <label className="text-sm block mb-1">Nomor WA Ketua</label>
-                          <input required type="text" value={kontak.noTelpon || ""} onChange={(e) => setKontak({...kontak, noTelpon: e.target.value})} className="w-full px-4 py-2 border rounded-md" placeholder="Cth: 0812..." />
-                        </div> 
-                        <div>
-                          <label className="text-sm block mb-1">Nomor WA Humas</label>
-                          <input required type="text" value={kontak.noHumas || ""} onChange={(e) => setKontak({...kontak, noHumas: e.target.value})} className="w-full px-4 py-2 border rounded-md" placeholder="Cth: 0852..." />
-                        </div> 
-                        <div>
-                          <label className="text-sm block mb-1">No WA Admin Skripsi</label>
-                          <input required type="text" value={kontak.noSkripsi || ""} onChange={(e) => setKontak({...kontak, noSkripsi: e.target.value})} className="w-full px-4 py-2 border rounded-md" placeholder="Cth: 0823..." />
+                          <label className="text-xs font-bold block mb-1 text-slate-600">Tampilan Nama Tiktok</label>
+                          <input required type="text" value={kontak.namaTiktok || ""} onChange={(e) => setKontak({...kontak, namaTiktok: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="@asramabk" />
+                          <label className="text-xs font-bold block mb-1 text-slate-600">Link URL Akun Tiktok</label>
+                          <input required type="url" value={kontak.linkTiktok || ""} onChange={(e) => setKontak({...kontak, linkTiktok: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="https://tiktok.com/..." />
                         </div> 
                       </div> 
                     </div> 
+
                     <div className="space-y-4 pt-4 border-t"> 
-                      <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Profil - Visi Misi</h3> 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
+                      <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Profil - Visi Misi Mersi</h3> 
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-red-50 p-4 rounded border border-red-100"> 
                         <div>
-                          <label className="text-sm block mb-1">Visi</label>
-                          <textarea required rows="3" value={profilText.visi} onChange={(e) => setProfilText({...profilText, visi: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea>
+                          <label className="text-sm block mb-1 font-bold text-red-900">Visi Mersi</label>
+                          <textarea required rows="3" value={profilText.visi_mersi} onChange={(e) => setProfilText({...profilText, visi_mersi: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
                         </div> 
                         <div>
-                          <label className="text-sm block mb-1">Misi</label>
-                          <textarea required rows="3" value={profilText.misi} onChange={(e) => setProfilText({...profilText, misi: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea>
+                          <label className="text-sm block mb-1 font-bold text-red-900">Misi Mersi</label>
+                          <textarea required rows="3" value={profilText.misi_mersi} onChange={(e) => setProfilText({...profilText, misi_mersi: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
+                        </div> 
+                      </div> 
+                      <h3 className="font-semibold text-amber-600 border-l-2 border-amber-500 pl-2 mt-4">Halaman Profil - Visi Misi Bundo Kanduang</h3> 
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-amber-50 p-4 rounded border border-amber-200"> 
+                        <div>
+                          <label className="text-sm block mb-1 font-bold text-amber-900">Visi BK</label>
+                          <textarea required rows="3" value={profilText.visi_bk} onChange={(e) => setProfilText({...profilText, visi_bk: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
+                        </div> 
+                        <div>
+                          <label className="text-sm block mb-1 font-bold text-amber-900">Misi BK</label>
+                          <textarea required rows="3" value={profilText.misi_bk} onChange={(e) => setProfilText({...profilText, misi_bk: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
                         </div> 
                       </div> 
                     </div> 
+
                     <div className="space-y-4 pt-4 border-t"> 
-                      <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Jejak & Prestasi</h3> 
+                      <h3 className="font-semibold text-stone-800 border-l-2 pl-2">Halaman Jejak & Prestasi</h3> 
                       <div>
-                        <label className="text-sm block mb-1">Teks Jejak Alumni</label>
+                        <label className="text-sm block mb-1 font-bold">Teks Intro Jejak Alumni</label>
                         <textarea required rows="2" value={profilText.jejakAlumni} onChange={(e) => setProfilText({...profilText, jejakAlumni: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea>
                       </div> 
                     </div> 
-                    <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2 rounded-md font-semibold">Simpan Teks Utama</button> 
+                    <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-3 rounded-md font-bold w-full md:w-auto">Simpan Teks Utama</button> 
                   </form> 
                 </div> 
 
                 <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
                   <h2 className="text-lg font-bold mb-4 border-b pb-2">{editSejarahId ? "Edit Cerita Sejarah" : "Manajemen Catatan Sejarah (Buku)"}</h2>
-                  <form onSubmit={handleSubmitSejarah} className="space-y-4 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4">
+                  <form onSubmit={handleSubmitSejarah} className="space-y-4 mb-6 bg-slate-50 p-4 rounded-lg border">
+                    <div className="grid grid-cols-1 md:grid-cols-[150px_200px_1fr] gap-4">
                       <div>
-                        <label className="text-sm font-semibold mb-1 block">Judul Halaman / Bagian</label>
-                        <input type="text" required value={judulSejarah} onChange={(e) => setJudulSejarah(e.target.value)} placeholder="Cth: Bagian 1 / Masa Pendirian" className="w-full px-4 py-2 border border-slate-300 rounded-md bg-slate-50 text-sm" />
+                        <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Untuk Asrama</label>
+                        <select value={asramaSejarah} onChange={(e) => setAsramaSejarah(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm font-bold">
+                          <option value="mersi">Mersi</option>
+                          <option value="bk">Bundo Kanduang</option>
+                        </select>
                       </div>
                       <div>
-                        <label className="text-sm font-semibold mb-1 block">Isi Cerita Sejarah</label>
-                        <textarea required rows="3" value={isiSejarah} onChange={(e) => setIsiSejarah(e.target.value)} placeholder="Tuliskan cerita sejarah untuk lembaran ini..." className="w-full px-4 py-2 border border-slate-300 rounded-md bg-slate-50 text-sm"></textarea>
+                        <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Judul Lembaran</label>
+                        <input type="text" required value={judulSejarah} onChange={(e) => setJudulSejarah(e.target.value)} placeholder="Cth: Masa Pendirian" className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Isi Cerita</label>
+                        <textarea required rows="2" value={isiSejarah} onChange={(e) => setIsiSejarah(e.target.value)} placeholder="Tuliskan cerita..." className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm"></textarea>
                       </div>
                     </div>
-                    <div className="flex flex-col md:flex-row gap-3">
+                    <div className="flex flex-col md:flex-row gap-3 pt-2">
                       <button type="submit" disabled={loading} className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-md font-semibold w-full md:w-auto">{editSejarahId ? "Simpan Perubahan" : "Tambah Lembaran"}</button>
                       {editSejarahId && <button type="button" onClick={() => { setEditSejarahId(null); setJudulSejarah(""); setIsiSejarah(""); }} className="bg-stone-500 hover:bg-stone-600 text-white px-6 py-2 rounded-md font-semibold w-full md:w-auto">Batal Edit</button>}
                     </div>
                   </form>
                   
-                  <h3 className="font-bold text-sm text-slate-500 uppercase tracking-widest mb-3">Daftar Lembaran</h3>
+                  <h3 className="font-bold text-sm text-slate-500 uppercase tracking-widest mb-3">Daftar Lembaran Sejarah</h3>
                   <div className="space-y-3">
                     {dataSejarah.slice((pageSejarah - 1) * itemsPerPage, pageSejarah * itemsPerPage).map((item) => (
-                      <div key={item.id} className="flex justify-between items-center p-4 bg-slate-50 border border-slate-200 rounded-lg gap-4">
-                        <div>
-                          <div className="font-bold text-amber-700 text-sm mb-1">{item.judul}</div>
+                      <div key={item.id} className="flex justify-between items-center p-4 bg-white border border-slate-200 rounded-lg shadow-sm gap-4">
+                        <div className="w-full">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded text-white ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>{item.asrama === 'bk' ? 'BK' : 'MERSI'}</span>
+                            <span className="font-bold text-slate-800 text-sm">{item.judul}</span>
+                          </div>
                           <div className="text-xs text-slate-500 line-clamp-1 pr-4">{item.isi}</div>
                         </div>
                         <div className="flex gap-2 shrink-0">
@@ -1048,44 +1216,74 @@ export default function AdminDashboard() {
         {activeTab === "status" && allowedTabs.includes("status") && ( 
           <div className="space-y-6"> 
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
-              <h2 className="text-lg font-bold mb-4 border-b pb-2">Status Asrama</h2> 
-              <form onSubmit={handleSaveStatusAsrama} className="space-y-4"> 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
-                  <div>
-                    <label className="text-sm font-semibold mb-1 block">Jumlah Kamar</label>
-                    <input type="number" required value={statusAsrama.kamar} onChange={(e) => setStatusAsrama({...statusAsrama, kamar: e.target.value})} className="w-full px-4 py-2 border rounded-md" />
-                  </div> 
-                  <div>
-                    <label className="text-sm font-semibold mb-1 block">Jumlah Penghuni</label>
-                    <input type="number" required value={statusAsrama.penghuni} onChange={(e) => setStatusAsrama({...statusAsrama, penghuni: e.target.value})} className="w-full px-4 py-2 border rounded-md" />
-                  </div> 
-                  <div> 
-                    <label className="text-sm font-semibold mb-1 block">Ketersediaan</label> 
-                    <select value={statusAsrama.ketersediaan} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaan: e.target.value})} className="w-full px-4 py-2 border rounded-md"> 
-                      <option value="Tersedia">🟢 Tersedia</option> 
-                      <option value="Penuh">🔴 Penuh</option> 
-                    </select> 
-                  </div> 
-                </div> 
-                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">Perbarui Status</button> 
+              <h2 className="text-lg font-bold mb-4 border-b pb-2">Status Kapasitas Asrama</h2> 
+              <form onSubmit={handleSaveStatusAsrama} className="space-y-8"> 
+                <div className="bg-red-50 p-5 rounded-lg border border-red-100">
+                  <h3 className="font-bold text-red-800 mb-3 border-b border-red-200 pb-2">Data Mersi</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Total Kamar</label>
+                      <input type="number" required value={statusAsrama.kamarMersi} onChange={(e) => setStatusAsrama({...statusAsrama, kamarMersi: e.target.value})} className="w-full px-3 py-2 border rounded bg-white" />
+                    </div> 
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Penghuni Aktif</label>
+                      <input type="number" required value={statusAsrama.penghuniMersi} onChange={(e) => setStatusAsrama({...statusAsrama, penghuniMersi: e.target.value})} className="w-full px-3 py-2 border rounded bg-white" />
+                    </div> 
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Status Kuota</label>
+                      <select value={statusAsrama.ketersediaanMersi} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaanMersi: e.target.value})} className="w-full px-3 py-2 border rounded bg-white font-bold text-sm">
+                        <option value="Tersedia">🟢 Masih Tersedia</option>
+                        <option value="Penuh">🔴 Kuota Penuh</option>
+                      </select>
+                    </div> 
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 p-5 rounded-lg border border-amber-200">
+                  <h3 className="font-bold text-amber-700 mb-3 border-b border-amber-200 pb-2">Data Bundo Kanduang</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Total Kamar</label>
+                      <input type="number" required value={statusAsrama.kamarBk} onChange={(e) => setStatusAsrama({...statusAsrama, kamarBk: e.target.value})} className="w-full px-3 py-2 border rounded bg-white" />
+                    </div> 
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Penghuni Aktif</label>
+                      <input type="number" required value={statusAsrama.penghuniBk} onChange={(e) => setStatusAsrama({...statusAsrama, penghuniBk: e.target.value})} className="w-full px-3 py-2 border rounded bg-white" />
+                    </div> 
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Status Kuota</label>
+                      <select value={statusAsrama.ketersediaanBk} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaanBk: e.target.value})} className="w-full px-3 py-2 border rounded bg-white font-bold text-sm">
+                        <option value="Tersedia">🟢 Masih Tersedia</option>
+                        <option value="Penuh">🔴 Kuota Penuh</option>
+                      </select>
+                    </div> 
+                  </div>
+                </div>
+
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-md font-bold transition-colors">Simpan Status Kapasitas</button> 
               </form> 
             </div> 
             
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
-              <h2 className="text-lg font-bold mb-4 border-b pb-2">Pengaturan Brosur & Formulir Pendaftaran</h2> 
+              <h2 className="text-lg font-bold mb-4 border-b pb-2">Manajemen Brosur Pendaftaran</h2> 
               <form onSubmit={handleSaveBrosur} className="space-y-6"> 
-                <div> 
-                  <label className="text-sm font-semibold mb-1 block">Link Google Drive Formulir (Kosong)</label> 
-                  <input type="url" value={linkFormulir} onChange={(e) => setLinkFormulir(e.target.value)} className="w-full px-4 py-2 border rounded-md" /> 
-                </div> 
-                <div> 
-                  <label className="text-sm font-semibold mb-1 block">Upload Gambar Brosur Baru</label> 
-                  <div className="bg-slate-50 p-4 border rounded-lg flex justify-between"> 
-                    <input type="file" accept="image/*" onChange={(e) => setFileBrosur(e.target.files[0])} className="w-full text-sm" /> 
-                    {brosurUrl && <a href={brosurUrl} target="_blank" className="text-xs text-amber-600 font-bold border px-3 py-1.5 rounded">Lihat Saat Ini</a>} 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-slate-50 p-4 border rounded-lg"> 
+                    <label className="text-sm font-bold text-red-800 mb-2 block">Upload Brosur Mersi (Bisa pilih banyak)</label> 
+                    <input type="file" multiple accept="image/*" onChange={(e) => setFilesBrosurMersi(Array.from(e.target.files))} className="w-full text-sm bg-white border p-2 rounded cursor-pointer" /> 
+                    {brosurUrls.mersi.length > 0 && <p className="text-xs mt-2 text-green-700 font-bold">✔️ {brosurUrls.mersi.length} foto brosur tersimpan saat ini.</p>}
                   </div> 
+                  <div className="bg-slate-50 p-4 border rounded-lg"> 
+                    <label className="text-sm font-bold text-amber-600 mb-2 block">Upload Brosur B. Kanduang (Bisa pilih banyak)</label> 
+                    <input type="file" multiple accept="image/*" onChange={(e) => setFilesBrosurBk(Array.from(e.target.files))} className="w-full text-sm bg-white border p-2 rounded cursor-pointer" /> 
+                    {brosurUrls.bk.length > 0 && <p className="text-xs mt-2 text-green-700 font-bold">✔️ {brosurUrls.bk.length} foto brosur tersimpan saat ini.</p>}
+                  </div> 
+                </div>
+                <div> 
+                  <label className="text-sm font-bold mb-1 block">Link Opsional Formulir Pendaftaran Tambahan (G-Form / Drive)</label> 
+                  <input type="url" value={linkFormulir} onChange={(e) => setLinkFormulir(e.target.value)} className="w-full px-4 py-2 border rounded-md" placeholder="Kosongkan jika tidak ada" /> 
                 </div> 
-                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2.5 rounded-md font-bold">Simpan Pengaturan</button> 
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-3 rounded-md font-bold transition-colors">Simpan Brosur</button> 
               </form> 
             </div> 
           </div> 
@@ -1096,28 +1294,59 @@ export default function AdminDashboard() {
           <div className="space-y-6"> 
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
               <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">1. Pengurus Inti Asrama</h2> 
-              <form onSubmit={handleSavePengurusInti} className="space-y-6"> 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
-                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> 
-                    <label className="text-sm font-bold block mb-2 text-red-800">Ketua Asrama</label> 
-                    <input type="text" required value={pengurusInti.ketuaNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaNama: e.target.value})} placeholder="Nama Ketua..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> 
-                    <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> 
-                    <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketua: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> 
-                  </div> 
-                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> 
-                    <label className="text-sm font-bold block mb-2 text-red-800">Sekretaris</label> 
-                    <input type="text" required value={pengurusInti.sekreNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreNama: e.target.value})} placeholder="Nama Sekretaris..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> 
-                    <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> 
-                    <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekretaris: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> 
-                  </div> 
-                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg shadow-sm"> 
-                    <label className="text-sm font-bold block mb-2 text-red-800">Bendahara</label> 
-                    <input type="text" required value={pengurusInti.bendaharaNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaNama: e.target.value})} placeholder="Nama Bendahara..." className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm" /> 
-                    <label className="text-[11px] font-bold text-slate-700 mb-1 block">Foto 1 (Tampilan Depan)</label> 
-                    <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendahara: e.target.files[0]})} className="w-full text-xs mb-3 bg-white p-1 border border-slate-200 rounded" /> 
-                  </div> 
-                </div> 
-                <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-2.5 rounded-md font-bold w-full md:w-auto">Simpan Pengurus Inti</button> 
+              <form onSubmit={handleSavePengurusInti} className="space-y-8"> 
+                
+                {/* Blok Mersi */}
+                <div className="bg-red-50/30 p-4 md:p-6 border border-red-100 rounded-xl">
+                  <h3 className="font-bold text-red-800 mb-4 text-center tracking-widest uppercase">Inti Mersi</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
+                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
+                      <label className="text-sm font-bold block mb-2 text-red-800">Ketua Mersi</label> 
+                      <input type="text" required value={pengurusInti.ketuaMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaMersiNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
+                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketuaMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                    </div> 
+                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
+                      <label className="text-sm font-bold block mb-2 text-red-800">Sekretaris Mersi</label> 
+                      <input type="text" required value={pengurusInti.sekreMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreMersiNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
+                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekreMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                    </div> 
+                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
+                      <label className="text-sm font-bold block mb-2 text-red-800">Bendahara Mersi</label> 
+                      <input type="text" required value={pengurusInti.bendaharaMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaMersiNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
+                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendaharaMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                    </div> 
+                  </div>
+                </div>
+
+                {/* Blok BK */}
+                <div className="bg-amber-50/40 p-4 md:p-6 border border-amber-200 rounded-xl">
+                  <h3 className="font-bold text-amber-700 mb-4 text-center tracking-widest uppercase">Inti Bundo Kanduang</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
+                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
+                      <label className="text-sm font-bold block mb-2 text-amber-700">Ketua BK</label> 
+                      <input type="text" required value={pengurusInti.ketuaBkNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaBkNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
+                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketuaBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                    </div> 
+                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
+                      <label className="text-sm font-bold block mb-2 text-amber-700">Sekretaris BK</label> 
+                      <input type="text" required value={pengurusInti.sekreBkNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreBkNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
+                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekreBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                    </div> 
+                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
+                      <label className="text-sm font-bold block mb-2 text-amber-700">Bendahara BK</label> 
+                      <input type="text" required value={pengurusInti.bendaharaBkNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaBkNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
+                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendaharaBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                    </div> 
+                  </div>
+                </div>
+
+                <button type="submit" disabled={loading} className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-md font-bold w-full">Simpan Semua Pengurus Inti</button> 
               </form> 
             </div> 
 
@@ -1125,11 +1354,20 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
                 <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">2. Tambah Divisi Baru</h2> 
                 <form onSubmit={handleTambahDivisi} className="space-y-4"> 
-                  <div> 
-                    <label className="text-sm font-semibold mb-1 block">Nama Divisi</label> 
-                    <input type="text" required value={namaDivisiBaru} onChange={(e) => setNamaDivisiBaru(e.target.value)} placeholder="Cth: Divisi Bakat & Minat..." className="w-full px-4 py-2 border rounded-md" /> 
-                  </div> 
-                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-semibold">Buat Divisi</button> 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block uppercase">Untuk Asrama</label>
+                      <select value={asramaDivisi} onChange={(e) => setAsramaDivisi(e.target.value)} className="w-full px-3 py-2 border rounded-md font-bold text-sm bg-slate-50">
+                        <option value="mersi">Mersi</option>
+                        <option value="bk">Bundo Kanduang</option>
+                      </select>
+                    </div>
+                    <div> 
+                      <label className="text-xs font-bold text-slate-600 mb-1 block uppercase">Nama Divisi</label> 
+                      <input type="text" required value={namaDivisiBaru} onChange={(e) => setNamaDivisiBaru(e.target.value)} placeholder="Cth: Bakat & Minat" className="w-full px-4 py-2 border rounded-md text-sm" /> 
+                    </div> 
+                  </div>
+                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2.5 rounded-md font-bold mt-2">Buat Divisi</button> 
                 </form> 
               </div> 
 
@@ -1137,28 +1375,28 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">{editAnggotaId ? "Edit Data Anggota" : "3. Tambah Anggota Divisi"}</h2> 
                 <form onSubmit={handleTambahAnggota} className="space-y-4"> 
                   <div> 
-                    <label className="text-sm font-semibold mb-1 block">Pilih Divisi</label> 
-                    <select required value={formAnggota.divisiId} onChange={(e) => setFormAnggota({...formAnggota, divisiId: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"> 
+                    <label className="text-xs font-bold text-slate-600 mb-1 block uppercase">Pilih Divisi & Asrama</label> 
+                    <select required value={formAnggota.divisiId} onChange={(e) => setFormAnggota({...formAnggota, divisiId: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm font-bold"> 
                       <option value="">-- Pilih Divisi --</option> 
-                      {dataDivisi.map(div => <option key={div.id} value={div.id}>{div.namaDivisi}</option>)} 
+                      {dataDivisi.map(div => <option key={div.id} value={div.id}>[{div.asrama === 'bk' ? 'BK' : 'MERSI'}] {div.namaDivisi}</option>)} 
                     </select> 
                   </div> 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> 
                     <div> 
-                      <label className="text-sm font-semibold mb-1 block">Nama Anggota</label> 
-                      <input type="text" required value={formAnggota.nama} onChange={(e) => setFormAnggota({...formAnggota, nama: e.target.value})} className="w-full px-4 py-2 border rounded-md" /> 
+                      <label className="text-xs font-bold text-slate-600 mb-1 block uppercase">Nama Anggota</label> 
+                      <input type="text" required value={formAnggota.nama} onChange={(e) => setFormAnggota({...formAnggota, nama: e.target.value})} className="w-full px-3 py-2 border rounded-md text-sm" /> 
                     </div> 
                     <div> 
-                      <label className="text-sm font-semibold mb-1 block">Peran / Jabatan</label> 
-                      <select required value={formAnggota.peran} onChange={(e) => setFormAnggota({...formAnggota, peran: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"> 
+                      <label className="text-xs font-bold text-slate-600 mb-1 block uppercase">Jabatan</label> 
+                      <select required value={formAnggota.peran} onChange={(e) => setFormAnggota({...formAnggota, peran: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm"> 
                         <option value="Anggota">Anggota</option> 
                         <option value="Koordinator">Koordinator</option> 
                       </select> 
                     </div> 
                   </div> 
                   <div> 
-                    <label className="text-[11px] font-bold mb-1 block">Upload Foto Anggota {editAnggotaId && "(Abaikan jika tak diubah)"}</label> 
-                    <input type="file" id="foto1Anggota" accept="image/*" onChange={(e) => setFileAnggota(e.target.files[0])} className="w-full text-xs border border-slate-200 p-1.5 rounded" /> 
+                    <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Upload Foto {editAnggotaId && "(Opsional)"}</label> 
+                    <input type="file" id="foto1Anggota" accept="image/*" onChange={(e) => setFileAnggota(e.target.files[0])} className="w-full text-xs border border-slate-200 bg-stone-50 p-1.5 rounded cursor-pointer" /> 
                   </div> 
                   <div className="flex flex-col sm:flex-row gap-2 mt-2">
                     <button type="submit" disabled={loading || !formAnggota.divisiId} className="w-full bg-red-800 hover:bg-red-900 text-white px-4 py-2.5 rounded-md font-bold">{editAnggotaId ? "Simpan Perubahan" : "Tambah Anggota"}</button>
@@ -1171,20 +1409,23 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
               <h2 className="text-lg font-bold mb-4 border-b pb-2">Daftar Divisi & Anggota</h2> 
               {dataDivisi.map(div => ( 
-                <div key={div.id} className="bg-slate-50 border border-slate-200 p-4 rounded-lg mb-4"> 
-                  <div className="flex justify-between items-center mb-4 border-b pb-2"> 
-                    <h3 className="font-bold text-lg text-red-800">{div.namaDivisi}</h3> 
-                    <button onClick={() => handleDelete("divisi_asrama", div.id)} className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">Hapus Divisi</button> 
+                <div key={div.id} className="bg-slate-50 border border-slate-200 p-4 rounded-lg mb-6 shadow-sm"> 
+                  <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-3"> 
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded text-white ${div.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>{div.asrama === 'bk' ? 'BK' : 'MERSI'}</span>
+                      <h3 className="font-bold text-lg text-slate-900">{div.namaDivisi}</h3> 
+                    </div>
+                    <button onClick={() => handleDelete("divisi_asrama", div.id)} className="text-xs font-bold bg-white border border-red-200 text-red-600 px-3 py-1.5 rounded hover:bg-red-50 transition-colors">Hapus Divisi</button> 
                   </div> 
                   <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4"> 
                     {dataAnggota.filter(a => a.divisiId === div.id).map(anggota => ( 
-                      <div key={anggota.id} className="bg-white p-3 border rounded flex flex-col items-center text-center relative group"> 
-                        <img src={anggota.foto} className="w-12 h-12 rounded-lg object-cover mb-2" /> 
-                        <span className="text-xs font-semibold">{anggota.nama}</span> 
-                        <span className="text-[10px] text-amber-600 font-bold">{anggota.peran}</span> 
-                        <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleEditAnggotaClick(anggota)} className="bg-amber-500 text-white w-6 h-6 rounded-full text-xs shadow-md">✎</button>
-                          <button onClick={() => handleDelete("anggota_divisi", anggota.id)} className="bg-red-600 text-white w-6 h-6 rounded-full text-[10px] shadow-md">✕</button>
+                      <div key={anggota.id} className="bg-white p-3 border border-slate-200 rounded-lg shadow-sm flex flex-col items-center text-center relative group"> 
+                        <img src={anggota.foto} className="w-14 h-14 rounded-full object-cover mb-2 border border-slate-200" /> 
+                        <span className="text-xs font-bold text-slate-800 leading-tight mb-1">{anggota.nama}</span> 
+                        <span className="text-[10px] text-amber-600 font-bold uppercase tracking-wider bg-amber-50 px-2 py-0.5 rounded">{anggota.peran}</span> 
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleEditAnggotaClick(anggota)} className="bg-amber-500 text-white w-6 h-6 rounded-full text-xs shadow-md hover:bg-amber-600 flex items-center justify-center">✎</button>
+                          <button onClick={() => handleDelete("anggota_divisi", anggota.id)} className="bg-red-600 text-white w-6 h-6 rounded-full text-[10px] shadow-md hover:bg-red-700 flex items-center justify-center">✕</button>
                         </div>
                       </div> 
                     ))} 
@@ -1278,13 +1519,25 @@ export default function AdminDashboard() {
           <div className="space-y-6"> 
             <div className="bg-white rounded-xl shadow-md p-6"> 
               <h2 className="text-lg font-bold mb-4 border-b pb-2">{editFasilitId ? "Edit Fasilitas" : "Tambah Fasilitas Asrama"}</h2> 
-              <form onSubmit={handleSubmitFasilitas} className="space-y-4"> 
-                <input type="text" required value={namaFasilitas} onChange={(e) => setNamaFasilitas(e.target.value)} placeholder="Nama Fasilitas..." className="w-full px-4 py-2 border rounded-md" /> 
-                <textarea required rows="2" value={deskripsiFasilitas} onChange={(e) => setDeskripsiFasilitas(e.target.value)} placeholder="Deskripsi fasilitas..." className="w-full px-4 py-2 border rounded-md"></textarea> 
-                <input type="file" multiple accept="image/*" required={!editFasilitId} onChange={(e) => setFilesFasilitas(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-slate-50" /> 
-                <div className="flex gap-2">
-                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editFasilitId ? "Simpan Perubahan" : "Tambahkan"}</button>
-                  {editFasilitId && <button type="button" onClick={()=>{setEditFasilitId(null); setNamaFasilitas(""); setDeskripsiFasilitas("");}} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
+              <form onSubmit={handleSubmitFasilitas} className="space-y-4 bg-slate-50 p-5 rounded border border-slate-200"> 
+                <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Pilih Asrama</label>
+                    <select value={asramaFasilitas} onChange={(e) => setAsramaFasilitas(e.target.value)} className="w-full px-3 py-2 border rounded bg-white text-sm font-bold">
+                      <option value="mersi">Mersi</option>
+                      <option value="bk">Bundo Kanduang</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Nama Fasilitas</label>
+                    <input type="text" required value={namaFasilitas} onChange={(e) => setNamaFasilitas(e.target.value)} placeholder="Contoh: Dapur Umum" className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                </div> 
+                <textarea required rows="2" value={deskripsiFasilitas} onChange={(e) => setDeskripsiFasilitas(e.target.value)} placeholder="Deskripsi fasilitas..." className="w-full px-4 py-2 border rounded-md mt-2"></textarea> 
+                <input type="file" multiple accept="image/*" required={!editFasilitId} onChange={(e) => setFilesFasilitas(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-white" /> 
+                <div className="flex gap-2 pt-2">
+                  <button type="submit" disabled={loading} className="w-full md:w-auto bg-slate-900 text-white px-8 py-2.5 rounded-md font-bold">{editFasilitId ? "Simpan Perubahan" : "Tambahkan"}</button>
+                  {editFasilitId && <button type="button" onClick={()=>{setEditFasilitId(null); setNamaFasilitas(""); setDeskripsiFasilitas("");}} className="w-full md:w-auto bg-stone-500 text-white px-6 py-2.5 rounded-md font-bold">Batal</button>}
                 </div> 
               </form> 
             </div> 
@@ -1293,16 +1546,19 @@ export default function AdminDashboard() {
               <h3 className="font-bold mb-4 border-b pb-2">Daftar Fasilitas Asrama</h3> 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
                 {dataFasilitas.slice((pageFasilitas-1)*itemsPerPage, pageFasilitas*itemsPerPage).map(item => ( 
-                  <div key={item.id} className="bg-slate-50 border rounded-lg flex flex-col overflow-hidden">
+                  <div key={item.id} className="bg-slate-50 border border-slate-200 shadow-sm rounded-lg flex flex-col overflow-hidden relative">
+                    <div className="absolute top-2 left-2 z-10">
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded text-white shadow ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>{item.asrama === 'bk' ? 'BK' : 'MERSI'}</span>
+                    </div>
                     <div className="w-full h-40 bg-stone-200 flex items-center justify-center p-2">
-                      <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" /> 
+                      <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" />
                     </div>
                     <div className="p-4 flex flex-col flex-grow">
-                      <h4 className="font-bold mb-1">{item.nama}</h4>
+                      <h4 className="font-bold text-slate-800 mb-1">{item.nama}</h4>
                       <p className="text-xs text-slate-600 flex-grow">{item.deskripsi}</p>
-                      <div className="flex gap-2 mt-3">
-                        <button onClick={()=>handleEditFasilitasClick(item)} className="bg-amber-100 text-amber-700 text-xs px-3 py-1.5 rounded w-full">Edit</button>
-                        <button onClick={()=>handleDelete("daftar_fasilitas", item.id)} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded w-full">Hapus</button>
+                      <div className="flex gap-2 mt-4">
+                        <button onClick={()=>handleEditFasilitasClick(item)} className="bg-amber-100 font-bold text-amber-700 text-xs px-3 py-2 rounded w-full hover:bg-amber-200 transition-colors">Edit</button>
+                        <button onClick={()=>handleDelete("daftar_fasilitas", item.id)} className="bg-red-50 border border-red-200 font-bold text-red-600 text-xs px-3 py-2 rounded w-full hover:bg-red-100 transition-colors">Hapus</button>
                       </div>
                     </div>
                   </div> 
@@ -1318,26 +1574,42 @@ export default function AdminDashboard() {
           <div className="space-y-6"> 
             <div className="bg-white rounded-xl shadow-md border-amber-200 p-6"> 
               <h2 className="text-lg font-bold mb-4 border-b pb-2 flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-500"></span>{editSewaId ? "Edit Layanan Penyewaan" : "Tambah Layanan Penyewaan"}</h2> 
-              <form onSubmit={handleSubmitPenyewaan} className="space-y-4"> 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
-                  <div><label className="text-sm font-semibold mb-1 block">Nama Layanan / Barang</label><input type="text" required value={namaSewa} onChange={(e) => setNamaSewa(e.target.value)} className="w-full px-4 py-2 border rounded-md" /></div> 
+              <form onSubmit={handleSubmitPenyewaan} className="space-y-4 bg-slate-50 p-5 rounded border border-slate-200"> 
+                <div className="grid grid-cols-1 md:grid-cols-[150px_1fr_1fr] gap-4"> 
                   <div>
-                    <label className="text-sm font-semibold mb-1 block">Kategori</label>
-                    <select value={kategoriSewa} onChange={(e) => setKategoriSewa(e.target.value)} className="w-full px-4 py-2 border rounded-md">
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Pilih Asrama</label>
+                    <select value={asramaSewa} onChange={(e) => setAsramaSewa(e.target.value)} className="w-full px-3 py-2 border rounded bg-white font-bold text-sm">
+                      <option value="mersi">Mersi</option>
+                      <option value="bk">B. Kanduang</option>
+                    </select>
+                  </div> 
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Nama Layanan</label>
+                    <input type="text" required value={namaSewa} onChange={(e) => setNamaSewa(e.target.value)} className="w-full px-4 py-2 border rounded-md" />
+                  </div> 
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Kategori</label>
+                    <select value={kategoriSewa} onChange={(e) => setKategoriSewa(e.target.value)} className="w-full px-4 py-2 border rounded-md bg-white text-sm">
                       <option value="Tempat / Barang">Tempat / Barang Fisik</option>
                       <option value="Keahlian Seni Budaya">Layanan Jasa & Seni</option>
                     </select>
                   </div> 
                 </div> 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
-                  <div><label className="text-sm font-semibold mb-1 block">Info Harga Sewa</label><input type="text" required value={hargaSewa} onChange={(e) => setHargaSewa(e.target.value)} className="w-full px-4 py-2 border rounded-md" /></div> 
-                  <div><label className="text-sm font-semibold mb-1 block">No. WA Reservasi</label><input type="tel" required value={noHpSewa} onChange={(e) => setNoHpSewa(e.target.value.replace(/\D/g, ''))} className="w-full px-4 py-2 border rounded-md" /></div> 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2"> 
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Info Harga Sewa</label>
+                    <input type="text" required value={hargaSewa} onChange={(e) => setHargaSewa(e.target.value)} className="w-full px-4 py-2 border rounded-md" />
+                  </div> 
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">No. WA Reservasi</label>
+                    <input type="tel" required value={noHpSewa} onChange={(e) => setNoHpSewa(e.target.value.replace(/\D/g, ''))} className="w-full px-4 py-2 border rounded-md" />
+                  </div> 
                 </div> 
-                <textarea required rows="2" value={deskripsiSewa} onChange={(e) => setDeskripsiSewa(e.target.value)} className="w-full px-4 py-2 border rounded-md" placeholder="Deskripsi..."></textarea> 
-                <input type="file" multiple accept="image/*" required={!editSewaId} onChange={(e) => setFilesSewa(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-slate-50" /> 
-                <div className="flex gap-2">
-                  <button type="submit" disabled={loading} className="w-full bg-amber-600 text-white px-4 py-2 rounded-md font-bold">{editSewaId ? "Simpan Perubahan" : "Tambahkan Layanan"}</button>
-                  {editSewaId && <button type="button" onClick={()=>{setEditSewaId(null); setNamaSewa(""); setDeskripsiSewa(""); setHargaSewa(""); setNoHpSewa("");}} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
+                <textarea required rows="2" value={deskripsiSewa} onChange={(e) => setDeskripsiSewa(e.target.value)} className="w-full px-4 py-2 border rounded-md mt-2" placeholder="Deskripsi..."></textarea> 
+                <input type="file" multiple accept="image/*" required={!editSewaId} onChange={(e) => setFilesSewa(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-white" /> 
+                <div className="flex gap-2 pt-2">
+                  <button type="submit" disabled={loading} className="w-full md:w-auto bg-amber-600 hover:bg-amber-700 text-white px-8 py-2.5 rounded-md font-bold">{editSewaId ? "Simpan Perubahan" : "Tambahkan Layanan"}</button>
+                  {editSewaId && <button type="button" onClick={()=>{setEditSewaId(null); setNamaSewa(""); setDeskripsiSewa(""); setHargaSewa(""); setNoHpSewa("");}} className="w-full md:w-auto bg-stone-500 text-white px-6 py-2.5 rounded-md font-bold">Batal</button>}
                 </div> 
               </form> 
             </div> 
@@ -1346,18 +1618,21 @@ export default function AdminDashboard() {
               <h3 className="font-bold mb-4 border-b pb-2">Daftar Layanan Tersedia</h3> 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                 {dataPenyewaan.slice((pageSewa-1)*itemsPerPage, pageSewa*itemsPerPage).map(item => ( 
-                  <div key={item.id} className="bg-slate-50 border rounded-lg flex overflow-hidden">
+                  <div key={item.id} className="bg-slate-50 border rounded-lg flex overflow-hidden relative shadow-sm">
+                    <div className="absolute top-2 left-2 z-10">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded text-white shadow ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>{item.asrama === 'bk' ? 'BK' : 'MERSI'}</span>
+                    </div>
                     <div className="w-32 h-32 shrink-0 bg-stone-200 flex items-center justify-center p-2">
-                      <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" /> 
+                      <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" />
                     </div>
                     <div className="p-4 flex flex-col w-full justify-center">
-                      <span className="text-[10px] font-bold text-white bg-amber-600 px-2 py-0.5 rounded w-fit mb-1">{item.kategori}</span>
+                      <span className="text-[10px] font-bold text-white bg-stone-800 px-2 py-0.5 rounded w-fit mb-1 mt-3">{item.kategori}</span>
                       <h4 className="font-bold text-stone-900">{item.nama}</h4>
                       <p className="text-amber-600 text-xs font-bold my-1">{item.noHpSewa}</p>
-                      <p className="text-xs text-stone-500 line-clamp-2 mb-2">{item.deskripsi}</p>
-                      <div className="flex gap-3 text-xs font-bold">
-                        <button onClick={()=>handleEditSewaClick(item)} className="text-amber-600">Edit</button>
-                        <button onClick={()=>handleDelete("daftar_penyewaan", item.id)} className="text-red-500">Hapus</button>
+                      <p className="text-xs text-stone-500 line-clamp-1 mb-2">{item.deskripsi}</p>
+                      <div className="flex gap-3 text-xs font-bold mt-auto pt-2 border-t border-slate-200">
+                        <button onClick={()=>handleEditSewaClick(item)} className="text-amber-600 hover:text-amber-800">Edit</button>
+                        <button onClick={()=>handleDelete("daftar_penyewaan", item.id)} className="text-red-500 hover:text-red-700">Hapus</button>
                       </div>
                     </div>
                   </div> 
@@ -1397,15 +1672,15 @@ export default function AdminDashboard() {
               <h3 className="font-bold mb-4 border-b pb-2">Daftar Foto Galeri</h3> 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                 {dataGaleri.slice((pageGaleri-1)*itemsPerPage, pageGaleri*itemsPerPage).map(item => ( 
-                  <div key={item.id} className="relative h-48 rounded-lg overflow-hidden border shadow-sm bg-stone-900 flex items-center justify-center p-2"> 
-                    <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" alt="Galeri" /> 
-                    <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-3"> 
-                      <span className="font-bold text-base mb-2" style={{ color: item.warna }}>{item.judul}</span> 
-                      <div className="flex gap-2"> 
-                        <button onClick={()=>handleEditGaleriClick(item)} className="bg-white text-stone-900 text-xs px-3 py-1 rounded font-bold hover:bg-stone-100">Edit</button> 
-                        <button onClick={()=>handleDelete("fasilitas", item.id)} className="bg-red-600 text-white text-xs px-3 py-1 rounded font-bold hover:bg-red-700">Hapus</button> 
-                      </div> 
-                    </div> 
+                  <div key={item.id} className="relative h-48 rounded-lg overflow-hidden border shadow-sm bg-stone-900 flex items-center justify-center p-2">
+                    <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" alt="Galeri" />
+                    <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-3">
+                      <span className="font-bold text-base mb-2" style={{ color: item.warna }}>{item.judul}</span>
+                      <div className="flex gap-2">
+                        <button onClick={()=>handleEditGaleriClick(item)} className="bg-white text-stone-900 text-xs px-3 py-1 rounded font-bold hover:bg-stone-100">Edit</button>
+                        <button onClick={()=>handleDelete("fasilitas", item.id)} className="bg-red-600 text-white text-xs px-3 py-1 rounded font-bold hover:bg-red-700">Hapus</button>
+                      </div>
+                    </div>
                   </div> 
                 ))} 
               </div> 
@@ -1552,14 +1827,12 @@ export default function AdminDashboard() {
           </div> 
         )}
         
-        {/* --- TAB SUARA ALUMNI (DIUBAH JADI PANGKALAN DATA ALUMNI LENGKAP) --- */}
+        {/* --- TAB SUARA ALUMNI --- */}
         {activeTab === "suara_alumni" && allowedTabs.includes("suara_alumni") && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-lg font-bold mb-4 border-b pb-2">{editPesanId ? "Edit Data Alumni" : "Tambah Data Alumni Baru"}</h2>
               <form onSubmit={handleSubmitPesanAlumni} className="space-y-4">
-                
-                {/* Baris 1: Nama & Asal Daerah */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Nama Lengkap</label>
@@ -1570,8 +1843,6 @@ export default function AdminDashboard() {
                     <input type="text" required value={formAlumni.asal} onChange={(e) => setFormAlumni({...formAlumni, asal: e.target.value})} placeholder="Contoh: Padang, Bukittinggi..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                 </div>
-
-                {/* Baris 2: Kuliah & Jurusan */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Kampus / Universitas</label>
@@ -1582,8 +1853,6 @@ export default function AdminDashboard() {
                     <input type="text" required value={formAlumni.jurusan} onChange={(e) => setFormAlumni({...formAlumni, jurusan: e.target.value})} placeholder="Contoh: Teknik Elektro..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                 </div>
-
-                {/* Baris 3: Tahun Masuk Asrama & Pekerjaan */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Tahun Masuk Asrama (Angkatan)</label>
@@ -1594,31 +1863,22 @@ export default function AdminDashboard() {
                     <input type="text" required value={formAlumni.pekerjaan} onChange={(e) => setFormAlumni({...formAlumni, pekerjaan: e.target.value})} placeholder="Contoh: Guru, Engineer, PNS..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                 </div>
-
-                {/* Baris 4: Judul Skripsi */}
                 <div>
                   <label className="text-sm font-semibold mb-1 block">Judul Skripsi (Opsional)</label>
                   <textarea rows="2" value={formAlumni.skripsi} onChange={(e) => setFormAlumni({...formAlumni, skripsi: e.target.value})} placeholder="Judul Skripsi alumni saat lulus..." className="w-full px-4 py-2 border rounded-md"></textarea>
                 </div>
-                
-                {/* Baris TAMBAHAN: Prestasi / Jurnal */}
                 <div>
                   <label className="text-sm font-semibold mb-1 block text-amber-700">Prestasi / Karya / Jurnal (Opsional)</label>
                   <textarea rows="2" value={formAlumni.prestasi} onChange={(e) => setFormAlumni({...formAlumni, prestasi: e.target.value})} placeholder="Contoh: Publikasi Jurnal Scopus Q1, Juara 1 Robotik Nasional..." className="w-full px-4 py-2 border border-amber-300 bg-amber-50 rounded-md"></textarea>
                 </div>
-
-                {/* Baris 5: Kesan Pesan */}
                 <div>
                   <label className="text-sm font-semibold mb-1 block">Kata-kata / Kesan Pesan untuk Asrama</label>
                   <textarea required rows="3" value={formAlumni.pesan} onChange={(e) => setFormAlumni({...formAlumni, pesan: e.target.value})} placeholder="Kesan dan pesan singkat..." className="w-full px-4 py-2 border rounded-md"></textarea>
                 </div>
-
-                {/* Foto */}
                 <div>
                   <label className="text-sm font-semibold mb-1 block">Foto Profil (Opsional jika sudah ada)</label>
                   <input type="file" id="fotoAlumni" accept="image/*" onChange={(e) => setFileFotoAlumni(e.target.files[0])} className="w-full text-sm border p-2 rounded bg-slate-50" />
                 </div>
-
                 <div className="flex gap-2">
                   <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editPesanId ? "Simpan Perubahan Data" : "Tambahkan ke Database"}</button>
                   {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" }); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
@@ -1626,7 +1886,6 @@ export default function AdminDashboard() {
               </form>
             </div>
             
-            {/* Tabel Daftar Alumni */}
             <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-stone-800">
               <div className="flex justify-between items-center mb-4 border-b pb-2">
                   <h3 className="font-bold text-lg text-slate-900">Database Alumni Asrama</h3>
@@ -1686,21 +1945,28 @@ export default function AdminDashboard() {
             
             {(role === "sekre" || role === "humas") && (
               <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-green-600"> 
-                <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-lg font-bold text-slate-900">Data Pendaftar Warga Asrama Baru</h2><span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataPendaftarAsrama.length}</span></div> 
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h2 className="text-lg font-bold text-slate-900">Data Pendaftar Warga Asrama Baru</h2>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataPendaftarAsrama.length}</span>
+                </div> 
                 <div className="overflow-x-auto"> 
                   <table className="w-full text-left text-sm"> 
                     <thead>
                       <tr className="bg-slate-50 border-y text-slate-600">
                         <th className="p-3">Waktu Daftar</th>
-                        <th className="p-3 w-2/3">Identitas & Kontak</th>
+                        <th className="p-3">Asrama Tujuan</th>
+                        <th className="p-3 w-1/2">Identitas & Kontak</th>
                         <th className="p-3 text-center">Aksi</th>
                       </tr>
                     </thead> 
                     <tbody className="divide-y"> 
-                      {dataPendaftarAsrama.length === 0 ? <tr><td colSpan="3" className="p-8 text-center text-slate-500">Belum ada calon warga.</td></tr> : ( 
+                      {dataPendaftarAsrama.length === 0 ? <tr><td colSpan="4" className="p-8 text-center text-slate-500">Belum ada calon warga.</td></tr> : ( 
                         dataPendaftarAsrama.slice((pageDaftarAsrama-1)*itemsPerPage, pageDaftarAsrama*itemsPerPage).map(item => ( 
                           <tr key={item.id} className="hover:bg-slate-50">
                             <td className="p-3 text-xs">{item.waktuDaftar ? new Date(item.waktuDaftar.toDate()).toLocaleString('id-ID') : '-'}</td>
+                            <td className="p-3">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded text-white ${item.asramaTujuan === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>{item.asramaTujuan === 'bk' ? 'BK' : 'MERSI'}</span>
+                            </td>
                             <td className="p-3">
                               <span className="font-bold text-stone-900">{item.nama}</span>
                               {item.asal && <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded ml-2 uppercase tracking-widest">{item.asal}</span>}
@@ -1722,14 +1988,33 @@ export default function AdminDashboard() {
 
             {(role === "sekre" || role === "tendor") && (
               <div className="bg-white rounded-xl shadow-md p-6"> 
-                <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-lg font-bold text-slate-900">Data Pendaftar (Lomba Terbuka)</h2><span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataPendaftarLomba.length}</span></div> 
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h2 className="text-lg font-bold text-slate-900">Data Pendaftar (Lomba Terbuka)</h2>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataPendaftarLomba.length}</span>
+                </div> 
                 <div className="overflow-x-auto"> 
                   <table className="w-full text-left text-sm"> 
-                    <thead><tr className="bg-slate-50 border-y text-slate-600"><th className="p-3">Waktu Daftar</th><th className="p-3">Identitas</th><th className="p-3">Alamat</th><th className="p-3">Lomba Diikuti</th><th className="p-3 text-center">Aksi</th></tr></thead> 
+                    <thead>
+                      <tr className="bg-slate-50 border-y text-slate-600">
+                        <th className="p-3">Waktu Daftar</th>
+                        <th className="p-3">Identitas</th>
+                        <th className="p-3">Alamat</th>
+                        <th className="p-3">Lomba Diikuti</th>
+                        <th className="p-3 text-center">Aksi</th>
+                      </tr>
+                    </thead> 
                     <tbody className="divide-y"> 
                       {dataPendaftarLomba.length === 0 ? <tr><td colSpan="5" className="p-8 text-center text-slate-500">Belum ada peserta.</td></tr> : ( 
                         dataPendaftarLomba.slice((pageDaftarLomba-1)*itemsPerPage, pageDaftarLomba*itemsPerPage).map(item => ( 
-                          <tr key={item.id} className="hover:bg-slate-50"><td className="p-3 text-xs">{item.waktuDaftar ? new Date(item.waktuDaftar.toDate()).toLocaleString('id-ID') : '-'}</td><td className="p-3"><b>{item.namaPeserta}</b><br/><span className="text-xs text-stone-500">{item.noHpPeserta}</span></td><td className="p-3 text-xs">{item.alamatPeserta}</td><td className="p-3 text-xs font-semibold text-red-800">{item.judulLomba}</td><td className="p-3 text-center"><button onClick={() => handleDelete("pendaftaran_lomba", item.id)} className="text-red-500 text-xs font-bold hover:underline">Hapus</button></td></tr> 
+                          <tr key={item.id} className="hover:bg-slate-50">
+                            <td className="p-3 text-xs">{item.waktuDaftar ? new Date(item.waktuDaftar.toDate()).toLocaleString('id-ID') : '-'}</td>
+                            <td className="p-3"><b>{item.namaPeserta}</b><br/><span className="text-xs text-stone-500">{item.noHpPeserta}</span></td>
+                            <td className="p-3 text-xs">{item.alamatPeserta}</td>
+                            <td className="p-3 text-xs font-semibold text-red-800">{item.judulLomba}</td>
+                            <td className="p-3 text-center">
+                              <button onClick={() => handleDelete("pendaftaran_lomba", item.id)} className="text-red-500 text-xs font-bold hover:underline">Hapus</button>
+                            </td>
+                          </tr> 
                         )) 
                       )} 
                     </tbody> 
@@ -1741,14 +2026,57 @@ export default function AdminDashboard() {
 
             {(role === "sekre" || role === "publikasi") && (
               <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-amber-500"> 
-                <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-lg font-bold text-slate-900">Log Komentar & Diskusi</h2><span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataKomentar.length}</span></div> 
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h2 className="text-lg font-bold text-slate-900">Log Komentar & Diskusi</h2>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataKomentar.length}</span>
+                </div> 
                 <div className="overflow-x-auto"> 
                   <table className="w-full text-left text-sm"> 
-                    <thead><tr className="bg-slate-50 border-y text-slate-600"><th className="p-3">Pengirim</th><th className="p-3 w-1/2">Isi Komentar & Topik</th><th className="p-3 w-1/4">Balasan Admin</th><th className="p-3 text-center">Aksi</th></tr></thead> 
+                    <thead>
+                      <tr className="bg-slate-50 border-y text-slate-600">
+                        <th className="p-3">Pengirim</th>
+                        <th className="p-3 w-1/2">Isi Komentar & Topik</th>
+                        <th className="p-3 w-1/4">Balasan Admin</th>
+                        <th className="p-3 text-center">Aksi</th>
+                      </tr>
+                    </thead> 
                     <tbody className="divide-y"> 
                       {dataKomentar.length === 0 ? <tr><td colSpan="4" className="p-8 text-center text-slate-500">Belum ada komentar.</td></tr> : ( 
                         dataKomentar.slice((pageKomentar-1)*itemsPerPage, pageKomentar*itemsPerPage).map(item => ( 
-                          <tr key={item.id} className="hover:bg-slate-50"><td className="p-3"><div className="font-bold text-stone-900">{item.nama}</div><div className="text-[10px] text-stone-500">{item.waktu ? new Date(item.waktu.toDate()).toLocaleString('id-ID') : '-'}</div></td><td className="p-3"><div className="text-xs text-stone-700 mb-2">"{item.isi}"</div><div className="flex gap-2"><span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 rounded border">{item.postJudul || "Topik lama: Judul tidak terekam"}</span><span className="text-[10px] font-bold text-red-600">❤️ {item.likes || 0}</span></div></td><td className="p-3">{item.balasanAdmin ? (<div className="bg-green-50 border p-2 rounded relative group"><p className="text-xs text-green-800">{item.balasanAdmin}</p><button onClick={() => handleDeleteBalasan(item.id)} className="absolute top-1 right-1 text-[10px] text-red-500 font-bold opacity-0 group-hover:opacity-100">Hapus</button></div>) : (replyKomenId === item.id ? (<div className="flex flex-col gap-2"><textarea required value={replyText} onChange={(e)=>setReplyText(e.target.value)} placeholder="Tulis balasan..." className="text-xs p-2 border rounded w-full bg-white" rows="2"></textarea><div className="flex gap-2"><button onClick={() => handleReplyKomentar(item.id)} className="bg-amber-600 text-white text-[10px] px-3 py-1.5 rounded">Kirim</button><button onClick={() => {setReplyKomenId(null); setReplyText("");}} className="bg-stone-200 text-[10px] px-3 py-1.5 rounded">Batal</button></div></div>) : (<button onClick={() => {setReplyKomenId(item.id); setReplyText("");}} className="text-[11px] text-blue-600 font-bold bg-blue-50 px-3 py-1.5 rounded border border-blue-100">Balas Komentar</button>))}</td><td className="p-3 text-center"><button onClick={() => handleDelete("komentar_publikasi", item.id)} className="text-red-500 text-xs font-bold hover:underline">Hapus</button></td></tr> 
+                          <tr key={item.id} className="hover:bg-slate-50">
+                            <td className="p-3">
+                              <div className="font-bold text-stone-900">{item.nama}</div>
+                              <div className="text-[10px] text-stone-500">{item.waktu ? new Date(item.waktu.toDate()).toLocaleString('id-ID') : '-'}</div>
+                            </td>
+                            <td className="p-3">
+                              <div className="text-xs text-stone-700 mb-2">"{item.isi}"</div>
+                              <div className="flex gap-2">
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 rounded border">{item.postJudul || "Topik lama: Judul tidak terekam"}</span>
+                                <span className="text-[10px] font-bold text-red-600">❤️ {item.likes || 0}</span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              {item.balasanAdmin ? (
+                                <div className="bg-green-50 border p-2 rounded relative group">
+                                  <p className="text-xs text-green-800">{item.balasanAdmin}</p>
+                                  <button onClick={() => handleDeleteBalasan(item.id)} className="absolute top-1 right-1 text-[10px] text-red-500 font-bold opacity-0 group-hover:opacity-100">Hapus</button>
+                                </div>
+                              ) : (replyKomenId === item.id ? (
+                                <div className="flex flex-col gap-2">
+                                  <textarea required value={replyText} onChange={(e)=>setReplyText(e.target.value)} placeholder="Tulis balasan..." className="text-xs p-2 border rounded w-full bg-white" rows="2"></textarea>
+                                  <div className="flex gap-2">
+                                    <button onClick={() => handleReplyKomentar(item.id)} className="bg-amber-600 text-white text-[10px] px-3 py-1.5 rounded">Kirim</button>
+                                    <button onClick={() => {setReplyKomenId(null); setReplyText("");}} className="bg-stone-200 text-[10px] px-3 py-1.5 rounded">Batal</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button onClick={() => {setReplyKomenId(item.id); setReplyText("");}} className="text-[11px] text-blue-600 font-bold bg-blue-50 px-3 py-1.5 rounded border border-blue-100">Balas Komentar</button>
+                              ))}
+                            </td>
+                            <td className="p-3 text-center">
+                              <button onClick={() => handleDelete("komentar_publikasi", item.id)} className="text-red-500 text-xs font-bold hover:underline">Hapus</button>
+                            </td>
+                          </tr> 
                         )) 
                       )} 
                     </tbody> 
@@ -1760,14 +2088,37 @@ export default function AdminDashboard() {
 
             {role === "sekre" && (
               <div className="bg-white rounded-xl shadow-md p-6"> 
-                <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-lg font-bold text-slate-900">Log Pengunjung (Pengunduh Skripsi)</h2><span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataLogUnduh.length}</span></div> 
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h2 className="text-lg font-bold text-slate-900">Log Pengunjung (Pengunduh Skripsi)</h2>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataLogUnduh.length}</span>
+                </div> 
                 <div className="overflow-x-auto"> 
                   <table className="w-full text-left text-sm"> 
-                    <thead><tr className="bg-slate-50 border-y text-slate-600"><th className="p-3">Waktu Akses</th><th className="p-3">Identitas Pengunduh</th><th className="p-3">Skripsi Dibaca</th><th className="p-3 text-center">Aksi</th></tr></thead> 
+                    <thead>
+                      <tr className="bg-slate-50 border-y text-slate-600">
+                        <th className="p-3">Waktu Akses</th>
+                        <th className="p-3">Identitas Pengunduh</th>
+                        <th className="p-3">Skripsi Dibaca</th>
+                        <th className="p-3 text-center">Aksi</th>
+                      </tr>
+                    </thead> 
                     <tbody className="divide-y"> 
                       {dataLogUnduh.length === 0 ? <tr><td colSpan="4" className="p-8 text-center text-slate-500">Belum ada riwayat.</td></tr> : ( 
                         dataLogUnduh.slice((pageUnduh-1)*itemsPerPage, pageUnduh*itemsPerPage).map(item => ( 
-                          <tr key={item.id} className="hover:bg-slate-50"><td className="p-3 text-xs">{item.waktuAkses ? new Date(item.waktuAkses.toDate()).toLocaleString('id-ID') : '-'}</td><td className="p-3"><b>{item.namaPengunduh}</b><br/><span className="text-xs text-stone-500">{item.noHpPengunduh} | {item.emailPengunduh}</span></td><td className="p-3 text-xs"><b>{item.penulisSkripsi}</b><br/>{item.judulSkripsi}</td><td className="p-3 text-center"><button onClick={() => handleDelete("log_unduh_skripsi", item.id)} className="text-red-500 text-xs font-bold hover:underline">Hapus</button></td></tr> 
+                          <tr key={item.id} className="hover:bg-slate-50">
+                            <td className="p-3 text-xs">{item.waktuAkses ? new Date(item.waktuAkses.toDate()).toLocaleString('id-ID') : '-'}</td>
+                            <td className="p-3">
+                              <b>{item.namaPengunduh}</b><br/>
+                              <span className="text-xs text-stone-500">{item.noHpPengunduh} | {item.emailPengunduh}</span>
+                            </td>
+                            <td className="p-3 text-xs">
+                              <b>{item.penulisSkripsi}</b><br/>
+                              {item.judulSkripsi}
+                            </td>
+                            <td className="p-3 text-center">
+                              <button onClick={() => handleDelete("log_unduh_skripsi", item.id)} className="text-red-500 text-xs font-bold hover:underline">Hapus</button>
+                            </td>
+                          </tr> 
                         )) 
                       )} 
                     </tbody> 
@@ -1785,7 +2136,14 @@ export default function AdminDashboard() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead><tr className="bg-slate-50 border-y text-slate-600"><th className="p-3">Waktu Akses</th><th className="p-3">Lokasi (IP)</th><th className="p-3">Perangkat</th><th className="p-3 text-center">Aksi</th></tr></thead>
+                    <thead>
+                      <tr className="bg-slate-50 border-y text-slate-600">
+                        <th className="p-3">Waktu Akses</th>
+                        <th className="p-3">Lokasi (IP)</th>
+                        <th className="p-3">Perangkat</th>
+                        <th className="p-3 text-center">Aksi</th>
+                      </tr>
+                    </thead>
                     <tbody className="divide-y">
                       {dataPengunjung.length === 0 ? <tr><td colSpan="4" className="p-8 text-center text-slate-500">Belum ada data kunjungan.</td></tr> : (
                         dataPengunjung.slice((pagePengunjung-1)*itemsPerPage, pagePengunjung*itemsPerPage).map(item => {
@@ -1794,9 +2152,17 @@ export default function AdminDashboard() {
                           return (
                           <tr key={item.id} className="hover:bg-slate-50">
                             <td className="p-3 text-xs">{item.waktu ? new Date(item.waktu.toDate()).toLocaleString('id-ID') : '-'}</td>
-                            <td className="p-3"><b>{item.kota || "Tidak diketahui"}, {item.provinsi}</b><br/><span className="text-[10px] text-stone-500">IP: {item.ip} • {item.isp}</span></td>
-                            <td className="p-3 text-xs"><b>{device}</b><br/><span className="text-[10px] text-stone-500 line-clamp-1 max-w-xs" title={ua}>{ua}</span></td>
-                            <td className="p-3 text-center"><button onClick={() => handleDelete("log_pengunjung", item.id)} className="text-red-500 text-xs font-bold hover:underline">Hapus</button></td>
+                            <td className="p-3">
+                              <b>{item.kota || "Tidak diketahui"}, {item.provinsi}</b><br/>
+                              <span className="text-[10px] text-stone-500">IP: {item.ip} • {item.isp}</span>
+                            </td>
+                            <td className="p-3 text-xs">
+                              <b>{device}</b><br/>
+                              <span className="text-[10px] text-stone-500 line-clamp-1 max-w-xs" title={ua}>{ua}</span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <button onClick={() => handleDelete("log_pengunjung", item.id)} className="text-red-500 text-xs font-bold hover:underline">Hapus</button>
+                            </td>
                           </tr>
                         )})
                       )}
