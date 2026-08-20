@@ -18,7 +18,8 @@ const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
   }, [imgArray.length]);
 
   return (
-    <section className="relative h-[80vh] flex items-center justify-center overflow-hidden bg-[#171412]">
+    // PERBAIKAN DI SINI: Menggunakan min-h-[90vh] dan py-28 agar konten tidak terpotong
+    <section className="relative min-h-[90vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden bg-[#171412] py-28 md:py-32">
       <div className="absolute inset-0 w-full h-full bg-[#171412]">
         {imgArray.map((bg, i) => (
           <div 
@@ -30,7 +31,7 @@ const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
         <div className="absolute inset-0 bg-[#171412]/70"></div>
       </div>
 
-      <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-16 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+      <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-12 md:mt-16 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         {/* PENAMBAHAN 2 LOGO ASRAMA */}
         <div className="flex justify-center items-center gap-6 mb-6">
           <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-sm rounded-full p-2 border border-white/20 shadow-lg flex items-center justify-center">
@@ -51,7 +52,7 @@ const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
           <span className="text-amber-500">{titleLine2}</span>
         </h1>
         
-        <p className="text-lg md:text-xl text-stone-300 mb-10 font-lora max-w-2xl mx-auto">
+        <p className="text-lg md:text-xl text-stone-300 mb-10 font-lora max-w-2xl mx-auto leading-relaxed">
           {subtitle}
         </p>
 
@@ -120,7 +121,6 @@ export default function Beranda() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
-  // State bantuan untuk melacak like secara lokal
   const [localLikes, setLocalLikes] = useState({});
 
   useEffect(() => {
@@ -171,7 +171,6 @@ export default function Beranda() {
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
         comments.sort((a, b) => (b.waktu?.toMillis() || 0) - (a.waktu?.toMillis() || 0));
 
-        // Setup local likes
         let likesMap = {};
         comments.forEach(c => { 
           likesMap[c.id] = c.likes || 0; 
@@ -264,13 +263,11 @@ export default function Beranda() {
     }
   };
 
-  // LOGIKA LIKE / UNLIKE
   const handleLikeKomentar = async (komenId) => {
     if (typeof window === 'undefined') return;
     const isCurrentlyLiked = localStorage.getItem(`liked_${komenId}`);
 
     if (isCurrentlyLiked) {
-      // PROSES UNLIKE (BATAL SUKA)
       try {
         localStorage.removeItem(`liked_${komenId}`);
         setLocalLikes(prev => ({ ...prev, [komenId]: Math.max(0, (prev[komenId] || 0) - 1) }));
@@ -281,7 +278,6 @@ export default function Beranda() {
         setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
       }
     } else {
-      // PROSES LIKE (SUKA)
       try {
         localStorage.setItem(`liked_${komenId}`, 'true');
         setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
