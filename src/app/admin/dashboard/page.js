@@ -3,7 +3,21 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, updateDoc, where, increment } from "firebase/firestore";
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  deleteDoc, 
+  doc, 
+  getDoc, 
+  setDoc, 
+  serverTimestamp, 
+  query, 
+  orderBy, 
+  updateDoc, 
+  where, 
+  increment 
+} from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
 // PENGATURAN HAK AKSES TAB UNTUK MASING-MASING DIVISI
@@ -74,16 +88,13 @@ export default function AdminDashboard() {
   const [tampilanUrls, setTampilanUrls] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
   const [tampilanFiles, setTampilanFiles] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
   
-  // STATE MERSI & BK DIPISAH (Termasuk Sosmed, Kontak, Maps)
+  // STATE MERSI & BK DIPISAH
   const [profilText, setProfilText] = useState({ visi_mersi: "", misi_mersi: "", visi_bk: "", misi_bk: "", jejakAlumni: "" });
   const [kontak, setKontak] = useState({ 
-    // Data Mersi
     namaKetuaMersi: "", noTelponMersi: "", noHumasMersi: "", emailMersi: "", namaIgMersi: "", linkIgMersi: "",
     alamatMersi: "", linkMapMersi: "", iframeMapMersi: "",
-    // Data BK
     namaKetuaBk: "", noTelponBk: "", noHumasBk: "", emailBk: "", namaIgBk: "", linkIgBk: "",
     alamatBk: "", linkMapBk: "", iframeMapBk: "",
-    // Bersama
     noSkripsi: "", namaTiktok: "", linkTiktok: "" 
   });
   
@@ -97,7 +108,6 @@ export default function AdminDashboard() {
   const [filesBrosurMersi, setFilesBrosurMersi] = useState([]);
   const [filesBrosurBk, setFilesBrosurBk] = useState([]);
 
-  // PENGURUS INTI DIPISAH MERSI & BK
   const [pengurusInti, setPengurusInti] = useState({ 
     ketuaMersiNama: "", ketuaMersiFoto: "", sekreMersiNama: "", sekreMersiFoto: "", bendaharaMersiNama: "", bendaharaMersiFoto: "",
     ketuaBkNama: "", ketuaBkFoto: "", sekreBkNama: "", sekreBkFoto: "", bendaharaBkNama: "", bendaharaBkFoto: "" 
@@ -112,6 +122,7 @@ export default function AdminDashboard() {
   const [asramaDivisi, setAsramaDivisi] = useState("mersi");
   const [asramaFasilitas, setAsramaFasilitas] = useState("mersi");
   const [asramaSewa, setAsramaSewa] = useState("mersi");
+  const [asramaAlumni, setAsramaAlumni] = useState("mersi"); // <-- STATE BARU ALUMNI
 
   // STATE DATA TABEL
   const [dataSejarah, setDataSejarah] = useState([]);
@@ -186,7 +197,9 @@ export default function AdminDashboard() {
   const [replyKomenId, setReplyKomenId] = useState(null); 
   const [replyText, setReplyText] = useState("");
 
-  const [formAlumni, setFormAlumni] = useState({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" });
+  const [formAlumni, setFormAlumni] = useState({ 
+    nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" 
+  });
   const [fileFotoAlumni, setFileFotoAlumni] = useState(null);
   const [editPesanId, setEditPesanId] = useState(null);
 
@@ -220,9 +233,9 @@ export default function AdminDashboard() {
         
         // TULIS EMAIL SEKRETARIS YANG DIIZINKAN DI SINI
         const daftarSekretaris = [
-          "aspuribkrancak123@gmail.com", // Ganti dengan email sekre bk yang asli
-          "sekremersi@gmail.com", // Ganti dengan email sekre mersi yang asli
-                                  
+          "aspuribkrancak123@gmail.com", 
+          "sekremersi@gmail.com", 
+          "adminutama@gmail.com" // Ganti bila perlu
         ];
         
         if (daftarSekretaris.includes(email)) currRole = "sekre";
@@ -234,7 +247,6 @@ export default function AdminDashboard() {
         else if (email.startsWith("rohani")) currRole = "rohani";
         else if (email.startsWith("senibudaya") || email.startsWith("senbud")) currRole = "senbud";
         else {
-          // JIKA EMAIL TIDAK ADA DI DAFTAR ATAS -> TOLAK & KELUARKAN
           alert("Akses Ditolak! Email Anda tidak terdaftar sebagai Pengurus Asrama.");
           signOut(auth);
           router.push("/");
@@ -253,6 +265,7 @@ export default function AdminDashboard() {
         setAsramaDivisi(defaultAsrama);
         setAsramaFasilitas(defaultAsrama);
         setAsramaSewa(defaultAsrama);
+        setAsramaAlumni(defaultAsrama); // Set Otomatis Untuk Form Alumni
 
         setAuthReady(true);
         fetchAllData();
@@ -261,11 +274,9 @@ export default function AdminDashboard() {
   }, []);
 
   const fetchAllData = async () => {
-    // Tampilan
     const docSnap = await getDoc(doc(db, "pengaturan", "tampilan"));
     if (docSnap.exists()) setTampilanUrls(docSnap.data());
     
-    // Profil Text
     const docProfil = await getDoc(doc(db, "pengaturan", "profilText"));
     if (docProfil.exists()) {
       const p = docProfil.data();
@@ -278,7 +289,6 @@ export default function AdminDashboard() {
       });
     }
     
-    // Kontak & Lokasi Asrama
     const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
     if (docKontak.exists()) {
       const kd = docKontak.data();
@@ -309,7 +319,6 @@ export default function AdminDashboard() {
       });
     }
     
-    // Status Asrama
     const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
     if (docStatus.exists()) {
       const d = docStatus.data();
@@ -323,7 +332,6 @@ export default function AdminDashboard() {
       });
     }
     
-    // Brosur
     const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
     if (docBrosur.exists()) { 
       const d = docBrosur.data();
@@ -334,11 +342,9 @@ export default function AdminDashboard() {
       setLinkFormulir(d.linkFormulir || ""); 
     }
 
-    // Sejarah
     const sejSnap = await getDocs(query(collection(db, "sejarah_asrama"), orderBy("createdAt", "asc"))); 
     setDataSejarah(sejSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
-    // Pengurus Inti
     const docInti = await getDoc(doc(db, "pengaturan", "pengurus_inti")); 
     if (docInti.exists()) {
       const d = docInti.data();
@@ -352,14 +358,12 @@ export default function AdminDashboard() {
       });
     }
     
-    // Divisi & Anggota
     const divSnap = await getDocs(query(collection(db, "divisi_asrama"), orderBy("createdAt", "asc"))); 
     setDataDivisi(divSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
     const angSnap = await getDocs(query(collection(db, "anggota_divisi"), orderBy("createdAt", "asc"))); 
     setDataAnggota(angSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
-    // Lainnya
     const fotoProfSnap = await getDocs(query(collection(db, "profil_galeri"), orderBy("createdAt", "desc"))); 
     setDataFotoProfil(fotoProfSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
@@ -457,7 +461,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- SAVE FUNCTIONS ---
+  // --- SAVE FUNCTIONS PENGATURAN ---
   const handleSaveTampilan = async (e) => { 
     e.preventDefault(); 
     setLoading(true); 
@@ -980,6 +984,7 @@ export default function AdminDashboard() {
       } 
       
       const payload = { 
+        asrama: asramaAlumni,
         nama: formAlumni.nama, 
         asal: formAlumni.asal,
         kuliah: formAlumni.kuliah,
@@ -1016,6 +1021,7 @@ export default function AdminDashboard() {
   
   const handleEditPesanClick = (item) => { 
     setEditPesanId(item.id); 
+    setAsramaAlumni(item.asrama || 'mersi');
     setFormAlumni({
       nama: item.nama || "",
       asal: item.asal || "",
