@@ -154,8 +154,8 @@ export default function AdminDashboard() {
   const [replyKomenId, setReplyKomenId] = useState(null); 
   const [replyText, setReplyText] = useState("");
 
-  // STATE FORM ALUMNI LENGKAP
-  const [formAlumni, setFormAlumni] = useState({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", pesan: "" });
+  // STATE FORM ALUMNI LENGKAP (DITAMBAH PRESTASI)
+  const [formAlumni, setFormAlumni] = useState({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" });
   const [fileFotoAlumni, setFileFotoAlumni] = useState(null);
   const [editPesanId, setEditPesanId] = useState(null);
 
@@ -838,6 +838,7 @@ export default function AdminDashboard() {
         angkatanAsrama: formAlumni.angkatanAsrama,
         pekerjaan: formAlumni.pekerjaan,
         skripsi: formAlumni.skripsi,
+        prestasi: formAlumni.prestasi, // Tambahan Prestasi/Jurnal
         pesan: formAlumni.pesan, 
         foto: fotoUrl 
       };
@@ -850,7 +851,7 @@ export default function AdminDashboard() {
         setStatus({ type: "success", message: "Data alumni ditambahkan!" }); 
       } 
       
-      setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", pesan: "" }); 
+      setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" }); 
       setFileFotoAlumni(null); 
       setEditPesanId(null); 
       fetchAllData(); 
@@ -874,6 +875,7 @@ export default function AdminDashboard() {
       angkatanAsrama: item.angkatanAsrama || "",
       pekerjaan: item.pekerjaan || "",
       skripsi: item.skripsi || "",
+      prestasi: item.prestasi || "", // Tambahan Prestasi/Jurnal
       pesan: item.pesan || ""
     });
     setFileFotoAlumni(null); 
@@ -1253,7 +1255,6 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                 {dataFotoProfil.slice((pageFotoProf-1)*itemsPerPage, pageFotoProf*itemsPerPage).map(item => ( 
                   <div key={item.id} className="bg-slate-50 border rounded-lg flex gap-4 p-3">
-                    {/* DIV UNTUK FOTO DI ADMIN AGAR TIDAK KEPOTONG */}
                     <div className="w-32 h-24 shrink-0 bg-stone-200 rounded-md flex items-center justify-center p-1 overflow-hidden">
                       <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" /> 
                     </div>
@@ -1293,7 +1294,6 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
                 {dataFasilitas.slice((pageFasilitas-1)*itemsPerPage, pageFasilitas*itemsPerPage).map(item => ( 
                   <div key={item.id} className="bg-slate-50 border rounded-lg flex flex-col overflow-hidden">
-                    {/* DIV UNTUK FOTO DI ADMIN AGAR TIDAK KEPOTONG */}
                     <div className="w-full h-40 bg-stone-200 flex items-center justify-center p-2">
                       <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" /> 
                     </div>
@@ -1347,7 +1347,6 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                 {dataPenyewaan.slice((pageSewa-1)*itemsPerPage, pageSewa*itemsPerPage).map(item => ( 
                   <div key={item.id} className="bg-slate-50 border rounded-lg flex overflow-hidden">
-                    {/* DIV UNTUK FOTO DI ADMIN AGAR TIDAK KEPOTONG */}
                     <div className="w-32 h-32 shrink-0 bg-stone-200 flex items-center justify-center p-2">
                       <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" /> 
                     </div>
@@ -1398,7 +1397,6 @@ export default function AdminDashboard() {
               <h3 className="font-bold mb-4 border-b pb-2">Daftar Foto Galeri</h3> 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                 {dataGaleri.slice((pageGaleri-1)*itemsPerPage, pageGaleri*itemsPerPage).map(item => ( 
-                  // DIV UNTUK FOTO DI ADMIN AGAR TIDAK KEPOTONG (Background gelap untuk galeri)
                   <div key={item.id} className="relative h-48 rounded-lg overflow-hidden border shadow-sm bg-stone-900 flex items-center justify-center p-2"> 
                     <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" alt="Galeri" /> 
                     <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-3"> 
@@ -1460,11 +1458,10 @@ export default function AdminDashboard() {
           </div> 
         )}
         
-        {/* --- KHUSUS TAB SKRIPSI (DITAMBAH TABEL APPROVAL) --- */}
+        {/* --- KHUSUS TAB SKRIPSI --- */}
         {activeTab === "skripsi" && allowedTabs.includes("skripsi") && ( 
           <div className="space-y-6"> 
             
-            {/* Tabel Permohonan Akses Skripsi */}
             <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-amber-500 mb-8">
               <div className="flex justify-between items-center mb-4 border-b pb-2">
                   <h2 className="text-lg font-bold text-slate-900">Permohonan Akses Baca Skripsi</h2>
@@ -1603,6 +1600,12 @@ export default function AdminDashboard() {
                   <label className="text-sm font-semibold mb-1 block">Judul Skripsi (Opsional)</label>
                   <textarea rows="2" value={formAlumni.skripsi} onChange={(e) => setFormAlumni({...formAlumni, skripsi: e.target.value})} placeholder="Judul Skripsi alumni saat lulus..." className="w-full px-4 py-2 border rounded-md"></textarea>
                 </div>
+                
+                {/* Baris TAMBAHAN: Prestasi / Jurnal */}
+                <div>
+                  <label className="text-sm font-semibold mb-1 block text-amber-700">Prestasi / Karya / Jurnal (Opsional)</label>
+                  <textarea rows="2" value={formAlumni.prestasi} onChange={(e) => setFormAlumni({...formAlumni, prestasi: e.target.value})} placeholder="Contoh: Publikasi Jurnal Scopus Q1, Juara 1 Robotik Nasional..." className="w-full px-4 py-2 border border-amber-300 bg-amber-50 rounded-md"></textarea>
+                </div>
 
                 {/* Baris 5: Kesan Pesan */}
                 <div>
@@ -1618,7 +1621,7 @@ export default function AdminDashboard() {
 
                 <div className="flex gap-2">
                   <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editPesanId ? "Simpan Perubahan Data" : "Tambahkan ke Database"}</button>
-                  {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", pesan: "" }); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
+                  {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" }); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
                 </div>
               </form>
             </div>
@@ -1677,7 +1680,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB LOG DATA (DIPERBARUI UNTUK PENDAFTARAN) */}
+        {/* TAB LOG DATA */}
         {activeTab === "log" && allowedTabs.includes("log") && ( 
           <div className="space-y-6"> 
             
