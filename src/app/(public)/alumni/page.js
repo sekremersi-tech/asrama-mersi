@@ -244,9 +244,12 @@ export default function JejakPrestasi() {
 
   const filteredAlumni = dataPesanAlumni.filter(item => {
     const q = searchAlumni.toLowerCase();
+    // Deteksi cerdas: Jika belum ada data pekerjaan tapi dia warga aktif, otomatis dianggap Mahasiswa untuk pencarian
+    const derivedPekerjaan = item.pekerjaan || ((item.statusWarga === 'Warga Aktif' || item.statusWarga === 'Warga Cabang') ? 'Mahasiswa' : '');
+    
     const matchSearch = 
       item.nama?.toLowerCase().includes(q) || 
-      item.pekerjaan?.toLowerCase().includes(q) || 
+      derivedPekerjaan.toLowerCase().includes(q) || 
       item.skripsi?.toLowerCase().includes(q) ||
       item.pesan?.toLowerCase().includes(q) ||
       item.prestasi?.toLowerCase().includes(q);
@@ -263,6 +266,9 @@ export default function JejakPrestasi() {
 
   const totalAlumniPages = Math.ceil(filteredAlumni.length / alumniPerPage);
   const currentDataAlumni = filteredAlumni.slice(alumniPage * alumniPerPage, (alumniPage + 1) * alumniPerPage);
+
+  // Logika tampilan untuk Pekerjaan pada Modal
+  const displayPekerjaan = selectedAlumni ? (selectedAlumni.pekerjaan || ((selectedAlumni.statusWarga === 'Warga Aktif' || selectedAlumni.statusWarga === 'Warga Cabang') ? 'Mahasiswa' : '')) : '';
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora relative overflow-x-hidden">
@@ -318,10 +324,10 @@ export default function JejakPrestasi() {
               </h2>
 
               <div className="space-y-5 font-sans">
-                {selectedAlumni.pekerjaan && (
+                {displayPekerjaan && (
                   <div className="flex gap-4 items-start border-b border-stone-100 pb-3">
                     <span className="w-1/3 text-xs font-bold text-stone-400 uppercase tracking-wider shrink-0 mt-0.5">Pekerjaan/Status</span>
-                    <span className="text-sm font-semibold text-stone-800">{selectedAlumni.pekerjaan}</span>
+                    <span className="text-sm font-semibold text-stone-800">{displayPekerjaan}</span>
                   </div>
                 )}
                 {(selectedAlumni.kuliah || selectedAlumni.jurusan) && (
@@ -447,7 +453,7 @@ export default function JejakPrestasi() {
 
       <HeroSlider images={bgAlumni} title="Jejak & Prestasi" />
 
-      {/* 1. JEJAK ALUMNI (INTRO) DIUBAH KE PANGKALAN DATA WARGA & ALUMNI */}
+      {/* 1. PANGKALAN DATA WARGA & ALUMNI */}
       <div id="jejak" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-4">Pangkalan Data Warga & Alumni</h2>
@@ -455,15 +461,15 @@ export default function JejakPrestasi() {
         </div>
         <div className="bg-white p-8 md:p-12 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] mb-8">
           <p className="text-stone-600 leading-relaxed text-lg text-center whitespace-pre-line font-lora italic">
-            {loading ? "Memuat catatan jejak alumni..." : `"${profilText.jejakAlumni}"`}
+            {loading ? "Memuat pangkalan data..." : `"${profilText.jejakAlumni}"`}
           </p>
         </div>
       </div>
 
-      {/* 2. DATABASE ALUMNI & WARGA INTERAKTIF */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+      {/* DATABASE INTERAKTIF DENGAN KESAN PESAN DI LUAR */}
+      <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 mb-24 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
 
-        {/* Filter Section */}
+        {/* Filter Section Lengkap */}
         <div className="bg-white p-6 rounded-sm shadow-md border border-[#e8e4db] mb-8 flex flex-col xl:flex-row gap-4">
           <div className="w-full xl:w-1/4 relative">
             <input 
@@ -473,7 +479,7 @@ export default function JejakPrestasi() {
               onChange={(e) => setSearchAlumni(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-white border border-stone-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-red-800 font-sans text-sm text-stone-900 font-semibold shadow-sm"
             />
-            <svg className="absolute left-3 top-3.5 text-stone-500 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <svg className="absolute left-3 top-3.5 text-stone-500 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 w-full xl:w-3/4">
@@ -507,29 +513,28 @@ export default function JejakPrestasi() {
           </div>
         </div>
 
-        {/* Grid Alumni / Warga Cards */}
+        {/* Grid Kartu Data */}
         {loading ? (
           <p className="text-center text-stone-500 py-10">Mencari data...</p>
         ) : currentDataAlumni.length === 0 ? (
           <p className="text-center text-stone-500 bg-white p-12 border border-[#e8e4db] rounded-sm shadow-sm">Data tidak ditemukan dengan filter tersebut.</p>
         ) : (
           <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {currentDataAlumni.map((item, idx) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {currentDataAlumni.map((item) => (
                 <div 
                   key={item.id} 
                   onClick={() => openAlumniModal(item)}
-                  className="cursor-pointer bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group relative"
+                  className="cursor-pointer bg-white rounded-lg shadow-md border border-[#e8e4db] overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group"
                 >
-                  <div className={`h-1.5 w-full transition-colors ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}></div>
-                  <div className="p-5 flex flex-col h-full relative">
-
-                    {/* Icon Klik Detail */}
+                  <div className={`h-2 w-full ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}></div>
+                  
+                  <div className="p-6 flex flex-col h-full relative">
                     <div className="absolute top-4 right-4 text-stone-300 group-hover:text-red-800 transition-colors">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 mb-3 pr-6">
+                    <div className="flex gap-2 mb-3 flex-wrap pr-6">
                       <span className={`text-[9px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>
                         {item.asrama === 'bk' ? 'BK' : 'MERSI'}
                       </span>
@@ -539,11 +544,8 @@ export default function JejakPrestasi() {
                     </div>
 
                     <h3 className="font-playfair font-bold text-xl text-stone-900 leading-tight mb-2 line-clamp-2">{item.nama}</h3>
-
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {item.angkatanAsrama && <span className="text-stone-500 text-[11px] font-bold tracking-wider">Angk. {item.angkatanAsrama}</span>}
-                      {item.asal && <span className="text-stone-400 text-[11px] font-bold tracking-wider">• {item.asal}</span>}
-                    </div>
+                    
+                    <p className="text-xs font-semibold text-stone-500 mb-4">{item.angkatanAsrama ? `Angkatan ${item.angkatanAsrama}` : ''} {item.asal ? `• ${item.asal}` : ''}</p>
 
                     {item.pesan && (
                       <div className="bg-stone-50 p-3 rounded border-l-2 border-amber-500 mb-4 flex-grow">
@@ -553,7 +555,7 @@ export default function JejakPrestasi() {
 
                     <div className="mt-auto pt-4 border-t border-stone-100 flex items-start gap-2 text-stone-600 text-sm font-sans font-medium">
                        <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
-                       <span className="line-clamp-2 leading-snug text-xs">{item.kuliah || "Data Kampus Belum Ada"}</span>
+                       <span className="line-clamp-1 leading-snug text-xs">{item.kuliah || "Data Kampus Belum Ada"}</span>
                     </div>
                   </div>
                 </div>
