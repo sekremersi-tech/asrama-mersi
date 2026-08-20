@@ -28,6 +28,7 @@ const DepthCarousel = ({
   showControls = true,
   showIndicators = true,
   onChange,
+  onActiveCardClick, // <-- TAMBAHAN UNTUK POP-UP ZOOM FOTO
   className = ''
 }) => {
   const data = useMemo(() => (Array.isArray(items) ? items : []).map(normalizeItem), [items]);
@@ -239,10 +240,15 @@ const DepthCarousel = ({
     }, [navigateBy]
   );
 
-  const onCardClick = useCallback(index => {
+  // LOGIKA KLIK BARU: Jika ditekan tapi belum di tengah, geser ke tengah. Jika sudah di tengah, pop-up foto (zoom)
+  const handleCardClick = useCallback((index, isActive) => {
       if (dragRef.current?.moved) return;
-      setFocus(index, true);
-    }, [setFocus]
+      if (isActive && onActiveCardClick) {
+        onActiveCardClick(data[index]);
+      } else {
+        setFocus(index, true);
+      }
+    }, [data, setFocus, onActiveCardClick]
   );
 
   useEffect(() => {
@@ -319,7 +325,7 @@ const DepthCarousel = ({
             aria-roledescription="slide"
             aria-label={`${i + 1} of ${count}`}
             aria-hidden={active !== i}
-            onClick={() => onCardClick(i)}
+            onClick={() => handleCardClick(i, active === i)}
           >
             <div className="depth-carousel__img-container">
                 <img className="depth-carousel__img" src={item.image} alt={item.alt || ''} draggable={false} style={{ borderRadius: radius }} />
