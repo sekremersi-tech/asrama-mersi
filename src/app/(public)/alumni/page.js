@@ -61,7 +61,7 @@ export default function JejakPrestasi() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [animDirection, setAnimDirection] = useState("");
   const itemsPerPage = 10;
-  const alumniPerPage = 9;
+  const alumniPerPage = 12;
 
   const [showSkripsiModal, setShowSkripsiModal] = useState(false);
   const [selectedSkripsi, setSelectedSkripsi] = useState(null);
@@ -203,7 +203,7 @@ export default function JejakPrestasi() {
   };
 
   const handleTanyaLinkResmi = (skripsi) => {
-    // LOGIKA BARU: Ambil noSkripsi, kalau kosong pakai noTelpon Ketua asrama
+    // Menggunakan nomor Admin Skripsi jika ada, jika tidak pakai nomor Ketua Asrama
     const nomorTujuan = kontak.noSkripsi || kontak.noTelpon;
     if (!nomorTujuan || nomorTujuan === "-") return alert("Nomor Admin belum diatur.");
 
@@ -472,7 +472,7 @@ export default function JejakPrestasi() {
           </div>
         </div>
 
-        {/* Grid Alumni Cards - VERSI RINGKAS (TANPA FOTO) */}
+        {/* Grid Alumni Cards - VERSI RINGKAS (TANPA FOTO DI DEPAN) */}
         {loading ? (
           <p className="text-center text-stone-500 py-10">Mencari data alumni...</p>
         ) : currentDataAlumni.length === 0 ? (
