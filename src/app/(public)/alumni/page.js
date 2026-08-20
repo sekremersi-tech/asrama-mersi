@@ -33,11 +33,12 @@ const HeroSlider = ({ images, title }) => {
 export default function JejakPrestasi() {
   const [bgAlumni, setBgAlumni] = useState([]);
   const [profilText, setProfilText] = useState({ jejakAlumni: "" });
-  const [kontak, setKontak] = useState({ noTelpon: "" }); 
+  
+  // STATE KONTAK DENGAN NO SKRIPSI
+  const [kontak, setKontak] = useState({ noTelpon: "", noSkripsi: "" }); 
+  
   const [dataPrestasi, setDataPrestasi] = useState([]);
   const [dataSkripsi, setDataSkripsi] = useState([]);
-  
-  // STATE PANGKALAN DATA ALUMNI
   const [dataPesanAlumni, setDataPesanAlumni] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,8 +49,6 @@ export default function JejakPrestasi() {
   const [filterKampus, setFilterKampus] = useState("");
   const [filterJurusan, setFilterJurusan] = useState("");
   const [alumniPage, setAlumniPage] = useState(0);
-
-  // STATE MODAL ALUMNI BARU (DETAIL LENGKAP)
   const [selectedAlumni, setSelectedAlumni] = useState(null);
 
   const [selectedItem, setSelectedItem] = useState(null);
@@ -66,7 +65,6 @@ export default function JejakPrestasi() {
 
   const [showSkripsiModal, setShowSkripsiModal] = useState(false);
   const [selectedSkripsi, setSelectedSkripsi] = useState(null);
-  
   const [formPermohonan, setFormPermohonan] = useState({ nama: "", instansi: "", noHp: "", tujuan: "" });
   const [isSubmittingPermohonan, setIsSubmittingPermohonan] = useState(false);
 
@@ -205,9 +203,13 @@ export default function JejakPrestasi() {
   };
 
   const handleTanyaLinkResmi = (skripsi) => {
-    let bersihkanNomor = kontak.noTelpon.replace(/\D/g, '');
+    // LOGIKA BARU: Ambil noSkripsi, kalau kosong pakai noTelpon Ketua asrama
+    const nomorTujuan = kontak.noSkripsi || kontak.noTelpon;
+    if (!nomorTujuan || nomorTujuan === "-") return alert("Nomor Admin belum diatur.");
+
+    let bersihkanNomor = nomorTujuan.replace(/\D/g, '');
     if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
-    const text = `Halo Admin Asrama Mersi,\n\nSaya pengunjung website asrama. Saya tertarik dengan skripsi berjudul *"${skripsi.judul}"* karya ${skripsi.nama}. \n\nBolehkah saya meminta link repositori resmi universitasnya? Terima kasih.`;
+    const text = `Halo Admin Skripsi Mersi,\n\nSaya pengunjung website asrama. Saya tertarik dengan skripsi berjudul *"${skripsi.judul}"* karya ${skripsi.nama}. \n\nBolehkah saya meminta link repositori resmi universitasnya? Terima kasih.`;
     window.open(`https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -270,7 +272,7 @@ export default function JejakPrestasi() {
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* MODAL FOTO FULL ALUMNI (DETAIL LENGKAP BINGKAI SEWARNA) */}
+      {/* MODAL FOTO FULL ALUMNI (DETAIL LENGKAP BINGKAI MERAH ASRAMA) */}
       {selectedAlumni && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8 animate-[fadeIn_0.3s_ease-out]" onClick={closeAlumniModal}>
           <button onClick={closeAlumniModal} className="absolute top-4 md:top-8 right-4 md:right-8 text-white hover:text-amber-500 transition-colors z-50 p-2">
@@ -282,9 +284,7 @@ export default function JejakPrestasi() {
             {/* Kiri: Desain Foto Full Bingkai Merah Asrama */}
             <div className="w-full md:w-2/5 bg-[#f4f2ec] p-8 md:p-12 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-[#e8e4db]">
               <div className="relative group w-full max-w-[280px]">
-                 {/* Bingkai Latar (Merah) */}
                  <div className="absolute inset-0 bg-red-800 transform rotate-3 rounded-lg shadow-xl transition-transform group-hover:rotate-6 duration-300"></div>
-                 {/* Foto Utama */}
                  <img 
                     src={selectedAlumni.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedAlumni.nama)}&background=991b1b&color=fff`} 
                     className="relative z-10 w-full aspect-[3/4] object-cover rounded-lg shadow-md border-4 border-white transform transition-transform group-hover:-rotate-1 duration-300 bg-white" 
