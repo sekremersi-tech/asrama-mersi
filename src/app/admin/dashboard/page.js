@@ -216,10 +216,16 @@ export default function AdminDashboard() {
         const email = user.email || "";
         setCurrentUserEmail(email);
         
-        let currRole = "sekre"; 
+        let currRole = ""; // Default dikosongkan agar aman
         
-        // Cek Khusus untuk Akun Sekre BK
-        if (email === "aspuribkrancak123@gmail.com") currRole = "sekre";
+        // TULIS EMAIL SEKRETARIS YANG DIIZINKAN DI SINI
+        const daftarSekretaris = [
+          "aspuribkrancak123@gmail.com", // Ganti dengan email sekre bk yang asli
+          "sekremersi@gmail.com", // Ganti dengan email sekre mersi yang asli
+                                  
+        ];
+        
+        if (daftarSekretaris.includes(email)) currRole = "sekre";
         else if (email.startsWith("humas")) currRole = "humas";
         else if (email.startsWith("publikasi")) currRole = "publikasi";
         else if (email.startsWith("perkap")) currRole = "perkap";
@@ -227,6 +233,13 @@ export default function AdminDashboard() {
         else if (email.startsWith("klh")) currRole = "klh";
         else if (email.startsWith("rohani")) currRole = "rohani";
         else if (email.startsWith("senibudaya") || email.startsWith("senbud")) currRole = "senbud";
+        else {
+          // JIKA EMAIL TIDAK ADA DI DAFTAR ATAS -> TOLAK & KELUARKAN
+          alert("Akses Ditolak! Email Anda tidak terdaftar sebagai Pengurus Asrama.");
+          signOut(auth);
+          router.push("/");
+          return;
+        }
 
         const tabsForRole = TAB_ROLES[currRole] || [];
         setRole(currRole); 
