@@ -61,7 +61,9 @@ export default function JejakPrestasi() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [animDirection, setAnimDirection] = useState("");
   const itemsPerPage = 10;
-  const alumniPerPage = 12;
+  
+  // MENGUBAH LIMIT ALUMNI JADI 10
+  const alumniPerPage = 10;
 
   const [showSkripsiModal, setShowSkripsiModal] = useState(false);
   const [selectedSkripsi, setSelectedSkripsi] = useState(null);
@@ -203,7 +205,6 @@ export default function JejakPrestasi() {
   };
 
   const handleTanyaLinkResmi = (skripsi) => {
-    // Menggunakan nomor Admin Skripsi jika ada, jika tidak pakai nomor Ketua Asrama
     const nomorTujuan = kontak.noSkripsi || kontak.noTelpon;
     if (!nomorTujuan || nomorTujuan === "-") return alert("Nomor Admin belum diatur.");
 
@@ -243,7 +244,8 @@ export default function JejakPrestasi() {
       item.nama?.toLowerCase().includes(q) || 
       item.pekerjaan?.toLowerCase().includes(q) || 
       item.skripsi?.toLowerCase().includes(q) ||
-      item.pesan?.toLowerCase().includes(q);
+      item.pesan?.toLowerCase().includes(q) ||
+      item.prestasi?.toLowerCase().includes(q);
     
     const matchAngkatan = filterAngkatan ? item.angkatanAsrama?.toString() === filterAngkatan : true;
     const matchAsal = filterAsal ? item.asal === filterAsal : true;
@@ -272,7 +274,7 @@ export default function JejakPrestasi() {
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* MODAL FOTO FULL ALUMNI (DETAIL LENGKAP BINGKAI MERAH ASRAMA) */}
+      {/* MODAL FOTO FULL ALUMNI (DETAIL LENGKAP DENGAN PRESTASI OPSIONAL) */}
       {selectedAlumni && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8 animate-[fadeIn_0.3s_ease-out]" onClick={closeAlumniModal}>
           <button onClick={closeAlumniModal} className="absolute top-4 md:top-8 right-4 md:right-8 text-white hover:text-amber-500 transition-colors z-50 p-2">
@@ -329,6 +331,14 @@ export default function JejakPrestasi() {
                   <div className="flex gap-4 items-start border-b border-stone-100 pb-3">
                     <span className="w-1/3 text-xs font-bold text-stone-400 uppercase tracking-wider shrink-0 mt-0.5">Judul Skripsi</span>
                     <span className="text-sm font-medium italic text-stone-700">"{selectedAlumni.skripsi}"</span>
+                  </div>
+                )}
+                
+                {/* PRESTASI / JURNAL DITAMPILKAN DI SINI JIKA ADA (OPSIONAL) */}
+                {selectedAlumni.prestasi && (
+                  <div className="flex gap-4 items-start border-b border-stone-100 pb-3">
+                    <span className="w-1/3 text-xs font-bold text-amber-600 uppercase tracking-wider shrink-0 mt-0.5">Prestasi / Karya</span>
+                    <span className="text-sm font-medium text-stone-800 whitespace-pre-line">{selectedAlumni.prestasi}</span>
                   </div>
                 )}
               </div>
