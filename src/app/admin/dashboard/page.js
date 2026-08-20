@@ -186,7 +186,6 @@ export default function AdminDashboard() {
   const [replyKomenId, setReplyKomenId] = useState(null); 
   const [replyText, setReplyText] = useState("");
 
-  // STATE FORM ALUMNI & WARGA (DENGAN ASRAMA DAN STATUS KEANGGOTAAN)
   const [formAlumni, setFormAlumni] = useState({ 
     nama: "", 
     asal: "", 
@@ -265,6 +264,7 @@ export default function AdminDashboard() {
         setAsramaDivisi(defaultAsrama);
         setAsramaFasilitas(defaultAsrama);
         setAsramaSewa(defaultAsrama);
+        setFormAlumni(prev => ({ ...prev, asrama: defaultAsrama }));
 
         setAuthReady(true);
         fetchAllData();
@@ -297,27 +297,27 @@ export default function AdminDashboard() {
       setKontak({ 
         namaKetuaMersi: kd.namaKetuaMersi || kd.namaKetua || "", 
         noTelponMersi: kd.noTelponMersi || kd.noTelpon || "", 
-        noHumasMersi: kd.noHumasMersi || kd.noHumas || "", 
-        emailMersi: kd.emailMersi || kd.email || "", 
-        namaIgMersi: kd.namaIgMersi || kd.namaIg || "", 
-        linkIgMersi: kd.linkIgMersi || kd.linkIg || "", 
-        alamatMersi: kd.alamatMersi || "", 
-        linkMapMersi: kd.linkMapMersi || "", 
-        iframeMapMersi: kd.iframeMapMersi || "", 
+        noHumasMersi: kd.noHumasMersi || kd.noHumas || "",
+        emailMersi: kd.emailMersi || kd.email || "",
+        namaIgMersi: kd.namaIgMersi || kd.namaIg || "",
+        linkIgMersi: kd.linkIgMersi || kd.linkIg || "",
+        alamatMersi: kd.alamatMersi || "",
+        linkMapMersi: kd.linkMapMersi || "",
+        iframeMapMersi: kd.iframeMapMersi || "",
 
         namaKetuaBk: kd.namaKetuaBk || "", 
         noTelponBk: kd.noTelponBk || "", 
-        noHumasBk: kd.noHumasBk || "", 
-        emailBk: kd.emailBk || "", 
-        namaIgBk: kd.namaIgBk || "", 
-        linkIgBk: kd.linkIgBk || "", 
-        alamatBk: kd.alamatBk || "", 
-        linkMapBk: kd.linkMapBk || "", 
-        iframeMapBk: kd.iframeMapBk || "", 
+        noHumasBk: kd.noHumasBk || "",
+        emailBk: kd.emailBk || "",
+        namaIgBk: kd.namaIgBk || "",
+        linkIgBk: kd.linkIgBk || "",
+        alamatBk: kd.alamatBk || "",
+        linkMapBk: kd.linkMapBk || "",
+        iframeMapBk: kd.iframeMapBk || "",
 
         noSkripsi: kd.noSkripsi || "", 
         namaTiktok: kd.namaTiktok || "", 
-        linkTiktok: kd.linkTiktok || "" 
+        linkTiktok: kd.linkTiktok || ""
       });
     }
     
@@ -1009,10 +1009,10 @@ export default function AdminDashboard() {
 
       if (editPesanId) { 
         await updateDoc(doc(db, "pesan_alumni", editPesanId), payload); 
-        setStatus({ type: "success", message: "Data alumni & warga diperbarui!" }); 
+        setStatus({ type: "success", message: "Data warga/alumni diperbarui!" }); 
       } else { 
         await addDoc(collection(db, "pesan_alumni"), { ...payload, createdAt: serverTimestamp() }); 
-        setStatus({ type: "success", message: "Data alumni & warga ditambahkan!" }); 
+        setStatus({ type: "success", message: "Data warga/alumni ditambahkan!" }); 
       } 
       
       setFormAlumni({ 
@@ -1175,7 +1175,7 @@ export default function AdminDashboard() {
                         </div> 
                       </div> 
 
-                      {/* --- BLOK MAPS / LOKASI --- */}
+                      {/* --- TAMBAHAN BLOK MAPS / LOKASI --- */}
                       <h3 className="font-semibold text-emerald-800 border-l-2 border-emerald-500 pl-2 mt-6">Lokasi & Google Maps</h3> 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                         {/* Maps Mersi */}
@@ -1453,7 +1453,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <button type="submit" disabled={loading} className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-md font-bold w-full">Simpan Semua Pengurus Inti</button> 
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-md font-bold w-full">Simpan Semua Pengurus Inti</button> 
               </form> 
             </div> 
 
@@ -1958,7 +1958,14 @@ export default function AdminDashboard() {
                     <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Kategori / Status Keanggotaan</label>
                     <select
                       value={formAlumni.statusWarga}
-                      onChange={(e) => setFormAlumni({ ...formAlumni, statusWarga: e.target.value })}
+                      onChange={(e) => {
+                        const newStatus = e.target.value;
+                        setFormAlumni({ 
+                          ...formAlumni, 
+                          statusWarga: newStatus,
+                          pekerjaan: (newStatus === "Warga Aktif" || newStatus === "Warga Cabang") ? "Mahasiswa" : formAlumni.pekerjaan 
+                        });
+                      }}
                       className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm font-bold text-red-800"
                     >
                       <option value="Alumni">Alumni</option>
