@@ -29,7 +29,7 @@ const TAB_NAMES = {
   galeri: "Galeri", 
   kehidupan: "Media Publikasi", 
   skripsi: "Skripsi", 
-  suara_alumni: "Data Warga & Alumni", 
+  suara_alumni: "Data Alumni & Warga", 
   log: "Log Data"
 };
 
@@ -186,8 +186,19 @@ export default function AdminDashboard() {
   const [replyKomenId, setReplyKomenId] = useState(null); 
   const [replyText, setReplyText] = useState("");
 
+  // STATE FORM ALUMNI & WARGA (DENGAN ASRAMA DAN STATUS KEANGGOTAAN)
   const [formAlumni, setFormAlumni] = useState({ 
-    nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "", statusWarga: "Alumni", asrama: "mersi" 
+    nama: "", 
+    asal: "", 
+    kuliah: "", 
+    jurusan: "", 
+    angkatanAsrama: "", 
+    pekerjaan: "", 
+    skripsi: "", 
+    prestasi: "", 
+    pesan: "",
+    asrama: "mersi",
+    statusWarga: "Alumni"
   });
   const [fileFotoAlumni, setFileFotoAlumni] = useState(null);
   const [editPesanId, setEditPesanId] = useState(null);
@@ -218,12 +229,12 @@ export default function AdminDashboard() {
         const email = user.email || "";
         setCurrentUserEmail(email);
         
-        let currRole = ""; 
+        let currRole = ""; // Default dikosongkan agar aman
         
         // TULIS EMAIL SEKRETARIS YANG DIIZINKAN DI SINI
         const daftarSekretaris = [
-          "aspuribkrancak123@gmail.com", 
-          "sekremersi@gmail.com",
+          "aspuribkrancak123@gmail.com", // Ganti dengan email sekre bk yang asli
+          "sekremersi@gmail.com", // Ganti dengan email sekre mersi yang asli
         ];
         
         if (daftarSekretaris.includes(email)) currRole = "sekre";
@@ -235,6 +246,7 @@ export default function AdminDashboard() {
         else if (email.startsWith("rohani")) currRole = "rohani";
         else if (email.startsWith("senibudaya") || email.startsWith("senbud")) currRole = "senbud";
         else {
+          // JIKA EMAIL TIDAK ADA DI DAFTAR ATAS -> TOLAK & KELUARKAN
           alert("Akses Ditolak! Email Anda tidak terdaftar sebagai Pengurus Asrama.");
           signOut(auth);
           router.push("/");
@@ -253,7 +265,6 @@ export default function AdminDashboard() {
         setAsramaDivisi(defaultAsrama);
         setAsramaFasilitas(defaultAsrama);
         setAsramaSewa(defaultAsrama);
-        setFormAlumni(prev => ({ ...prev, asrama: defaultAsrama }));
 
         setAuthReady(true);
         fetchAllData();
@@ -272,7 +283,7 @@ export default function AdminDashboard() {
       const p = docProfil.data();
       setProfilText({
         visi_mersi: p.visi_mersi || p.visi || "", 
-        misi_mersi: p.misi_mersi || p.misi || "",
+        misi_mersi: p.misi_mersi || p.misi || "", 
         visi_bk: p.visi_bk || "", 
         misi_bk: p.misi_bk || "", 
         jejakAlumni: p.jejakAlumni || ""
@@ -286,27 +297,27 @@ export default function AdminDashboard() {
       setKontak({ 
         namaKetuaMersi: kd.namaKetuaMersi || kd.namaKetua || "", 
         noTelponMersi: kd.noTelponMersi || kd.noTelpon || "", 
-        noHumasMersi: kd.noHumasMersi || kd.noHumas || "",
-        emailMersi: kd.emailMersi || kd.email || "",
-        namaIgMersi: kd.namaIgMersi || kd.namaIg || "",
-        linkIgMersi: kd.linkIgMersi || kd.linkIg || "",
-        alamatMersi: kd.alamatMersi || "",
-        linkMapMersi: kd.linkMapMersi || "",
-        iframeMapMersi: kd.iframeMapMersi || "",
+        noHumasMersi: kd.noHumasMersi || kd.noHumas || "", 
+        emailMersi: kd.emailMersi || kd.email || "", 
+        namaIgMersi: kd.namaIgMersi || kd.namaIg || "", 
+        linkIgMersi: kd.linkIgMersi || kd.linkIg || "", 
+        alamatMersi: kd.alamatMersi || "", 
+        linkMapMersi: kd.linkMapMersi || "", 
+        iframeMapMersi: kd.iframeMapMersi || "", 
 
         namaKetuaBk: kd.namaKetuaBk || "", 
         noTelponBk: kd.noTelponBk || "", 
-        noHumasBk: kd.noHumasBk || "",
-        emailBk: kd.emailBk || "",
-        namaIgBk: kd.namaIgBk || "",
-        linkIgBk: kd.linkIgBk || "",
-        alamatBk: kd.alamatBk || "",
-        linkMapBk: kd.linkMapBk || "",
-        iframeMapBk: kd.iframeMapBk || "",
+        noHumasBk: kd.noHumasBk || "", 
+        emailBk: kd.emailBk || "", 
+        namaIgBk: kd.namaIgBk || "", 
+        linkIgBk: kd.linkIgBk || "", 
+        alamatBk: kd.alamatBk || "", 
+        linkMapBk: kd.linkMapBk || "", 
+        iframeMapBk: kd.iframeMapBk || "", 
 
         noSkripsi: kd.noSkripsi || "", 
         namaTiktok: kd.namaTiktok || "", 
-        linkTiktok: kd.linkTiktok || ""
+        linkTiktok: kd.linkTiktok || "" 
       });
     }
     
@@ -314,13 +325,13 @@ export default function AdminDashboard() {
     const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
     if (docStatus.exists()) {
       const d = docStatus.data();
-      setStatusAsrama({
+      setStatusAsrama({ 
         kamarMersi: d.kamarMersi || d.kamar || "", 
         penghuniMersi: d.penghuniMersi || d.penghuni || "", 
-        ketersediaanMersi: d.ketersediaanMersi || d.ketersediaan || "Tersedia",
+        ketersediaanMersi: d.ketersediaanMersi || d.ketersediaan || "Tersedia", 
         kamarBk: d.kamarBk || "", 
         penghuniBk: d.penghuniBk || "", 
-        ketersediaanBk: d.ketersediaanBk || "Tersedia"
+        ketersediaanBk: d.ketersediaanBk || "Tersedia" 
       });
     }
     
@@ -328,9 +339,9 @@ export default function AdminDashboard() {
     const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
     if (docBrosur.exists()) { 
       const d = docBrosur.data();
-      setBrosurUrls({
-        mersi: Array.isArray(d.linkMersi) ? d.linkMersi : (d.linkMersi ? [d.linkMersi] : (d.link ? [d.link] : [])),
-        bk: Array.isArray(d.linkBk) ? d.linkBk : (d.linkBk ? [d.linkBk] : [])
+      setBrosurUrls({ 
+        mersi: Array.isArray(d.linkMersi) ? d.linkMersi : (d.linkMersi ? [d.linkMersi] : (d.link ? [d.link] : [])), 
+        bk: Array.isArray(d.linkBk) ? d.linkBk : (d.linkBk ? [d.linkBk] : []) 
       });
       setLinkFormulir(d.linkFormulir || ""); 
     }
@@ -341,15 +352,15 @@ export default function AdminDashboard() {
     
     // Pengurus Inti
     const docInti = await getDoc(doc(db, "pengaturan", "pengurus_inti")); 
-    if (docInti.exists()) {
+    if (docInti.exists()) { 
       const d = docInti.data();
-      setPengurusInti({
-        ketuaMersiNama: d.ketuaMersiNama || d.ketuaNama || "", ketuaMersiFoto: d.ketuaMersiFoto || d.ketuaFoto || "",
-        sekreMersiNama: d.sekreMersiNama || d.sekreNama || "", sekreMersiFoto: d.sekreMersiFoto || d.sekreFoto || "",
-        bendaharaMersiNama: d.bendaharaMersiNama || d.bendaharaNama || "", bendaharaMersiFoto: d.bendaharaMersiFoto || d.bendaharaFoto || "",
-        ketuaBkNama: d.ketuaBkNama || "", ketuaBkFoto: d.ketuaBkFoto || "",
-        sekreBkNama: d.sekreBkNama || "", sekreBkFoto: d.sekreBkFoto || "",
-        bendaharaBkNama: d.bendaharaBkNama || "", bendaharaBkFoto: d.bendaharaBkFoto || ""
+      setPengurusInti({ 
+        ketuaMersiNama: d.ketuaMersiNama || d.ketuaNama || "", ketuaMersiFoto: d.ketuaMersiFoto || d.ketuaFoto || "", 
+        sekreMersiNama: d.sekreMersiNama || d.sekreNama || "", sekreMersiFoto: d.sekreMersiFoto || d.sekreFoto || "", 
+        bendaharaMersiNama: d.bendaharaMersiNama || d.bendaharaNama || "", bendaharaMersiFoto: d.bendaharaMersiFoto || d.bendaharaFoto || "", 
+        ketuaBkNama: d.ketuaBkNama || "", ketuaBkFoto: d.ketuaBkFoto || "", 
+        sekreBkNama: d.sekreBkNama || "", sekreBkFoto: d.sekreBkFoto || "", 
+        bendaharaBkNama: d.bendaharaBkNama || "", bendaharaBkFoto: d.bendaharaBkFoto || "" 
       });
     }
     
@@ -525,26 +536,26 @@ export default function AdminDashboard() {
     setLoading(true); 
     setStatus({ type: "", message: "" }); 
     try { 
-      let newUrlsMersi = [...brosurUrls.mersi];
-      if (filesBrosurMersi.length > 0) {
-        newUrlsMersi = [];
-        for (const file of filesBrosurMersi) {
-          newUrlsMersi.push(await uploadToCloudinary(file, "image"));
-        }
-      }
+      let newUrlsMersi = [...brosurUrls.mersi]; 
+      if (filesBrosurMersi.length > 0) { 
+        newUrlsMersi = []; 
+        for (const file of filesBrosurMersi) { 
+          newUrlsMersi.push(await uploadToCloudinary(file, "image")); 
+        } 
+      } 
       
-      let newUrlsBk = [...brosurUrls.bk];
-      if (filesBrosurBk.length > 0) {
-        newUrlsBk = [];
-        for (const file of filesBrosurBk) {
-          newUrlsBk.push(await uploadToCloudinary(file, "image"));
-        }
-      }
+      let newUrlsBk = [...brosurUrls.bk]; 
+      if (filesBrosurBk.length > 0) { 
+        newUrlsBk = []; 
+        for (const file of filesBrosurBk) { 
+          newUrlsBk.push(await uploadToCloudinary(file, "image")); 
+        } 
+      } 
 
       await setDoc(doc(db, "pengaturan", "brosur"), { linkMersi: newUrlsMersi, linkBk: newUrlsBk, linkFormulir: linkFormulir }); 
-      setBrosurUrls({ mersi: newUrlsMersi, bk: newUrlsBk });
+      setBrosurUrls({ mersi: newUrlsMersi, bk: newUrlsBk }); 
       setFilesBrosurMersi([]); 
-      setFilesBrosurBk([]);
+      setFilesBrosurBk([]); 
       setStatus({ type: "success", message: "Brosur & Link Formulir Pendaftaran berhasil diperbarui!" }); 
     } catch (error) { 
       setStatus({ type: "error", message: error.message }); 
@@ -602,7 +613,7 @@ export default function AdminDashboard() {
 
   const handleEditSejarahClick = (item) => { 
     setEditSejarahId(item.id); 
-    setAsramaSejarah(item.asrama || 'mersi');
+    setAsramaSejarah(item.asrama || 'mersi'); 
     setJudulSejarah(item.judul); 
     setIsiSejarah(item.isi); 
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
@@ -634,16 +645,16 @@ export default function AdminDashboard() {
     e.preventDefault(); 
     setLoading(true); 
     try { 
-      const selectedDiv = dataDivisi.find(d => d.id === formAnggota.divisiId);
-      const divAsrama = selectedDiv ? (selectedDiv.asrama || 'mersi') : 'mersi';
+      const selectedDiv = dataDivisi.find(d => d.id === formAnggota.divisiId); 
+      const divAsrama = selectedDiv ? (selectedDiv.asrama || 'mersi') : 'mersi'; 
 
       let fotoUrl = ""; 
       if (editAnggotaId) { 
         const existing = dataAnggota.find(a => a.id === editAnggotaId); 
         fotoUrl = existing.foto; 
-        if (fileAnggota) {
+        if (fileAnggota) { 
           fotoUrl = await uploadToCloudinary(fileAnggota, "image"); 
-        }
+        } 
         if (!fileAnggota && fotoUrl.includes("ui-avatars.com") && existing.nama !== formAnggota.nama) { 
           fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; 
         } 
@@ -651,9 +662,9 @@ export default function AdminDashboard() {
         setStatus({ type: "success", message: "Data Anggota diperbarui!" }); 
       } else { 
         fotoUrl = "https://ui-avatars.com/api/?name=" + encodeURIComponent(formAnggota.nama) + "&background=random"; 
-        if (fileAnggota) {
+        if (fileAnggota) { 
           fotoUrl = await uploadToCloudinary(fileAnggota, "image"); 
-        }
+        } 
         await addDoc(collection(db, "anggota_divisi"), { asrama: divAsrama, divisiId: formAnggota.divisiId, nama: formAnggota.nama, peran: formAnggota.peran, foto: fotoUrl, createdAt: serverTimestamp() }); 
         setStatus({ type: "success", message: "Anggota ditambahkan!" }); 
       } 
@@ -707,9 +718,9 @@ export default function AdminDashboard() {
       let urls = editFotoProfId ? dataFotoProfil.find(d=>d.id===editFotoProfId).linkGambar : []; 
       if (filesFotoProfil.length > 0) { 
         urls = []; 
-        for (const file of filesFotoProfil) {
+        for (const file of filesFotoProfil) { 
           urls.push(await uploadToCloudinary(file, "image")); 
-        }
+        } 
       } 
       if (editFotoProfId) { 
         await updateDoc(doc(db, "profil_galeri", editFotoProfId), { konteks: konteksFoto, linkGambar: urls }); 
@@ -736,16 +747,17 @@ export default function AdminDashboard() {
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
   };
 
-  const handleSubmitFasilitas = async (e) => { 
+  const handleSubmitFasilitas = async (e) => 
+  { 
     e.preventDefault(); 
     setLoading(true); 
     try { 
       let urls = editFasilitId ? dataFasilitas.find(d=>d.id===editFasilitId).linkGambar : []; 
       if (filesFasilitas.length > 0) { 
         urls = []; 
-        for (const file of filesFasilitas) {
+        for (const file of filesFasilitas) { 
           urls.push(await uploadToCloudinary(file, "image")); 
-        }
+        } 
       } 
       if (editFasilitId) { 
         await updateDoc(doc(db, "daftar_fasilitas", editFasilitId), { asrama: asramaFasilitas, nama: namaFasilitas, deskripsi: deskripsiFasilitas, linkGambar: urls }); 
@@ -768,7 +780,7 @@ export default function AdminDashboard() {
 
   const handleEditFasilitasClick = (item) => { 
     setEditFasilitId(item.id); 
-    setAsramaFasilitas(item.asrama || 'mersi');
+    setAsramaFasilitas(item.asrama || 'mersi'); 
     setNamaFasilitas(item.nama); 
     setDeskripsiFasilitas(item.deskripsi); 
     setFilesFasilitas([]); 
@@ -782,9 +794,9 @@ export default function AdminDashboard() {
       let urls = editSewaId ? dataPenyewaan.find(d=>d.id===editSewaId).linkGambar : []; 
       if (filesSewa.length > 0) { 
         urls = []; 
-        for (const file of filesSewa) {
+        for (const file of filesSewa) { 
           urls.push(await uploadToCloudinary(file, "image")); 
-        }
+        } 
       } 
       if (editSewaId) { 
         await updateDoc(doc(db, "daftar_penyewaan", editSewaId), { asrama: asramaSewa, nama: namaSewa, kategori: kategoriSewa, harga: hargaSewa, noHpSewa: noHpSewa, deskripsi: deskripsiSewa, linkGambar: urls }); 
@@ -810,7 +822,7 @@ export default function AdminDashboard() {
 
   const handleEditSewaClick = (item) => { 
     setEditSewaId(item.id); 
-    setAsramaSewa(item.asrama || 'mersi');
+    setAsramaSewa(item.asrama || 'mersi'); 
     setNamaSewa(item.nama); 
     setKategoriSewa(item.kategori); 
     setHargaSewa(item.harga); 
@@ -827,9 +839,9 @@ export default function AdminDashboard() {
       let urls = editGaleriId ? (dataGaleri.find(d=>d.id===editGaleriId).linkGambar || []) : []; 
       if (filesGaleri.length > 0) { 
         urls = []; 
-        for (const file of filesGaleri) {
+        for (const file of filesGaleri) { 
           urls.push(await uploadToCloudinary(file, "image")); 
-        }
+        } 
       } 
       if (editGaleriId) { 
         await updateDoc(doc(db, "fasilitas", editGaleriId), { judul: judulGaleri, warna: warnaGaleri, linkGambar: urls }); 
@@ -865,9 +877,9 @@ export default function AdminDashboard() {
       let urls = editKehidupanId ? dataKehidupan.find(d=>d.id===editKehidupanId).linkGambar : []; 
       if (filesGambar.length > 0) { 
         urls = []; 
-        for (const file of filesGambar) {
+        for (const file of filesGambar) { 
           urls.push(await uploadToCloudinary(file, "image")); 
-        }
+        } 
       } 
       const finalKategori = kategori === "LAINNYA" ? customKategori.toUpperCase() : kategori; 
       
@@ -970,7 +982,7 @@ export default function AdminDashboard() {
     } 
   };
 
-  // --- LOGIKA SUBMIT DATA ALUMNI LENGKAP ---
+  // --- LOGIKA SUBMIT DATA ALUMNI & WARGA LENGKAP ---
   const handleSubmitPesanAlumni = async (e) => { 
     e.preventDefault(); 
     setLoading(true); 
@@ -987,23 +999,35 @@ export default function AdminDashboard() {
         jurusan: formAlumni.jurusan,
         angkatanAsrama: formAlumni.angkatanAsrama,
         pekerjaan: formAlumni.pekerjaan,
-        skripsi: formAlumni.skripsi,
-        prestasi: formAlumni.prestasi,
+        skripsi: formAlumni.skripsi || "",
+        prestasi: formAlumni.prestasi || "",
         pesan: formAlumni.pesan, 
-        foto: fotoUrl,
-        statusWarga: formAlumni.statusWarga, 
-        asrama: formAlumni.asrama 
+        asrama: formAlumni.asrama || "mersi",
+        statusWarga: formAlumni.statusWarga || "Alumni",
+        foto: fotoUrl 
       };
 
       if (editPesanId) { 
         await updateDoc(doc(db, "pesan_alumni", editPesanId), payload); 
-        setStatus({ type: "success", message: "Data warga/alumni diperbarui!" }); 
+        setStatus({ type: "success", message: "Data alumni & warga diperbarui!" }); 
       } else { 
         await addDoc(collection(db, "pesan_alumni"), { ...payload, createdAt: serverTimestamp() }); 
-        setStatus({ type: "success", message: "Data warga/alumni ditambahkan!" }); 
+        setStatus({ type: "success", message: "Data alumni & warga ditambahkan!" }); 
       } 
       
-      setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "", statusWarga: "Alumni", asrama: formAlumni.asrama }); 
+      setFormAlumni({ 
+        nama: "", 
+        asal: "", 
+        kuliah: "", 
+        jurusan: "", 
+        angkatanAsrama: "", 
+        pekerjaan: "", 
+        skripsi: "", 
+        prestasi: "", 
+        pesan: "",
+        asrama: "mersi",
+        statusWarga: "Alumni"
+      }); 
       setFileFotoAlumni(null); 
       setEditPesanId(null); 
       fetchAllData(); 
@@ -1029,8 +1053,8 @@ export default function AdminDashboard() {
       skripsi: item.skripsi || "",
       prestasi: item.prestasi || "",
       pesan: item.pesan || "",
-      statusWarga: item.statusWarga || "Alumni",
-      asrama: item.asrama || "mersi"
+      asrama: item.asrama || "mersi",
+      statusWarga: item.statusWarga || "Alumni"
     });
     setFileFotoAlumni(null); 
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
@@ -1151,8 +1175,10 @@ export default function AdminDashboard() {
                         </div> 
                       </div> 
 
+                      {/* --- BLOK MAPS / LOKASI --- */}
                       <h3 className="font-semibold text-emerald-800 border-l-2 border-emerald-500 pl-2 mt-6">Lokasi & Google Maps</h3> 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
+                        {/* Maps Mersi */}
                         <div className="bg-red-50 p-4 border border-red-100 rounded-lg">
                           <h4 className="font-bold text-red-900 mb-3 text-sm">Titik Temu Mersi</h4>
                           <label className="text-xs font-bold block mb-1 text-red-800">Alamat Teks Lengkap</label>
@@ -1166,6 +1192,7 @@ export default function AdminDashboard() {
                           <input required type="url" value={kontak.iframeMapMersi || ""} onChange={(e) => setKontak({...kontak, iframeMapMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded text-sm" placeholder="https://www.google.com/maps/embed?pb=..." />
                         </div>
 
+                        {/* Maps BK */}
                         <div className="bg-amber-50 p-4 border border-amber-200 rounded-lg">
                           <h4 className="font-bold text-amber-900 mb-3 text-sm">Titik Temu Bundo Kanduang</h4>
                           <label className="text-xs font-bold block mb-1 text-amber-800">Alamat Teks Lengkap</label>
@@ -1907,32 +1934,40 @@ export default function AdminDashboard() {
           </div> 
         )}
         
-        {/* --- TAB SUARA ALUMNI (DIUBAH JADI PANGKALAN DATA ALUMNI LENGKAP) --- */}
+        {/* --- TAB SUARA ALUMNI & WARGA --- */}
         {activeTab === "suara_alumni" && allowedTabs.includes("suara_alumni") && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-bold mb-4 border-b pb-2">{editPesanId ? "Edit Data Warga / Alumni" : "Tambah Data Warga / Alumni Baru"}</h2>
+              <h2 className="text-lg font-bold mb-4 border-b pb-2">{editPesanId ? "Edit Data Alumni & Warga" : "Tambah Data Alumni & Warga Baru"}</h2>
               <form onSubmit={handleSubmitPesanAlumni} className="space-y-4">
                 
-                {/* Baris Baru: Pilihan Asrama & Status */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {/* IDENTIFIKASI ASRAMA & STATUS KEANGGOTAAN */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
                   <div>
-                    <label className="text-sm font-semibold mb-1 block">Asrama Asal</label>
-                    <select required value={formAlumni.asrama} onChange={(e) => setFormAlumni({...formAlumni, asrama: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white">
-                      <option value="mersi">Merapi Singgalang</option>
-                      <option value="bk">Bundo Kanduang</option>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Pilih Asal Asrama</label>
+                    <select
+                      value={formAlumni.asrama}
+                      onChange={(e) => setFormAlumni({ ...formAlumni, asrama: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm font-bold"
+                    >
+                      <option value="mersi">Asrama Mahasiswa Merapi Singgalang</option>
+                      <option value="bk">Asrama Putri Bundo Kanduang</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-semibold mb-1 block">Status Penghuni</label>
-                    <select required value={formAlumni.statusWarga} onChange={(e) => setFormAlumni({...formAlumni, statusWarga: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white">
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Kategori / Status Keanggotaan</label>
+                    <select
+                      value={formAlumni.statusWarga}
+                      onChange={(e) => setFormAlumni({ ...formAlumni, statusWarga: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm font-bold text-red-800"
+                    >
                       <option value="Alumni">Alumni</option>
-                      <option value="Warga">Warga (Masih Aktif)</option>
+                      <option value="Warga Aktif">Warga Aktif</option>
+                      <option value="Warga Cabang">Warga Cabang</option>
                     </select>
                   </div>
                 </div>
 
-                {/* Baris 1: Nama & Asal Daerah */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Nama Lengkap</label>
@@ -1943,8 +1978,6 @@ export default function AdminDashboard() {
                     <input type="text" required value={formAlumni.asal} onChange={(e) => setFormAlumni({...formAlumni, asal: e.target.value})} placeholder="Contoh: Padang, Bukittinggi..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                 </div>
-
-                {/* Baris 2: Kuliah & Jurusan */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Kampus / Universitas</label>
@@ -1955,65 +1988,56 @@ export default function AdminDashboard() {
                     <input type="text" required value={formAlumni.jurusan} onChange={(e) => setFormAlumni({...formAlumni, jurusan: e.target.value})} placeholder="Contoh: Teknik Elektro..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                 </div>
-
-                {/* Baris 3: Tahun Masuk Asrama & Pekerjaan */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Tahun Masuk Asrama (Angkatan)</label>
                     <input type="number" required value={formAlumni.angkatanAsrama} onChange={(e) => setFormAlumni({...formAlumni, angkatanAsrama: e.target.value})} placeholder="Contoh: 2018" className="w-full px-4 py-2 border rounded-md" />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold mb-1 block">Pekerjaan Saat Ini</label>
-                    <input type="text" required value={formAlumni.pekerjaan} onChange={(e) => setFormAlumni({...formAlumni, pekerjaan: e.target.value})} placeholder="Contoh: Guru, Mahasiswa, PNS..." className="w-full px-4 py-2 border rounded-md" />
+                    <label className="text-sm font-semibold mb-1 block">Pekerjaan / Aktivitas Saat Ini</label>
+                    <input type="text" required value={formAlumni.pekerjaan} onChange={(e) => setFormAlumni({...formAlumni, pekerjaan: e.target.value})} placeholder="Contoh: Mahasiswa, Guru, Engineer, PNS..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                 </div>
-
-                {/* Baris 4: Judul Skripsi */}
                 <div>
-                  <label className="text-sm font-semibold mb-1 block">Judul Skripsi <span className="text-slate-400 font-normal italic">(Opsional, kosongkan jika masih berstatus Warga/Mahasiswa)</span></label>
-                  <textarea rows="2" value={formAlumni.skripsi} onChange={(e) => setFormAlumni({...formAlumni, skripsi: e.target.value})} placeholder="Judul Skripsi saat lulus..." className="w-full px-4 py-2 border rounded-md"></textarea>
+                  <label className="text-sm font-semibold mb-1 block">
+                    Judul Skripsi {formAlumni.statusWarga !== "Alumni" ? "(Opsional untuk Warga Aktif / Cabang)" : "(Opsional jika belum/tidak ada)"}
+                  </label>
+                  <textarea rows="2" value={formAlumni.skripsi} onChange={(e) => setFormAlumni({...formAlumni, skripsi: e.target.value})} placeholder="Judul Skripsi / Tugas Akhir (kosongkan jika belum ada)..." className="w-full px-4 py-2 border rounded-md"></textarea>
                 </div>
-                
-                {/* Baris TAMBAHAN: Prestasi / Jurnal */}
                 <div>
                   <label className="text-sm font-semibold mb-1 block text-amber-700">Prestasi / Karya / Jurnal (Opsional)</label>
                   <textarea rows="2" value={formAlumni.prestasi} onChange={(e) => setFormAlumni({...formAlumni, prestasi: e.target.value})} placeholder="Contoh: Publikasi Jurnal Scopus Q1, Juara 1 Robotik Nasional..." className="w-full px-4 py-2 border border-amber-300 bg-amber-50 rounded-md"></textarea>
                 </div>
-
-                {/* Baris 5: Kesan Pesan */}
                 <div>
                   <label className="text-sm font-semibold mb-1 block">Kata-kata / Kesan Pesan untuk Asrama</label>
                   <textarea required rows="3" value={formAlumni.pesan} onChange={(e) => setFormAlumni({...formAlumni, pesan: e.target.value})} placeholder="Kesan dan pesan singkat..." className="w-full px-4 py-2 border rounded-md"></textarea>
                 </div>
-
-                {/* Foto */}
                 <div>
                   <label className="text-sm font-semibold mb-1 block">Foto Profil (Opsional jika sudah ada)</label>
                   <input type="file" id="fotoAlumni" accept="image/*" onChange={(e) => setFileFotoAlumni(e.target.files[0])} className="w-full text-sm border p-2 rounded bg-slate-50" />
                 </div>
-
                 <div className="flex gap-2">
-                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editPesanId ? "Simpan Perubahan Data" : "Tambahkan ke Database"}</button>
-                  {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "", statusWarga: "Alumni", asrama: "mersi" }); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
+                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-bold">{editPesanId ? "Simpan Perubahan Data" : "Tambahkan ke Database"}</button>
+                  {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "", asrama: "mersi", statusWarga: "Alumni" }); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
                 </div>
               </form>
             </div>
             
-            {/* Tabel Daftar Alumni */}
             <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-stone-800">
               <div className="flex justify-between items-center mb-4 border-b pb-2">
-                  <h3 className="font-bold text-lg text-slate-900">Database Warga & Alumni Asrama</h3>
+                  <h3 className="font-bold text-lg text-slate-900">Database Alumni & Warga Asrama</h3>
                   <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataPesanAlumni.length}</span>
               </div>
 
               {dataPesanAlumni.length === 0 ? (
-                <p className="text-sm text-stone-500 italic text-center py-8">Belum ada data warga/alumni yang ditambahkan.</p>
+                <p className="text-sm text-stone-500 italic text-center py-8">Belum ada data alumni atau warga yang ditambahkan.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm whitespace-nowrap">
                     <thead>
                       <tr className="bg-slate-50 border-y text-slate-600">
                         <th className="p-3">Profil & Status</th>
+                        <th className="p-3">Asrama</th>
                         <th className="p-3">Akademik</th>
                         <th className="p-3">Angkatan & Asal</th>
                         <th className="p-3">Pekerjaan</th>
@@ -2027,11 +2051,21 @@ export default function AdminDashboard() {
                             <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-10 h-10 object-cover rounded-full border border-slate-200" alt="Profil" />
                             <div>
                               <div className="font-bold text-stone-900">{item.nama}</div>
-                              <div className="flex gap-1 mt-1">
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>{item.asrama === 'bk' ? 'BK' : 'MERSI'}</span>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${item.statusWarga === 'Warga' ? 'bg-green-600' : 'bg-blue-600'}`}>{item.statusWarga || 'Alumni'}</span>
-                              </div>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                                item.statusWarga === 'Warga Aktif' 
+                                  ? 'bg-emerald-100 text-emerald-800' 
+                                  : item.statusWarga === 'Warga Cabang' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-stone-100 text-stone-800'
+                              }`}>
+                                {item.statusWarga || 'Alumni'}
+                              </span>
                             </div>
+                          </td>
+                          <td className="p-3">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded text-white ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>
+                              {item.asrama === 'bk' ? 'BK' : 'MERSI'}
+                            </span>
                           </td>
                           <td className="p-3">
                             <span className="font-semibold">{item.kuliah}</span><br/>
