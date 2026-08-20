@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, updateDoc, where } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, updateDoc, where, increment } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
 // PENGATURAN HAK AKSES TAB UNTUK MASING-MASING DIVISI
@@ -73,7 +73,7 @@ export default function AdminDashboard() {
   const [tampilanUrls, setTampilanUrls] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
   const [tampilanFiles, setTampilanFiles] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
   const [profilText, setProfilText] = useState({ visi: "", misi: "", jejakAlumni: "" });
-  const [kontak, setKontak] = useState({ namaKetua: "", noTelpon: "", noHumas: "" });
+  const [kontak, setKontak] = useState({ namaKetua: "", noTelpon: "", noHumas: "", noSkripsi: "" });
   const [statusAsrama, setStatusAsrama] = useState({ kamar: "", penghuni: "", ketersediaan: "Tersedia" });
   const [brosurUrl, setBrosurUrl] = useState("");
   const [linkFormulir, setLinkFormulir] = useState("");
@@ -210,7 +210,10 @@ export default function AdminDashboard() {
     if (docProfil.exists()) setProfilText(docProfil.data());
     
     const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
-    if (docKontak.exists()) setKontak(docKontak.data());
+    if (docKontak.exists()) {
+      const kd = docKontak.data();
+      setKontak({ namaKetua: kd.namaKetua||"", noTelpon: kd.noTelpon||"", noHumas: kd.noHumas||"", noSkripsi: kd.noSkripsi||"" });
+    }
     
     const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
     if (docStatus.exists()) setStatusAsrama(docStatus.data());
@@ -1250,7 +1253,10 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                 {dataFotoProfil.slice((pageFotoProf-1)*itemsPerPage, pageFotoProf*itemsPerPage).map(item => ( 
                   <div key={item.id} className="bg-slate-50 border rounded-lg flex gap-4 p-3">
-                    <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-24 h-24 object-cover rounded-md shrink-0" /> 
+                    {/* DIV UNTUK FOTO DI ADMIN AGAR TIDAK KEPOTONG */}
+                    <div className="w-32 h-24 shrink-0 bg-stone-200 rounded-md flex items-center justify-center p-1 overflow-hidden">
+                      <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" /> 
+                    </div>
                     <div className="flex flex-col justify-between w-full">
                       <p className="text-xs text-slate-600">{item.konteks}</p>
                       <div className="flex gap-2 self-end">
@@ -1287,7 +1293,10 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
                 {dataFasilitas.slice((pageFasilitas-1)*itemsPerPage, pageFasilitas*itemsPerPage).map(item => ( 
                   <div key={item.id} className="bg-slate-50 border rounded-lg flex flex-col overflow-hidden">
-                    <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-32 object-cover" /> 
+                    {/* DIV UNTUK FOTO DI ADMIN AGAR TIDAK KEPOTONG */}
+                    <div className="w-full h-40 bg-stone-200 flex items-center justify-center p-2">
+                      <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" /> 
+                    </div>
                     <div className="p-4 flex flex-col flex-grow">
                       <h4 className="font-bold mb-1">{item.nama}</h4>
                       <p className="text-xs text-slate-600 flex-grow">{item.deskripsi}</p>
@@ -1338,7 +1347,10 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                 {dataPenyewaan.slice((pageSewa-1)*itemsPerPage, pageSewa*itemsPerPage).map(item => ( 
                   <div key={item.id} className="bg-slate-50 border rounded-lg flex overflow-hidden">
-                    <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-32 h-full object-cover shrink-0" /> 
+                    {/* DIV UNTUK FOTO DI ADMIN AGAR TIDAK KEPOTONG */}
+                    <div className="w-32 h-32 shrink-0 bg-stone-200 flex items-center justify-center p-2">
+                      <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" /> 
+                    </div>
                     <div className="p-4 flex flex-col w-full justify-center">
                       <span className="text-[10px] font-bold text-white bg-amber-600 px-2 py-0.5 rounded w-fit mb-1">{item.kategori}</span>
                       <h4 className="font-bold text-stone-900">{item.nama}</h4>
@@ -1386,9 +1398,10 @@ export default function AdminDashboard() {
               <h3 className="font-bold mb-4 border-b pb-2">Daftar Foto Galeri</h3> 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                 {dataGaleri.slice((pageGaleri-1)*itemsPerPage, pageGaleri*itemsPerPage).map(item => ( 
-                  <div key={item.id} className="relative h-40 rounded-lg overflow-hidden border shadow-sm"> 
-                    <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-cover" alt="Galeri" /> 
-                    <div className="absolute inset-0 bg-black/50 flex flex-col justify-end p-3"> 
+                  // DIV UNTUK FOTO DI ADMIN AGAR TIDAK KEPOTONG (Background gelap untuk galeri)
+                  <div key={item.id} className="relative h-48 rounded-lg overflow-hidden border shadow-sm bg-stone-900 flex items-center justify-center p-2"> 
+                    <img src={(Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar) || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar"} className="w-full h-full object-contain" alt="Galeri" /> 
+                    <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-3"> 
                       <span className="font-bold text-base mb-2" style={{ color: item.warna }}>{item.judul}</span> 
                       <div className="flex gap-2"> 
                         <button onClick={()=>handleEditGaleriClick(item)} className="bg-white text-stone-900 text-xs px-3 py-1 rounded font-bold hover:bg-stone-100">Edit</button> 
@@ -1761,7 +1774,6 @@ export default function AdminDashboard() {
               </div> 
             )}
 
-            {/* TAB KUNJUNGAN WEBSITE */}
             {(role === "sekre" || role === "humas" || role === "publikasi") && (
               <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-blue-600">
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
