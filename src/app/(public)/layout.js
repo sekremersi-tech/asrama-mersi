@@ -164,9 +164,15 @@ export default function PublicLayout({ children }) {
                     <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-6 h-6 object-contain" />
                   </div>
                 </div>
-                <span className="font-playfair font-bold text-lg md:text-xl text-stone-900 tracking-wide leading-tight hidden sm:block">
-                  Asrama Pemerintah <br className="hidden lg:block"/><span className="lg:hidden"> </span>Sumatera Barat
-                </span>
+                {/* PENYESUAIAN NAMA DI NAVBAR */}
+                <div className="hidden sm:flex flex-col justify-center">
+                  <span className="font-playfair font-bold text-lg md:text-xl text-stone-900 tracking-wide leading-tight">
+                    Asrama Pemerintah Sumbar
+                  </span>
+                  <span className="text-[10px] text-stone-500 tracking-widest uppercase font-sans mt-0.5 hidden lg:block">
+                    Merapi Singgalang & Bundo Kanduang
+                  </span>
+                </div>
               </Link>
 
               <div className="hidden lg:flex space-x-6 h-full">
@@ -236,13 +242,20 @@ export default function PublicLayout({ children }) {
             
             <div className="lg:col-span-1">
               <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center gap-1 bg-white/10 p-1.5 rounded-full border border-white/20">
+                <div className="flex items-center gap-1 bg-white/10 p-1.5 rounded-full border border-white/20 shrink-0">
                   <img src="/mersi.png" alt="Logo Mersi" className="w-8 h-8 object-contain shrink-0" />
                   <img src="/BK.png" alt="Logo BK" className="w-8 h-8 object-contain shrink-0" />
                 </div>
-                <span className="font-playfair font-bold text-xl text-white tracking-wide leading-tight">Asrama Pemerintah <br/> Sumatera Barat</span>
+                {/* PENYESUAIAN NAMA DI FOOTER */}
+                <div className="flex flex-col">
+                  <span className="font-playfair font-bold text-xl text-white tracking-wide leading-tight">Asrama Pemerintah <br/> Sumatera Barat</span>
+                  <span className="text-[10px] text-amber-500 tracking-widest uppercase font-sans mt-1">Merapi Singgalang & Bundo Kanduang</span>
+                </div>
               </div>
-              <p className="text-sm leading-relaxed text-stone-400 font-lora">Etalase prestasi dan repositori intelektual warga Asrama Mahasiswa Merapi Singgalang dan Asrama Putri Bundo Kanduang. Mengedepankan nilai kekeluargaan dan semangat perantau Minangkabau.</p>
+              {/* PENJELASAN ASRAMA MAHASISWA SUMBAR DI JOGJA */}
+              <p className="text-sm leading-relaxed text-stone-400 font-lora">
+                Asrama mahasiswa untuk mahasiswa asal Sumatera Barat yang sedang menuntut ilmu di Daerah Istimewa Yogyakarta. Menjadi rumah tumbuh bersama, etalase prestasi, dan repositori intelektual bagi warga Asrama Mahasiswa Merapi Singgalang dan Asrama Putri Bundo Kanduang.
+              </p>
             </div>
 
             <div>
@@ -309,7 +322,7 @@ export default function PublicLayout({ children }) {
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-stone-800 flex flex-col items-center gap-4 relative z-10">
             <p className="text-xs text-stone-500 font-sans tracking-wider text-center">
-              © {new Date().getFullYear()} Asrama Mahasiswa Merapi Singgalang & Bundo Kanduang. Hak Cipta Dilindungi.
+              © {new Date().getFullYear()} Asrama Pemerintah Sumatera Barat (Merapi Singgalang & Bundo Kanduang). Hak Cipta Dilindungi.
             </p>
             
             <div className="flex flex-col md:flex-row items-center justify-center gap-3 text-[11px] text-stone-500 font-sans mt-2">
