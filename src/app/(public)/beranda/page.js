@@ -18,7 +18,8 @@ const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
   }, [imgArray.length]);
 
   return (
-    <section className="relative min-h-[90vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden bg-[#171412] py-28 md:py-32">
+    // PERBAIKAN: Padding dan Margin disesuaikan agar pas 1 layar penuh tanpa scrollbar berlebih
+    <section className="relative min-h-[85vh] lg:min-h-[90vh] flex flex-col justify-center items-center overflow-hidden bg-[#171412] pt-28 pb-16 md:pt-32 md:pb-20">
       <div className="absolute inset-0 w-full h-full bg-[#171412]">
         {imgArray.map((bg, i) => (
           <div 
@@ -30,29 +31,30 @@ const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
         <div className="absolute inset-0 bg-[#171412]/70"></div>
       </div>
 
-      <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-12 md:mt-16 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+      {/* Dihapus mt-16 agar tidak mendorong konten ke bawah terlalu jauh */}
+      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         
-        {/* PERBAIKAN LOGO: Lingkaran Putih Solid di Belakang Logo */}
-        <div className="flex justify-center items-center gap-4 md:gap-6 mb-8">
-          <div className="w-20 h-20 md:w-28 md:h-28 bg-white rounded-full p-3 md:p-4 shadow-[0_0_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
+        {/* LOGO: Lingkaran Putih Solid */}
+        <div className="flex justify-center items-center gap-4 md:gap-6 mb-6 md:mb-8">
+          <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full p-3 md:p-3.5 shadow-[0_0_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
             <img src="/mersi.png" alt="Logo Mersi" className="w-full h-full object-contain" />
           </div>
-          <div className="w-20 h-20 md:w-28 md:h-28 bg-white rounded-full p-3 md:p-4 shadow-[0_0_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
+          <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full p-3 md:p-3.5 shadow-[0_0_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
             <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-full h-full object-contain" />
           </div>
         </div>
 
         {/* LABEL ASRAMA PEMERINTAH SUMBAR */}
-        <span className="inline-block py-1.5 px-4 md:px-6 rounded-full bg-red-800/90 text-amber-400 text-xs md:text-sm font-bold tracking-widest mb-6 border border-red-700/50 backdrop-blur-sm uppercase">
+        <span className="inline-block py-1.5 px-4 md:px-6 rounded-full bg-red-800/90 text-amber-400 text-xs md:text-sm font-bold tracking-widest mb-5 md:mb-6 border border-red-700/50 backdrop-blur-sm uppercase shadow-lg">
           Asrama Pemerintah Sumatera Barat
         </span>
 
-        <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 font-playfair leading-tight">
-          {titleLine1} <br/>
-          <span className="text-amber-500">{titleLine2}</span>
+        <h1 className="text-4xl md:text-6xl font-bold text-white mb-5 md:mb-6 font-playfair leading-tight drop-shadow-md">
+          {titleLine1} <br className="hidden md:block" />
+          <span className="text-amber-500"> {titleLine2}</span>
         </h1>
         
-        <p className="text-lg md:text-xl text-stone-300 mb-10 font-lora max-w-2xl mx-auto leading-relaxed">
+        <p className="text-sm md:text-lg text-stone-300 mb-8 md:mb-10 font-lora max-w-3xl mx-auto leading-relaxed drop-shadow">
           {subtitle}
         </p>
 
@@ -60,7 +62,7 @@ const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
           <Link href="/profil" className="bg-red-800 hover:bg-red-900 text-white px-8 py-3.5 rounded-lg font-semibold shadow-lg shadow-red-900/30 transition-all border border-red-700">
             Mengenal Asrama
           </Link>
-          <Link href="/kehidupan" className="bg-[#171412]/50 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 px-8 py-3.5 rounded-lg font-semibold transition-all backdrop-blur-sm">
+          <Link href="/kehidupan" className="bg-[#171412]/50 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 px-8 py-3.5 rounded-lg font-semibold transition-all backdrop-blur-sm shadow-lg">
             Lihat Media Publikasi
           </Link>
         </div>
@@ -121,7 +123,6 @@ export default function Beranda() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
-  // State bantuan untuk melacak like secara lokal
   const [localLikes, setLocalLikes] = useState({});
 
   useEffect(() => {
@@ -172,7 +173,6 @@ export default function Beranda() {
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
         comments.sort((a, b) => (b.waktu?.toMillis() || 0) - (a.waktu?.toMillis() || 0));
 
-        // Setup local likes
         let likesMap = {};
         comments.forEach(c => { 
           likesMap[c.id] = c.likes || 0; 
@@ -271,7 +271,6 @@ export default function Beranda() {
     const isCurrentlyLiked = localStorage.getItem(`liked_${komenId}`);
 
     if (isCurrentlyLiked) {
-      // PROSES UNLIKE (BATAL SUKA)
       try {
         localStorage.removeItem(`liked_${komenId}`);
         setLocalLikes(prev => ({ ...prev, [komenId]: Math.max(0, (prev[komenId] || 0) - 1) }));
@@ -282,7 +281,6 @@ export default function Beranda() {
         setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
       }
     } else {
-      // PROSES LIKE (SUKA)
       try {
         localStorage.setItem(`liked_${komenId}`, 'true');
         setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
