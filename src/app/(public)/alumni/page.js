@@ -33,17 +33,17 @@ const HeroSlider = ({ images, title }) => {
 export default function JejakPrestasi() {
   const [bgAlumni, setBgAlumni] = useState([]);
   const [profilText, setProfilText] = useState({ jejakAlumni: "" });
-  
-  // STATE KONTAK DENGAN NO SKRIPSI
   const [kontak, setKontak] = useState({ noTelpon: "", noSkripsi: "" }); 
-  
+
   const [dataPrestasi, setDataPrestasi] = useState([]);
   const [dataSkripsi, setDataSkripsi] = useState([]);
   const [dataPesanAlumni, setDataPesanAlumni] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // STATE FILTER ALUMNI
+  // STATE FILTER ALUMNI / WARGA
   const [searchAlumni, setSearchAlumni] = useState("");
+  const [filterAsrama, setFilterAsrama] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [filterAngkatan, setFilterAngkatan] = useState("");
   const [filterAsal, setFilterAsal] = useState("");
   const [filterKampus, setFilterKampus] = useState("");
@@ -61,8 +61,6 @@ export default function JejakPrestasi() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [animDirection, setAnimDirection] = useState("");
   const itemsPerPage = 10;
-  
-  // MENGUBAH LIMIT ALUMNI JADI 10
   const alumniPerPage = 10;
 
   const [showSkripsiModal, setShowSkripsiModal] = useState(false);
@@ -81,7 +79,7 @@ export default function JejakPrestasi() {
       try {
         const snapFoto = await getDoc(doc(db, "pengaturan", "tampilan"));
         if (snapFoto.exists() && snapFoto.data().alumni) setBgAlumni(snapFoto.data().alumni);
-        
+
         const snapText = await getDoc(doc(db, "pengaturan", "profilText"));
         if (snapText.exists()) setProfilText(snapText.data());
 
@@ -95,7 +93,7 @@ export default function JejakPrestasi() {
 
         const skrSnap = await getDocs(query(collection(db, "skripsi"), orderBy("tahun", "desc")));
         setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        
+
         const pesanSnap = await getDocs(query(collection(db, "pesan_alumni"), orderBy("createdAt", "desc")));
         setDataPesanAlumni(pesanSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
@@ -105,7 +103,7 @@ export default function JejakPrestasi() {
   }, []);
 
   useEffect(() => { setSkripsiPage(0); }, [searchSkripsi]);
-  useEffect(() => { setAlumniPage(0); }, [searchAlumni, filterAngkatan, filterAsal, filterKampus, filterJurusan]);
+  useEffect(() => { setAlumniPage(0); }, [searchAlumni, filterAsrama, filterStatus, filterAngkatan, filterAsal, filterKampus, filterJurusan]);
 
   const changePage = (newIndex, direction) => {
     if (newIndex >= 0 && newIndex < Math.ceil(dataPrestasi.length / itemsPerPage)) {
@@ -148,7 +146,7 @@ export default function JejakPrestasi() {
   };
 
   const closeModal = () => { setSelectedItem(null); setKomentarList([]); setFormKomen({ nama: "", isi: "" }); document.body.style.overflow = "auto"; };
-  
+
   const openAlumniModal = (alumni) => {
     setSelectedAlumni(alumni);
     document.body.style.overflow = "hidden";
@@ -193,7 +191,7 @@ export default function JejakPrestasi() {
         status: "Menunggu",
         waktu: serverTimestamp()
       });
-      alert("Permohonan berhasil dikirim! Silakan tunggu konfirmasi dan link akses dari Sekretaris via WhatsApp.");
+      alert("Permohonan berhasil dikirim! Silakan tunggu konfirmasi dan link akses dari Sekretariat via WhatsApp.");
       setShowSkripsiModal(false);
       setFormPermohonan({ nama: "", instansi: "", noHp: "", tujuan: "" });
       document.body.style.overflow = "auto";
@@ -210,7 +208,7 @@ export default function JejakPrestasi() {
 
     let bersihkanNomor = nomorTujuan.replace(/\D/g, '');
     if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
-    const text = `Halo Admin Skripsi Mersi,\n\nSaya pengunjung website asrama. Saya tertarik dengan skripsi berjudul *"${skripsi.judul}"* karya ${skripsi.nama}. \n\nBolehkah saya meminta link repositori resmi universitasnya? Terima kasih.`;
+    const text = `Halo Admin Skripsi,\n\nSaya pengunjung website asrama. Saya tertarik dengan skripsi berjudul *"${skripsi.judul}"* karya ${skripsi.nama}. \n\nBolehkah saya meminta link repositori resmi universitasnya? Terima kasih.`;
     window.open(`https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -233,6 +231,7 @@ export default function JejakPrestasi() {
   const totalSkripsiPages = Math.ceil(filteredSkripsi.length / skripsiPerPage);
   const currentDataSkripsi = filteredSkripsi.slice(skripsiPage * skripsiPerPage, (skripsiPage + 1) * skripsiPerPage);
 
+  // MENGAMBIL OPSI UNTUK FILTER (Unik)
   const optionAngkatan = [...new Set(dataPesanAlumni.map(a => a.angkatanAsrama))].filter(Boolean).sort((a,b)=>b-a);
   const optionAsal = [...new Set(dataPesanAlumni.map(a => a.asal))].filter(Boolean).sort();
   const optionKampus = [...new Set(dataPesanAlumni.map(a => a.kuliah))].filter(Boolean).sort();
@@ -246,13 +245,15 @@ export default function JejakPrestasi() {
       item.skripsi?.toLowerCase().includes(q) ||
       item.pesan?.toLowerCase().includes(q) ||
       item.prestasi?.toLowerCase().includes(q);
-    
+
+    const matchAsrama = filterAsrama ? (item.asrama || 'mersi') === filterAsrama : true;
+    const matchStatus = filterStatus ? (item.statusWarga || 'Alumni') === filterStatus : true;
     const matchAngkatan = filterAngkatan ? item.angkatanAsrama?.toString() === filterAngkatan : true;
     const matchAsal = filterAsal ? item.asal === filterAsal : true;
     const matchKampus = filterKampus ? item.kuliah === filterKampus : true;
     const matchJurusan = filterJurusan ? item.jurusan === filterJurusan : true;
 
-    return matchSearch && matchAngkatan && matchAsal && matchKampus && matchJurusan;
+    return matchSearch && matchAsrama && matchStatus && matchAngkatan && matchAsal && matchKampus && matchJurusan;
   });
 
   const totalAlumniPages = Math.ceil(filteredAlumni.length / alumniPerPage);
@@ -269,7 +270,7 @@ export default function JejakPrestasi() {
         @keyframes slideNextIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slidePrevOut { to { transform: translateX(50px); opacity: 0; } }
         @keyframes slidePrevIn { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        
+
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
@@ -280,13 +281,21 @@ export default function JejakPrestasi() {
           <button onClick={closeAlumniModal} className="absolute top-4 md:top-8 right-4 md:right-8 text-white hover:text-amber-500 transition-colors z-50 p-2">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
-          
+
           <div className="bg-[#fcfbf9] w-full max-w-4xl max-h-[90vh] md:h-auto rounded-xl shadow-2xl flex flex-col md:flex-row overflow-hidden" onClick={e => e.stopPropagation()}>
-            
+
             {/* Kiri: Desain Foto Full Bingkai Merah Asrama */}
             <div className="w-full md:w-2/5 bg-[#f4f2ec] p-8 md:p-12 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-[#e8e4db]">
+              <div className="absolute top-6 left-6 flex gap-1 z-20">
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded text-white shadow-sm tracking-widest uppercase ${selectedAlumni.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>
+                  {selectedAlumni.asrama === 'bk' ? 'BK' : 'MERSI'}
+                </span>
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded text-white shadow-sm tracking-widest uppercase ${selectedAlumni.statusWarga === 'Warga' ? 'bg-green-600' : 'bg-blue-600'}`}>
+                  {selectedAlumni.statusWarga || 'Alumni'}
+                </span>
+              </div>
               <div className="relative group w-full max-w-[280px]">
-                 <div className="absolute inset-0 bg-red-800 transform rotate-3 rounded-lg shadow-xl transition-transform group-hover:rotate-6 duration-300"></div>
+                 <div className={`absolute inset-0 transform rotate-3 rounded-lg shadow-xl transition-transform group-hover:rotate-6 duration-300 ${selectedAlumni.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}></div>
                  <img 
                     src={selectedAlumni.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedAlumni.nama)}&background=991b1b&color=fff`} 
                     className="relative z-10 w-full aspect-[3/4] object-cover rounded-lg shadow-md border-4 border-white transform transition-transform group-hover:-rotate-1 duration-300 bg-white" 
@@ -299,19 +308,19 @@ export default function JejakPrestasi() {
             <div className="w-full md:w-3/5 p-8 md:p-10 flex flex-col overflow-y-auto hide-scrollbar bg-white">
               <h2 className="text-2xl font-bold font-playfair text-stone-900 mb-6 flex items-center gap-3">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-500"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                Data Lengkap Alumni
+                Data Lengkap {selectedAlumni.statusWarga || 'Alumni'}
               </h2>
 
               <div className="space-y-5 font-sans">
                 {selectedAlumni.pekerjaan && (
                   <div className="flex gap-4 items-start border-b border-stone-100 pb-3">
-                    <span className="w-1/3 text-xs font-bold text-stone-400 uppercase tracking-wider shrink-0 mt-0.5">Pekerjaan</span>
+                    <span className="w-1/3 text-xs font-bold text-stone-400 uppercase tracking-wider shrink-0 mt-0.5">Pekerjaan Saat Ini</span>
                     <span className="text-sm font-semibold text-stone-800">{selectedAlumni.pekerjaan}</span>
                   </div>
                 )}
                 {(selectedAlumni.kuliah || selectedAlumni.jurusan) && (
                   <div className="flex gap-4 items-start border-b border-stone-100 pb-3">
-                    <span className="w-1/3 text-xs font-bold text-stone-400 uppercase tracking-wider shrink-0 mt-0.5">Pendidikan</span>
+                    <span className="w-1/3 text-xs font-bold text-stone-400 uppercase tracking-wider shrink-0 mt-0.5">Pendidikan Terakhir</span>
                     <span className="text-sm font-semibold text-stone-800">{selectedAlumni.kuliah} {selectedAlumni.jurusan ? `— ${selectedAlumni.jurusan}` : ''}</span>
                   </div>
                 )}
@@ -323,7 +332,7 @@ export default function JejakPrestasi() {
                 )}
                 {selectedAlumni.asal && (
                   <div className="flex gap-4 items-start border-b border-stone-100 pb-3">
-                    <span className="w-1/3 text-xs font-bold text-stone-400 uppercase tracking-wider shrink-0 mt-0.5">Asal Daerah</span>
+                    <span className="w-1/3 text-xs font-bold text-stone-400 uppercase tracking-wider shrink-0 mt-0.5">Asal Daerah / Kota</span>
                     <span className="text-sm font-semibold text-stone-800">{selectedAlumni.asal}</span>
                   </div>
                 )}
@@ -333,7 +342,7 @@ export default function JejakPrestasi() {
                     <span className="text-sm font-medium italic text-stone-700">"{selectedAlumni.skripsi}"</span>
                   </div>
                 )}
-                
+
                 {/* PRESTASI / JURNAL DITAMPILKAN DI SINI JIKA ADA (OPSIONAL) */}
                 {selectedAlumni.prestasi && (
                   <div className="flex gap-4 items-start border-b border-stone-100 pb-3">
@@ -376,7 +385,7 @@ export default function JejakPrestasi() {
               <h2 className="text-3xl font-bold font-playfair text-stone-900 mb-6 leading-snug">{selectedItem.judul}</h2>
               <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
               <p className="text-stone-700 leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
-              
+
               <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
                 <h3 className="font-playfair font-bold text-xl text-stone-900 mb-4">Komentar ({komentarList.length})</h3>
                 <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
@@ -433,36 +442,51 @@ export default function JejakPrestasi() {
 
       <HeroSlider images={bgAlumni} title="Jejak & Prestasi" />
 
-      {/* 1. JEJAK ALUMNI (INTRO) */}
+      {/* 1. JEJAK ALUMNI / WARGA (INTRO) */}
       <div id="jejak" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-4">Pangkalan Data Alumni</h2>
+          <h2 className="text-3xl font-bold text-stone-900 font-playfair mb-4">Pangkalan Data Warga & Alumni</h2>
           <div className="w-12 h-1 bg-red-800 mx-auto rounded-full"></div>
         </div>
         <div className="bg-white p-8 md:p-12 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] mb-8">
           <p className="text-stone-600 leading-relaxed text-lg text-center whitespace-pre-line font-lora italic">
-            {loading ? "Memuat catatan jejak alumni..." : `"${profilText.jejakAlumni}"`}
+            {loading ? "Memuat catatan jejak warga dan alumni..." : `"${profilText.jejakAlumni}"`}
           </p>
         </div>
       </div>
 
-      {/* 2. DATABASE ALUMNI INTERAKTIF DENGAN KARTU RINGKAS & FILTER KONTRAS */}
+      {/* 2. DATABASE ALUMNI INTERAKTIF DENGAN KARTU RINGKAS & FILTER LENGKAP */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        
-        {/* Filter Section (Warna Teks Diperjelas) */}
-        <div className="bg-white p-6 rounded-sm shadow-md border border-[#e8e4db] mb-8 flex flex-col lg:flex-row gap-4">
-          <div className="w-full lg:w-1/3 relative">
-            <input 
-              type="text" 
-              placeholder="Cari nama, pekerjaan, skripsi..." 
-              value={searchAlumni}
-              onChange={(e) => setSearchAlumni(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white border border-stone-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-red-800 font-sans text-sm text-stone-900 font-semibold shadow-sm"
-            />
-            <svg className="absolute left-3 top-3.5 text-stone-500 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+
+        {/* Filter Section (Ditambah Pilihan Asrama & Status) */}
+        <div className="bg-white p-6 rounded-sm shadow-md border border-[#e8e4db] mb-8 flex flex-col gap-4">
+          <div className="flex flex-col lg:flex-row gap-4 w-full">
+            <div className="w-full lg:w-1/3 relative">
+              <input 
+                type="text" 
+                placeholder="Cari nama, pekerjaan, pesan..." 
+                value={searchAlumni}
+                onChange={(e) => setSearchAlumni(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-white border border-stone-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-red-800 font-sans text-sm text-stone-900 font-semibold shadow-sm"
+              />
+              <svg className="absolute left-3 top-3.5 text-stone-500 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 w-full lg:w-2/3">
+              <select value={filterAsrama} onChange={(e) => setFilterAsrama(e.target.value)} className="w-full px-3 py-3 bg-white border border-stone-300 shadow-sm rounded-sm font-sans text-sm text-stone-900 font-semibold focus:ring-2 focus:ring-red-800 outline-none cursor-pointer">
+                <option value="">Semua Asrama</option>
+                <option value="mersi">Merapi Singgalang</option>
+                <option value="bk">Bundo Kanduang</option>
+              </select>
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full px-3 py-3 bg-white border border-stone-300 shadow-sm rounded-sm font-sans text-sm text-stone-900 font-semibold focus:ring-2 focus:ring-red-800 outline-none cursor-pointer">
+                <option value="">Semua Status</option>
+                <option value="Warga">Warga Aktif</option>
+                <option value="Alumni">Alumni</option>
+              </select>
+            </div>
           </div>
-          
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-2/3">
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
             <select value={filterAngkatan} onChange={(e) => setFilterAngkatan(e.target.value)} className="w-full px-3 py-3 bg-white border border-stone-300 shadow-sm rounded-sm font-sans text-sm text-stone-900 font-semibold focus:ring-2 focus:ring-red-800 outline-none cursor-pointer">
               <option value="">Semua Angkatan</option>
               {optionAngkatan.map(opt => <option key={opt} value={opt}>Angkatan {opt}</option>)}
@@ -482,38 +506,54 @@ export default function JejakPrestasi() {
           </div>
         </div>
 
-        {/* Grid Alumni Cards - VERSI RINGKAS (TANPA FOTO DI DEPAN) */}
+        {/* Grid Alumni Cards - TAMPILAN PESAN DI LUAR */}
         {loading ? (
-          <p className="text-center text-stone-500 py-10">Mencari data alumni...</p>
+          <p className="text-center text-stone-500 py-10">Mencari data pangkalan...</p>
         ) : currentDataAlumni.length === 0 ? (
-          <p className="text-center text-stone-500 bg-white p-12 border border-[#e8e4db] rounded-sm shadow-sm">Data alumni tidak ditemukan dengan filter tersebut.</p>
+          <p className="text-center text-stone-500 bg-white p-12 border border-[#e8e4db] rounded-sm shadow-sm">Data tidak ditemukan dengan filter tersebut.</p>
         ) : (
           <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {currentDataAlumni.map((item, idx) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {currentDataAlumni.map((item) => (
                 <div 
                   key={item.id} 
                   onClick={() => openAlumniModal(item)}
-                  className="cursor-pointer bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group relative"
+                  className="cursor-pointer bg-white rounded-lg shadow-sm border border-[#e8e4db] flex flex-col hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group"
                 >
-                  <div className="h-1.5 bg-red-800 w-full group-hover:bg-amber-500 transition-colors"></div>
-                  <div className="p-5 flex flex-col h-full relative">
-                    
-                    {/* Icon Klik Detail */}
-                    <div className="absolute top-4 right-4 text-stone-300 group-hover:text-red-800 transition-colors">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                  <div className="p-5 border-b border-stone-100 bg-stone-50/50 rounded-t-lg flex items-start gap-4">
+                    <img 
+                      src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} 
+                      className="w-14 h-14 rounded-full object-cover border border-stone-200 shadow-sm shrink-0" 
+                      alt={item.nama} 
+                    />
+                    <div className="flex-grow pt-0.5">
+                      <div className="flex gap-1.5 flex-wrap mb-1.5">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white tracking-widest uppercase shadow-sm ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>
+                          {item.asrama === 'bk' ? 'BK' : 'MERSI'}
+                        </span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white tracking-widest uppercase shadow-sm ${item.statusWarga === 'Warga' ? 'bg-green-600' : 'bg-blue-600'}`}>
+                          {item.statusWarga || 'Alumni'}
+                        </span>
+                      </div>
+                      <h3 className="font-playfair font-bold text-lg text-stone-900 leading-tight mb-1 group-hover:text-red-800 transition-colors">{item.nama}</h3>
+                      <p className="text-xs text-stone-500 font-sans font-medium line-clamp-1">{item.kuliah}</p>
                     </div>
-
-                    <h3 className="font-playfair font-bold text-xl text-stone-900 leading-tight mb-3 pr-6 line-clamp-2">{item.nama}</h3>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {item.angkatanAsrama && <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-wider">Angk. {item.angkatanAsrama}</span>}
-                      {item.asal && <span className="bg-stone-100 text-stone-600 text-[10px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-wider">{item.asal}</span>}
+                  </div>
+                  
+                  <div className="p-5 flex flex-col flex-grow relative bg-white rounded-b-lg">
+                    {/* Icon Kutipan */}
+                    <div className="absolute top-4 right-4 text-stone-200 group-hover:text-amber-200 transition-colors">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" /></svg>
                     </div>
+                    
+                    {/* Teks Pesan di Luar */}
+                    <p className="text-stone-600 text-sm italic font-lora line-clamp-3 mb-6 relative z-10 leading-relaxed pl-2 border-l-2 border-amber-500">
+                      "{item.pesan}"
+                    </p>
 
-                    <div className="mt-auto pt-4 border-t border-stone-100 flex items-start gap-2 text-stone-600 text-sm font-sans font-medium">
-                       <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
-                       <span className="line-clamp-2 leading-snug">{item.kuliah || "Data Kampus Belum Ada"}</span>
+                    <div className="mt-auto flex items-center justify-between text-xs font-bold text-stone-400 font-sans uppercase tracking-widest pt-2 border-t border-stone-50 group-hover:border-stone-200 transition-colors">
+                      <span>Angk. {item.angkatanAsrama}</span>
+                      <span className="flex items-center gap-1 group-hover:text-amber-600 transition-colors">Detail Profil <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
                     </div>
                   </div>
                 </div>
@@ -539,18 +579,18 @@ export default function JejakPrestasi() {
           <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair mb-4">Daftar Prestasi Warga</h2>
           <div className="w-16 h-1 bg-amber-500 mx-auto rounded-full"></div>
         </div>
-        
+
         {loading ? <p className="text-center text-stone-500">Memuat data prestasi...</p> : dataPrestasi.length === 0 ? <p className="text-center text-stone-500 bg-white p-12 border border-[#e8e4db] rounded-sm shadow-sm">Belum ada catatan prestasi.</p> : (
           <div className="relative mt-12 perspective-1000">
             <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-4 -rotate-1 rounded-sm shadow-md"></div>
             <div className="absolute inset-0 bg-[#f4f2ec] transform translate-y-2 rotate-1 rounded-sm shadow-md"></div>
-            
+
             <div className={`relative bg-[#fcfbf9] p-8 md:p-14 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[500px] ${isAnimating ? (animDirection === 'next' ? 'slide-next-out' : 'slide-prev-out') : (animDirection === 'next' ? 'slide-next-in' : (animDirection === 'prev' ? 'slide-prev-in' : ''))}`}>
               <div className="flex justify-between items-center mb-8 border-b border-[#e8e4db] pb-4">
                 <span className="text-amber-600 font-bold font-sans tracking-widest uppercase text-xs">Halaman {currentPage + 1}</span>
                 <h3 className="text-2xl font-bold text-stone-900 font-playfair">Catatan Prestasi</h3>
               </div>
-              
+
               <div className="flex-grow">
                 <ul className="divide-y divide-stone-200 border-b border-stone-200">
                   {currentDataPrestasi.map((item, idx) => {
@@ -594,12 +634,12 @@ export default function JejakPrestasi() {
             <p className="text-stone-500 text-sm md:text-base">Karya tulis ilmiah warga dan alumni asrama.</p>
           </div>
         </div>
-        
+
         {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat repositori...</p> : dataSkripsi.length === 0 ? <div className="bg-white p-12 rounded-sm border border-stone-200 text-stone-500 text-center shadow-sm w-full">Belum ada data skripsi.</div> : (
           <div className="relative mt-8 perspective-1000">
             <div className="absolute inset-0 bg-[#e8e4db] transform translate-y-4 rotate-1 rounded-sm shadow-md"></div>
             <div className="absolute inset-0 bg-[#f4f2ec] transform translate-y-2 -rotate-1 rounded-sm shadow-md"></div>
-            
+
             <div className={`relative bg-[#fcfbf9] p-6 md:p-12 rounded-sm shadow-2xl border border-[#e8e4db] z-10 flex flex-col min-h-[500px] ${isSkripsiAnimating ? (skripsiAnimDirection === 'next' ? 'slide-next-out' : 'slide-prev-out') : (skripsiAnimDirection === 'next' ? 'slide-next-in' : (skripsiAnimDirection === 'prev' ? 'slide-prev-in' : ''))}`}>
               <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-8 border-b border-[#e8e4db] pb-6 gap-4">
                 <h3 className="text-2xl font-bold text-stone-900 font-playfair w-full md:w-auto">Katalog Arsip</h3>
