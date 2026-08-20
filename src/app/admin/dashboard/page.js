@@ -3,21 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  deleteDoc, 
-  doc, 
-  getDoc, 
-  setDoc, 
-  serverTimestamp, 
-  query, 
-  orderBy, 
-  updateDoc, 
-  where, 
-  increment 
-} from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, updateDoc, where, increment } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
 // PENGATURAN HAK AKSES TAB UNTUK MASING-MASING DIVISI
@@ -43,7 +29,7 @@ const TAB_NAMES = {
   galeri: "Galeri", 
   kehidupan: "Media Publikasi", 
   skripsi: "Skripsi", 
-  suara_alumni: "Data Alumni", 
+  suara_alumni: "Data Warga & Alumni", 
   log: "Log Data"
 };
 
@@ -88,13 +74,16 @@ export default function AdminDashboard() {
   const [tampilanUrls, setTampilanUrls] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
   const [tampilanFiles, setTampilanFiles] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
   
-  // STATE MERSI & BK DIPISAH
+  // STATE MERSI & BK DIPISAH (Termasuk Sosmed, Kontak, Maps)
   const [profilText, setProfilText] = useState({ visi_mersi: "", misi_mersi: "", visi_bk: "", misi_bk: "", jejakAlumni: "" });
   const [kontak, setKontak] = useState({ 
+    // Data Mersi
     namaKetuaMersi: "", noTelponMersi: "", noHumasMersi: "", emailMersi: "", namaIgMersi: "", linkIgMersi: "",
     alamatMersi: "", linkMapMersi: "", iframeMapMersi: "",
+    // Data BK
     namaKetuaBk: "", noTelponBk: "", noHumasBk: "", emailBk: "", namaIgBk: "", linkIgBk: "",
     alamatBk: "", linkMapBk: "", iframeMapBk: "",
+    // Bersama
     noSkripsi: "", namaTiktok: "", linkTiktok: "" 
   });
   
@@ -108,6 +97,7 @@ export default function AdminDashboard() {
   const [filesBrosurMersi, setFilesBrosurMersi] = useState([]);
   const [filesBrosurBk, setFilesBrosurBk] = useState([]);
 
+  // PENGURUS INTI DIPISAH MERSI & BK
   const [pengurusInti, setPengurusInti] = useState({ 
     ketuaMersiNama: "", ketuaMersiFoto: "", sekreMersiNama: "", sekreMersiFoto: "", bendaharaMersiNama: "", bendaharaMersiFoto: "",
     ketuaBkNama: "", ketuaBkFoto: "", sekreBkNama: "", sekreBkFoto: "", bendaharaBkNama: "", bendaharaBkFoto: "" 
@@ -122,7 +112,6 @@ export default function AdminDashboard() {
   const [asramaDivisi, setAsramaDivisi] = useState("mersi");
   const [asramaFasilitas, setAsramaFasilitas] = useState("mersi");
   const [asramaSewa, setAsramaSewa] = useState("mersi");
-  const [asramaAlumni, setAsramaAlumni] = useState("mersi"); // <-- STATE BARU ALUMNI
 
   // STATE DATA TABEL
   const [dataSejarah, setDataSejarah] = useState([]);
@@ -198,7 +187,7 @@ export default function AdminDashboard() {
   const [replyText, setReplyText] = useState("");
 
   const [formAlumni, setFormAlumni] = useState({ 
-    nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" 
+    nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "", statusWarga: "Alumni", asrama: "mersi" 
   });
   const [fileFotoAlumni, setFileFotoAlumni] = useState(null);
   const [editPesanId, setEditPesanId] = useState(null);
@@ -229,13 +218,12 @@ export default function AdminDashboard() {
         const email = user.email || "";
         setCurrentUserEmail(email);
         
-        let currRole = ""; // Default dikosongkan agar aman
+        let currRole = ""; 
         
         // TULIS EMAIL SEKRETARIS YANG DIIZINKAN DI SINI
         const daftarSekretaris = [
           "aspuribkrancak123@gmail.com", 
-          "sekremersi@gmail.com", 
-          "adminutama@gmail.com" // Ganti bila perlu
+          "sekremersi@gmail.com",
         ];
         
         if (daftarSekretaris.includes(email)) currRole = "sekre";
@@ -265,7 +253,7 @@ export default function AdminDashboard() {
         setAsramaDivisi(defaultAsrama);
         setAsramaFasilitas(defaultAsrama);
         setAsramaSewa(defaultAsrama);
-        setAsramaAlumni(defaultAsrama); // Set Otomatis Untuk Form Alumni
+        setFormAlumni(prev => ({ ...prev, asrama: defaultAsrama }));
 
         setAuthReady(true);
         fetchAllData();
@@ -274,9 +262,11 @@ export default function AdminDashboard() {
   }, []);
 
   const fetchAllData = async () => {
+    // Tampilan
     const docSnap = await getDoc(doc(db, "pengaturan", "tampilan"));
     if (docSnap.exists()) setTampilanUrls(docSnap.data());
     
+    // Profil Text
     const docProfil = await getDoc(doc(db, "pengaturan", "profilText"));
     if (docProfil.exists()) {
       const p = docProfil.data();
@@ -289,6 +279,7 @@ export default function AdminDashboard() {
       });
     }
     
+    // Kontak & Lokasi Asrama
     const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
     if (docKontak.exists()) {
       const kd = docKontak.data();
@@ -319,6 +310,7 @@ export default function AdminDashboard() {
       });
     }
     
+    // Status Asrama
     const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
     if (docStatus.exists()) {
       const d = docStatus.data();
@@ -332,6 +324,7 @@ export default function AdminDashboard() {
       });
     }
     
+    // Brosur
     const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
     if (docBrosur.exists()) { 
       const d = docBrosur.data();
@@ -342,9 +335,11 @@ export default function AdminDashboard() {
       setLinkFormulir(d.linkFormulir || ""); 
     }
 
+    // Sejarah
     const sejSnap = await getDocs(query(collection(db, "sejarah_asrama"), orderBy("createdAt", "asc"))); 
     setDataSejarah(sejSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
+    // Pengurus Inti
     const docInti = await getDoc(doc(db, "pengaturan", "pengurus_inti")); 
     if (docInti.exists()) {
       const d = docInti.data();
@@ -358,12 +353,14 @@ export default function AdminDashboard() {
       });
     }
     
+    // Divisi & Anggota
     const divSnap = await getDocs(query(collection(db, "divisi_asrama"), orderBy("createdAt", "asc"))); 
     setDataDivisi(divSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
     const angSnap = await getDocs(query(collection(db, "anggota_divisi"), orderBy("createdAt", "asc"))); 
     setDataAnggota(angSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
+    // Lainnya
     const fotoProfSnap = await getDocs(query(collection(db, "profil_galeri"), orderBy("createdAt", "desc"))); 
     setDataFotoProfil(fotoProfSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
@@ -461,7 +458,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- SAVE FUNCTIONS PENGATURAN ---
+  // --- SAVE FUNCTIONS ---
   const handleSaveTampilan = async (e) => { 
     e.preventDefault(); 
     setLoading(true); 
@@ -984,7 +981,6 @@ export default function AdminDashboard() {
       } 
       
       const payload = { 
-        asrama: asramaAlumni,
         nama: formAlumni.nama, 
         asal: formAlumni.asal,
         kuliah: formAlumni.kuliah,
@@ -994,18 +990,20 @@ export default function AdminDashboard() {
         skripsi: formAlumni.skripsi,
         prestasi: formAlumni.prestasi,
         pesan: formAlumni.pesan, 
-        foto: fotoUrl 
+        foto: fotoUrl,
+        statusWarga: formAlumni.statusWarga, 
+        asrama: formAlumni.asrama 
       };
 
       if (editPesanId) { 
         await updateDoc(doc(db, "pesan_alumni", editPesanId), payload); 
-        setStatus({ type: "success", message: "Data alumni diperbarui!" }); 
+        setStatus({ type: "success", message: "Data warga/alumni diperbarui!" }); 
       } else { 
         await addDoc(collection(db, "pesan_alumni"), { ...payload, createdAt: serverTimestamp() }); 
-        setStatus({ type: "success", message: "Data alumni ditambahkan!" }); 
+        setStatus({ type: "success", message: "Data warga/alumni ditambahkan!" }); 
       } 
       
-      setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" }); 
+      setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "", statusWarga: "Alumni", asrama: formAlumni.asrama }); 
       setFileFotoAlumni(null); 
       setEditPesanId(null); 
       fetchAllData(); 
@@ -1021,7 +1019,6 @@ export default function AdminDashboard() {
   
   const handleEditPesanClick = (item) => { 
     setEditPesanId(item.id); 
-    setAsramaAlumni(item.asrama || 'mersi');
     setFormAlumni({
       nama: item.nama || "",
       asal: item.asal || "",
@@ -1031,7 +1028,9 @@ export default function AdminDashboard() {
       pekerjaan: item.pekerjaan || "",
       skripsi: item.skripsi || "",
       prestasi: item.prestasi || "",
-      pesan: item.pesan || ""
+      pesan: item.pesan || "",
+      statusWarga: item.statusWarga || "Alumni",
+      asrama: item.asrama || "mersi"
     });
     setFileFotoAlumni(null); 
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
@@ -1152,10 +1151,8 @@ export default function AdminDashboard() {
                         </div> 
                       </div> 
 
-                      {/* --- TAMBAHAN BLOK MAPS / LOKASI --- */}
                       <h3 className="font-semibold text-emerald-800 border-l-2 border-emerald-500 pl-2 mt-6">Lokasi & Google Maps</h3> 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
-                        {/* Maps Mersi */}
                         <div className="bg-red-50 p-4 border border-red-100 rounded-lg">
                           <h4 className="font-bold text-red-900 mb-3 text-sm">Titik Temu Mersi</h4>
                           <label className="text-xs font-bold block mb-1 text-red-800">Alamat Teks Lengkap</label>
@@ -1169,7 +1166,6 @@ export default function AdminDashboard() {
                           <input required type="url" value={kontak.iframeMapMersi || ""} onChange={(e) => setKontak({...kontak, iframeMapMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded text-sm" placeholder="https://www.google.com/maps/embed?pb=..." />
                         </div>
 
-                        {/* Maps BK */}
                         <div className="bg-amber-50 p-4 border border-amber-200 rounded-lg">
                           <h4 className="font-bold text-amber-900 mb-3 text-sm">Titik Temu Bundo Kanduang</h4>
                           <label className="text-xs font-bold block mb-1 text-amber-800">Alamat Teks Lengkap</label>
@@ -1911,22 +1907,44 @@ export default function AdminDashboard() {
           </div> 
         )}
         
-        {/* --- TAB SUARA ALUMNI --- */}
+        {/* --- TAB SUARA ALUMNI (DIUBAH JADI PANGKALAN DATA ALUMNI LENGKAP) --- */}
         {activeTab === "suara_alumni" && allowedTabs.includes("suara_alumni") && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-bold mb-4 border-b pb-2">{editPesanId ? "Edit Data Alumni" : "Tambah Data Alumni Baru"}</h2>
+              <h2 className="text-lg font-bold mb-4 border-b pb-2">{editPesanId ? "Edit Data Warga / Alumni" : "Tambah Data Warga / Alumni Baru"}</h2>
               <form onSubmit={handleSubmitPesanAlumni} className="space-y-4">
+                
+                {/* Baris Baru: Pilihan Asrama & Status */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Asrama Asal</label>
+                    <select required value={formAlumni.asrama} onChange={(e) => setFormAlumni({...formAlumni, asrama: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white">
+                      <option value="mersi">Merapi Singgalang</option>
+                      <option value="bk">Bundo Kanduang</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Status Penghuni</label>
+                    <select required value={formAlumni.statusWarga} onChange={(e) => setFormAlumni({...formAlumni, statusWarga: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white">
+                      <option value="Alumni">Alumni</option>
+                      <option value="Warga">Warga (Masih Aktif)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Baris 1: Nama & Asal Daerah */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Nama Lengkap</label>
-                    <input type="text" required value={formAlumni.nama} onChange={(e) => setFormAlumni({...formAlumni, nama: e.target.value})} placeholder="Nama Alumni..." className="w-full px-4 py-2 border rounded-md" />
+                    <input type="text" required value={formAlumni.nama} onChange={(e) => setFormAlumni({...formAlumni, nama: e.target.value})} placeholder="Nama Lengkap..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Asal Daerah / Kota</label>
                     <input type="text" required value={formAlumni.asal} onChange={(e) => setFormAlumni({...formAlumni, asal: e.target.value})} placeholder="Contoh: Padang, Bukittinggi..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                 </div>
+
+                {/* Baris 2: Kuliah & Jurusan */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Kampus / Universitas</label>
@@ -1937,6 +1955,8 @@ export default function AdminDashboard() {
                     <input type="text" required value={formAlumni.jurusan} onChange={(e) => setFormAlumni({...formAlumni, jurusan: e.target.value})} placeholder="Contoh: Teknik Elektro..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                 </div>
+
+                {/* Baris 3: Tahun Masuk Asrama & Pekerjaan */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Tahun Masuk Asrama (Angkatan)</label>
@@ -1944,46 +1964,56 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <label className="text-sm font-semibold mb-1 block">Pekerjaan Saat Ini</label>
-                    <input type="text" required value={formAlumni.pekerjaan} onChange={(e) => setFormAlumni({...formAlumni, pekerjaan: e.target.value})} placeholder="Contoh: Guru, Engineer, PNS..." className="w-full px-4 py-2 border rounded-md" />
+                    <input type="text" required value={formAlumni.pekerjaan} onChange={(e) => setFormAlumni({...formAlumni, pekerjaan: e.target.value})} placeholder="Contoh: Guru, Mahasiswa, PNS..." className="w-full px-4 py-2 border rounded-md" />
                   </div>
                 </div>
+
+                {/* Baris 4: Judul Skripsi */}
                 <div>
-                  <label className="text-sm font-semibold mb-1 block">Judul Skripsi (Opsional)</label>
-                  <textarea rows="2" value={formAlumni.skripsi} onChange={(e) => setFormAlumni({...formAlumni, skripsi: e.target.value})} placeholder="Judul Skripsi alumni saat lulus..." className="w-full px-4 py-2 border rounded-md"></textarea>
+                  <label className="text-sm font-semibold mb-1 block">Judul Skripsi <span className="text-slate-400 font-normal italic">(Opsional, kosongkan jika masih berstatus Warga/Mahasiswa)</span></label>
+                  <textarea rows="2" value={formAlumni.skripsi} onChange={(e) => setFormAlumni({...formAlumni, skripsi: e.target.value})} placeholder="Judul Skripsi saat lulus..." className="w-full px-4 py-2 border rounded-md"></textarea>
                 </div>
+                
+                {/* Baris TAMBAHAN: Prestasi / Jurnal */}
                 <div>
                   <label className="text-sm font-semibold mb-1 block text-amber-700">Prestasi / Karya / Jurnal (Opsional)</label>
                   <textarea rows="2" value={formAlumni.prestasi} onChange={(e) => setFormAlumni({...formAlumni, prestasi: e.target.value})} placeholder="Contoh: Publikasi Jurnal Scopus Q1, Juara 1 Robotik Nasional..." className="w-full px-4 py-2 border border-amber-300 bg-amber-50 rounded-md"></textarea>
                 </div>
+
+                {/* Baris 5: Kesan Pesan */}
                 <div>
                   <label className="text-sm font-semibold mb-1 block">Kata-kata / Kesan Pesan untuk Asrama</label>
                   <textarea required rows="3" value={formAlumni.pesan} onChange={(e) => setFormAlumni({...formAlumni, pesan: e.target.value})} placeholder="Kesan dan pesan singkat..." className="w-full px-4 py-2 border rounded-md"></textarea>
                 </div>
+
+                {/* Foto */}
                 <div>
                   <label className="text-sm font-semibold mb-1 block">Foto Profil (Opsional jika sudah ada)</label>
                   <input type="file" id="fotoAlumni" accept="image/*" onChange={(e) => setFileFotoAlumni(e.target.files[0])} className="w-full text-sm border p-2 rounded bg-slate-50" />
                 </div>
+
                 <div className="flex gap-2">
                   <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editPesanId ? "Simpan Perubahan Data" : "Tambahkan ke Database"}</button>
-                  {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" }); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
+                  {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "", statusWarga: "Alumni", asrama: "mersi" }); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
                 </div>
               </form>
             </div>
             
+            {/* Tabel Daftar Alumni */}
             <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-stone-800">
               <div className="flex justify-between items-center mb-4 border-b pb-2">
-                  <h3 className="font-bold text-lg text-slate-900">Database Alumni Asrama</h3>
+                  <h3 className="font-bold text-lg text-slate-900">Database Warga & Alumni Asrama</h3>
                   <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataPesanAlumni.length}</span>
               </div>
 
               {dataPesanAlumni.length === 0 ? (
-                <p className="text-sm text-stone-500 italic text-center py-8">Belum ada data alumni yang ditambahkan.</p>
+                <p className="text-sm text-stone-500 italic text-center py-8">Belum ada data warga/alumni yang ditambahkan.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm whitespace-nowrap">
                     <thead>
                       <tr className="bg-slate-50 border-y text-slate-600">
-                        <th className="p-3">Profil</th>
+                        <th className="p-3">Profil & Status</th>
                         <th className="p-3">Akademik</th>
                         <th className="p-3">Angkatan & Asal</th>
                         <th className="p-3">Pekerjaan</th>
@@ -1995,7 +2025,13 @@ export default function AdminDashboard() {
                         <tr key={item.id} className="hover:bg-slate-50">
                           <td className="p-3 flex items-center gap-3">
                             <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-10 h-10 object-cover rounded-full border border-slate-200" alt="Profil" />
-                            <div className="font-bold text-stone-900">{item.nama}</div>
+                            <div>
+                              <div className="font-bold text-stone-900">{item.nama}</div>
+                              <div className="flex gap-1 mt-1">
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>{item.asrama === 'bk' ? 'BK' : 'MERSI'}</span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${item.statusWarga === 'Warga' ? 'bg-green-600' : 'bg-blue-600'}`}>{item.statusWarga || 'Alumni'}</span>
+                              </div>
+                            </div>
                           </td>
                           <td className="p-3">
                             <span className="font-semibold">{item.kuliah}</span><br/>
