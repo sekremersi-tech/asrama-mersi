@@ -3,21 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  deleteDoc, 
-  doc, 
-  getDoc, 
-  setDoc, 
-  serverTimestamp, 
-  query, 
-  orderBy, 
-  updateDoc, 
-  where, 
-  increment 
-} from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, updateDoc, where, increment } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
 // PENGATURAN HAK AKSES TAB UNTUK MASING-MASING DIVISI
@@ -88,30 +74,17 @@ export default function AdminDashboard() {
   const [tampilanUrls, setTampilanUrls] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
   const [tampilanFiles, setTampilanFiles] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
   
-  // STATE MERSI & BK DIPISAH (TEKS VISI MISI)
+  // STATE MERSI & BK DIPISAH (Termasuk Sosmed, Kontak, Maps)
   const [profilText, setProfilText] = useState({ visi_mersi: "", misi_mersi: "", visi_bk: "", misi_bk: "", jejakAlumni: "" });
-  
-  // KONTAK DAN MEDIA SOSIAL DIPISAH TOTAL
   const [kontak, setKontak] = useState({ 
-    namaKetuaMersi: "", 
-    noTelponMersi: "", 
-    noHumasMersi: "",
-    emailMersi: "",
-    namaIgMersi: "", 
-    linkIgMersi: "", 
-    namaTiktokMersi: "", 
-    linkTiktokMersi: "",
-    
-    namaKetuaBk: "", 
-    noTelponBk: "", 
-    noHumasBk: "",
-    emailBk: "",
-    namaIgBk: "", 
-    linkIgBk: "", 
-    namaTiktokBk: "", 
-    linkTiktokBk: "",
-    
-    noSkripsi: "" 
+    // Data Mersi
+    namaKetuaMersi: "", noTelponMersi: "", noHumasMersi: "", emailMersi: "", namaIgMersi: "", linkIgMersi: "",
+    alamatMersi: "", linkMapMersi: "", iframeMapMersi: "",
+    // Data BK
+    namaKetuaBk: "", noTelponBk: "", noHumasBk: "", emailBk: "", namaIgBk: "", linkIgBk: "",
+    alamatBk: "", linkMapBk: "", iframeMapBk: "",
+    // Bersama
+    noSkripsi: "", namaTiktok: "", linkTiktok: "" 
   });
   
   const [statusAsrama, setStatusAsrama] = useState({ 
@@ -213,10 +186,7 @@ export default function AdminDashboard() {
   const [replyKomenId, setReplyKomenId] = useState(null); 
   const [replyText, setReplyText] = useState("");
 
-  const [formAlumni, setFormAlumni] = useState({ 
-    nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", 
-    pekerjaan: "", skripsi: "", prestasi: "", pesan: "" 
-  });
+  const [formAlumni, setFormAlumni] = useState({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "" });
   const [fileFotoAlumni, setFileFotoAlumni] = useState(null);
   const [editPesanId, setEditPesanId] = useState(null);
 
@@ -241,17 +211,16 @@ export default function AdminDashboard() {
   useEffect(() => {
     import("firebase/auth").then(({ onAuthStateChanged }) => {
       onAuthStateChanged(auth, (user) => {
-        if (!user) { 
-          router.push("/admin/login"); 
-          return; 
-        }
+        if (!user) { router.push("/admin/login"); return; }
         
         const email = user.email || "";
         setCurrentUserEmail(email);
         
         let currRole = "sekre"; 
         
-        if (email.startsWith("humas")) currRole = "humas";
+        // Cek Khusus untuk Akun Sekre BK
+        if (email === "aspuribkrancak123@gmail.com") currRole = "sekre";
+        else if (email.startsWith("humas")) currRole = "humas";
         else if (email.startsWith("publikasi")) currRole = "publikasi";
         else if (email.startsWith("perkap")) currRole = "perkap";
         else if (email.startsWith("tendor")) currRole = "tendor";
@@ -265,7 +234,7 @@ export default function AdminDashboard() {
         setActiveTab(tabsForRole[0]); 
 
         // OTOMATISKAN PILIHAN ASRAMA BERDASARKAN EMAIL LOGIN
-        const isBkAdmin = email.includes("@bk.com");
+        const isBkAdmin = email.includes("@bk.com") || email === "aspuribkrancak123@gmail.com";
         const defaultAsrama = isBkAdmin ? "bk" : "mersi";
         setAsramaSejarah(defaultAsrama);
         setAsramaDivisi(defaultAsrama);
@@ -296,7 +265,7 @@ export default function AdminDashboard() {
       });
     }
     
-    // Kontak
+    // Kontak & Lokasi Asrama
     const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
     if (docKontak.exists()) {
       const kd = docKontak.data();
@@ -307,19 +276,23 @@ export default function AdminDashboard() {
         emailMersi: kd.emailMersi || kd.email || "",
         namaIgMersi: kd.namaIgMersi || kd.namaIg || "",
         linkIgMersi: kd.linkIgMersi || kd.linkIg || "",
-        namaTiktokMersi: kd.namaTiktokMersi || kd.namaTiktok || "",
-        linkTiktokMersi: kd.linkTiktokMersi || kd.linkTiktok || "",
-        
+        alamatMersi: kd.alamatMersi || "",
+        linkMapMersi: kd.linkMapMersi || "",
+        iframeMapMersi: kd.iframeMapMersi || "",
+
         namaKetuaBk: kd.namaKetuaBk || "", 
         noTelponBk: kd.noTelponBk || "", 
         noHumasBk: kd.noHumasBk || "",
         emailBk: kd.emailBk || "",
         namaIgBk: kd.namaIgBk || "",
         linkIgBk: kd.linkIgBk || "",
-        namaTiktokBk: kd.namaTiktokBk || "",
-        linkTiktokBk: kd.linkTiktokBk || "",
-        
+        alamatBk: kd.alamatBk || "",
+        linkMapBk: kd.linkMapBk || "",
+        iframeMapBk: kd.iframeMapBk || "",
+
         noSkripsi: kd.noSkripsi || "", 
+        namaTiktok: kd.namaTiktok || "", 
+        linkTiktok: kd.linkTiktok || ""
       });
     }
     
@@ -445,7 +418,7 @@ export default function AdminDashboard() {
       const secretLink = `${baseUrl}/skripsi-viewer?id=${item.skripsiId}&nama=${encodeURIComponent(item.nama)}&hp=${item.noHp}`;
       let bersihkanNomor = item.noHp.replace(/\D/g, '');
       if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
-      const pesanWa = `Halo ${item.nama},\n\nPermohonan akses skripsi Anda untuk judul *"${item.judulSkripsi}"* telah disetujui.\n\nBerikut adalah link akses rahasia Anda:\n${secretLink}\n\nTerima kasih.`;
+      const pesanWa = `Halo ${item.nama},\n\nPermohonan akses skripsi Anda untuk judul *"${item.judulSkripsi}"* telah disetujui.\n\nBerikut adalah link akses rahasia Anda (Hanya pratinjau halaman pertama):\n${secretLink}\n\nTerima kasih.`;
       window.open(`https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(pesanWa)}`, "_blank");
       fetchAllData();
     } catch (error) { 
@@ -511,7 +484,7 @@ export default function AdminDashboard() {
     try { 
       await setDoc(doc(db, "pengaturan", "profilText"), profilText); 
       await setDoc(doc(db, "pengaturan", "kontak"), kontak); 
-      setStatus({ type: "success", message: "Teks profil & Semua Kontak berhasil diperbarui!" }); 
+      setStatus({ type: "success", message: "Teks profil & Semua Kontak Asrama berhasil diperbarui!" }); 
     } catch (error) { 
       setStatus({ type: "error", message: error.message }); 
     } finally { 
@@ -554,12 +527,7 @@ export default function AdminDashboard() {
         }
       }
 
-      await setDoc(doc(db, "pengaturan", "brosur"), { 
-        linkMersi: newUrlsMersi, 
-        linkBk: newUrlsBk, 
-        linkFormulir: linkFormulir 
-      }); 
-      
+      await setDoc(doc(db, "pengaturan", "brosur"), { linkMersi: newUrlsMersi, linkBk: newUrlsBk, linkFormulir: linkFormulir }); 
       setBrosurUrls({ mersi: newUrlsMersi, bk: newUrlsBk });
       setFilesBrosurMersi([]); 
       setFilesBrosurBk([]);
@@ -988,6 +956,7 @@ export default function AdminDashboard() {
     } 
   };
 
+  // --- LOGIKA SUBMIT DATA ALUMNI LENGKAP ---
   const handleSubmitPesanAlumni = async (e) => { 
     e.preventDefault(); 
     setLoading(true); 
@@ -1065,7 +1034,6 @@ export default function AdminDashboard() {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       `}</style>
-      
       <nav className="bg-slate-900 text-white shadow-md sticky top-0 z-50 p-4 px-8 flex justify-between items-center">
         <div className="font-serif font-bold text-xl flex items-center gap-2">
           <img src="/mersi.png" alt="Logo" className="w-6 h-6 object-contain" /> Admin Asrama 
@@ -1075,7 +1043,6 @@ export default function AdminDashboard() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        
         <div className="flex space-x-2 mb-8 bg-white p-2 rounded-xl shadow-sm border border-slate-200 overflow-x-auto custom-scrollbar">
           {allowedTabs.map(tab => (
             <button 
@@ -1103,103 +1070,101 @@ export default function AdminDashboard() {
               <>
                 <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
                   <h2 className="text-lg font-bold mb-4 border-b pb-2">Edit Teks Website Asrama</h2> 
-                  
                   <form onSubmit={handleSaveProfilText} className="space-y-6"> 
-                    
                     <div className="space-y-4"> 
-                      <h3 className="font-semibold text-red-800 border-l-4 border-red-800 pl-3 mb-4 text-lg">Kontak & Media Sosial - MERSI</h3> 
+                      <h3 className="font-semibold text-red-800 border-l-2 pl-2">Kontak Asrama (Footer & Pendaftaran)</h3> 
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> 
+                        <div className="bg-red-50/50 p-3 rounded border border-red-100">
+                          <label className="text-sm block mb-1 font-bold text-red-800">Nama Ketua Mersi</label>
+                          <input required type="text" value={kontak.namaKetuaMersi || ""} onChange={(e) => setKontak({...kontak, namaKetuaMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded" />
+                        </div> 
+                        <div className="bg-red-50/50 p-3 rounded border border-red-100">
+                          <label className="text-sm block mb-1 font-bold text-red-800">No WA Ketua Mersi</label>
+                          <input required type="text" value={kontak.noTelponMersi || ""} onChange={(e) => setKontak({...kontak, noTelponMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0812..." />
+                        </div> 
+                        <div className="bg-stone-50 p-3 rounded border border-stone-200 row-span-2">
+                          <label className="text-sm block mb-1 font-bold text-stone-700">Email Utama Mersi</label>
+                          <input required type="email" value={kontak.emailMersi || ""} onChange={(e) => setKontak({...kontak, emailMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="sekremersi@gmail.com" />
+                          
+                          <label className="text-sm block mb-1 font-bold text-stone-700">Email Utama BK</label>
+                          <input required type="email" value={kontak.emailBk || ""} onChange={(e) => setKontak({...kontak, emailBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="sekrebk@gmail.com" />
+
+                          <label className="text-sm block mb-1 font-bold text-stone-700">No WA Admin Skripsi (Bersama)</label>
+                          <input required type="text" value={kontak.noSkripsi || ""} onChange={(e) => setKontak({...kontak, noSkripsi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="Cth: 0823..." />
+                        </div> 
+                        
+                        <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
+                          <label className="text-sm block mb-1 font-bold text-amber-700">Nama Ketua BK</label>
+                          <input required type="text" value={kontak.namaKetuaBk || ""} onChange={(e) => setKontak({...kontak, namaKetuaBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" />
+                        </div> 
+                        <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
+                          <label className="text-sm block mb-1 font-bold text-amber-700">No WA Ketua BK</label>
+                          <input required type="text" value={kontak.noTelponBk || ""} onChange={(e) => setKontak({...kontak, noTelponBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0852..." />
+                        </div> 
+
+                        <div className="bg-red-50/50 p-3 rounded border border-red-100">
+                          <label className="text-sm block mb-1 font-bold text-red-800">No WA Humas Mersi</label>
+                          <input required type="text" value={kontak.noHumasMersi || ""} onChange={(e) => setKontak({...kontak, noHumasMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0852..." />
+                        </div>
+                        <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
+                          <label className="text-sm block mb-1 font-bold text-amber-700">No WA Humas BK</label>
+                          <input required type="text" value={kontak.noHumasBk || ""} onChange={(e) => setKontak({...kontak, noHumasBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0852..." />
+                        </div>
+                      </div> 
                       
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-red-50/40 p-6 rounded-xl border border-red-100 mb-8">
-                        <div className="space-y-4">
-                          <h4 className="font-bold text-red-900 text-sm border-b border-red-200 pb-2">Kontak Pengurus Mersi</h4>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Nama Ketua Mersi</label>
-                            <input required type="text" value={kontak.namaKetuaMersi || ""} onChange={(e) => setKontak({...kontak, namaKetuaMersi: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">No WA Ketua Mersi</label>
-                            <input required type="text" value={kontak.noTelponMersi || ""} onChange={(e) => setKontak({...kontak, noTelponMersi: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="Cth: 0812..." />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">No WA Humas Mersi</label>
-                            <input required type="text" value={kontak.noHumasMersi || ""} onChange={(e) => setKontak({...kontak, noHumasMersi: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="Cth: 0852..." />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Email Mersi</label>
-                            <input required type="email" value={kontak.emailMersi || ""} onChange={(e) => setKontak({...kontak, emailMersi: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="sekremersi@gmail.com" />
-                          </div>
+                      <h3 className="font-semibold text-blue-800 border-l-2 border-blue-500 pl-2 mt-6">Sosial Media Asrama</h3> 
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 border rounded-lg"> 
+                        <div className="border-r border-slate-200 pr-4">
+                          <label className="text-xs font-bold block mb-1 text-slate-600">Tampilan IG Mersi</label>
+                          <input required type="text" value={kontak.namaIgMersi || ""} onChange={(e) => setKontak({...kontak, namaIgMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="@asramamerapisinggalang" />
+                          <label className="text-xs font-bold block mb-1 text-slate-600">Link Akun IG Mersi</label>
+                          <input required type="url" value={kontak.linkIgMersi || ""} onChange={(e) => setKontak({...kontak, linkIgMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-5" placeholder="https://instagram.com/..." />
+                          
+                          <label className="text-xs font-bold block mb-1 text-slate-600">Tampilan IG BK</label>
+                          <input required type="text" value={kontak.namaIgBk || ""} onChange={(e) => setKontak({...kontak, namaIgBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="@asramaputribk" />
+                          <label className="text-xs font-bold block mb-1 text-slate-600">Link Akun IG BK</label>
+                          <input required type="url" value={kontak.linkIgBk || ""} onChange={(e) => setKontak({...kontak, linkIgBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="https://instagram.com/..." />
+                        </div> 
+                        <div className="pl-2">
+                          <label className="text-xs font-bold block mb-1 text-slate-600">Tampilan Nama Tiktok (Bersama)</label>
+                          <input required type="text" value={kontak.namaTiktok || ""} onChange={(e) => setKontak({...kontak, namaTiktok: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="@asrama.mersi" />
+                          <label className="text-xs font-bold block mb-1 text-slate-600">Link URL Akun Tiktok (Bersama)</label>
+                          <input required type="url" value={kontak.linkTiktok || ""} onChange={(e) => setKontak({...kontak, linkTiktok: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="https://tiktok.com/..." />
+                        </div> 
+                      </div> 
+
+                      {/* --- TAMBAHAN BLOK MAPS / LOKASI --- */}
+                      <h3 className="font-semibold text-emerald-800 border-l-2 border-emerald-500 pl-2 mt-6">Lokasi & Google Maps</h3> 
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
+                        {/* Maps Mersi */}
+                        <div className="bg-red-50 p-4 border border-red-100 rounded-lg">
+                          <h4 className="font-bold text-red-900 mb-3 text-sm">Titik Temu Mersi</h4>
+                          <label className="text-xs font-bold block mb-1 text-red-800">Alamat Teks Lengkap</label>
+                          <textarea rows="2" required value={kontak.alamatMersi || ""} onChange={(e) => setKontak({...kontak, alamatMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm"></textarea>
+                          
+                          <label className="text-xs font-bold block mb-1 text-red-800">Link Google Maps (Untuk Tombol Buka di Maps)</label>
+                          <input required type="url" value={kontak.linkMapMersi || ""} onChange={(e) => setKontak({...kontak, linkMapMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm" placeholder="https://www.google.com/maps/search/?api=1&query=..." />
+                          
+                          <label className="text-xs font-bold block mb-1 text-red-800">Link Embed/Iframe (Untuk Gambar Peta)</label>
+                          <p className="text-[10px] text-red-700 mb-1 italic">Ambil dari Gmaps {'>'} Share {'>'} Embed a map {'>'} Copy src="..." saja.</p>
+                          <input required type="url" value={kontak.iframeMapMersi || ""} onChange={(e) => setKontak({...kontak, iframeMapMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded text-sm" placeholder="https://www.google.com/maps/embed?pb=..." />
                         </div>
 
-                        <div className="space-y-4">
-                          <h4 className="font-bold text-red-900 text-sm border-b border-red-200 pb-2">Media Sosial Mersi</h4>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Tampilan Nama Instagram</label>
-                            <input required type="text" value={kontak.namaIgMersi || ""} onChange={(e) => setKontak({...kontak, namaIgMersi: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="@asramamerapisinggalang" />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Link URL Akun Instagram</label>
-                            <input required type="url" value={kontak.linkIgMersi || ""} onChange={(e) => setKontak({...kontak, linkIgMersi: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="https://instagram.com/..." />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Tampilan Nama Tiktok</label>
-                            <input required type="text" value={kontak.namaTiktokMersi || ""} onChange={(e) => setKontak({...kontak, namaTiktokMersi: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="@asrama.mersi" />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Link URL Akun Tiktok</label>
-                            <input required type="url" value={kontak.linkTiktokMersi || ""} onChange={(e) => setKontak({...kontak, linkTiktokMersi: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="https://tiktok.com/..." />
-                          </div>
-                        </div>
-                      </div>
-
-                      <h3 className="font-semibold text-amber-600 border-l-4 border-amber-500 pl-3 mb-4 text-lg">Kontak & Media Sosial - BUNDO KANDUANG</h3> 
-                      
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-amber-50/40 p-6 rounded-xl border border-amber-200 mb-8">
-                        <div className="space-y-4">
-                          <h4 className="font-bold text-amber-900 text-sm border-b border-amber-200 pb-2">Kontak Pengurus BK</h4>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Nama Ketua BK</label>
-                            <input required type="text" value={kontak.namaKetuaBk || ""} onChange={(e) => setKontak({...kontak, namaKetuaBk: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">No WA Ketua BK</label>
-                            <input required type="text" value={kontak.noTelponBk || ""} onChange={(e) => setKontak({...kontak, noTelponBk: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="Cth: 0852..." />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">No WA Humas BK</label>
-                            <input required type="text" value={kontak.noHumasBk || ""} onChange={(e) => setKontak({...kontak, noHumasBk: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="Cth: 0852..." />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Email BK</label>
-                            <input required type="email" value={kontak.emailBk || ""} onChange={(e) => setKontak({...kontak, emailBk: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="asramabk@gmail.com" />
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <h4 className="font-bold text-amber-900 text-sm border-b border-amber-200 pb-2">Media Sosial BK</h4>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Tampilan Nama Instagram BK</label>
-                            <input required type="text" value={kontak.namaIgBk || ""} onChange={(e) => setKontak({...kontak, namaIgBk: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="@asramabk" />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Link URL Akun Instagram BK</label>
-                            <input required type="url" value={kontak.linkIgBk || ""} onChange={(e) => setKontak({...kontak, linkIgBk: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="https://instagram.com/..." />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Tampilan Nama Tiktok BK</label>
-                            <input required type="text" value={kontak.namaTiktokBk || ""} onChange={(e) => setKontak({...kontak, namaTiktokBk: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="@asramabk_tiktok" />
-                          </div>
-                          <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-1">Link URL Akun Tiktok BK</label>
-                            <input required type="url" value={kontak.linkTiktokBk || ""} onChange={(e) => setKontak({...kontak, linkTiktokBk: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="https://tiktok.com/..." />
-                          </div>
+                        {/* Maps BK */}
+                        <div className="bg-amber-50 p-4 border border-amber-200 rounded-lg">
+                          <h4 className="font-bold text-amber-900 mb-3 text-sm">Titik Temu Bundo Kanduang</h4>
+                          <label className="text-xs font-bold block mb-1 text-amber-800">Alamat Teks Lengkap</label>
+                          <textarea rows="2" required value={kontak.alamatBk || ""} onChange={(e) => setKontak({...kontak, alamatBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm"></textarea>
+                          
+                          <label className="text-xs font-bold block mb-1 text-amber-800">Link Google Maps (Untuk Tombol Buka di Maps)</label>
+                          <input required type="url" value={kontak.linkMapBk || ""} onChange={(e) => setKontak({...kontak, linkMapBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm" placeholder="https://www.google.com/maps/search/?api=1&query=..." />
+                          
+                          <label className="text-xs font-bold block mb-1 text-amber-800">Link Embed/Iframe (Untuk Gambar Peta)</label>
+                          <p className="text-[10px] text-amber-700 mb-1 italic">Ambil dari Gmaps {'>'} Share {'>'} Embed a map {'>'} Copy src="..." saja.</p>
+                          <input required type="url" value={kontak.iframeMapBk || ""} onChange={(e) => setKontak({...kontak, iframeMapBk: e.target.value})} className="w-full px-3 py-1.5 border rounded text-sm" placeholder="https://www.google.com/maps/embed?pb=..." />
                         </div>
                       </div>
 
-                      <h3 className="font-semibold text-stone-800 border-l-4 border-stone-500 pl-3 mb-4 text-lg">Kontak Akademik (Umum)</h3>
-                      <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 mb-8 max-w-lg">
-                        <label className="text-xs font-bold text-slate-700 block mb-1">No WA Admin Skripsi (Digunakan oleh pengunjung web)</label>
-                        <input required type="text" value={kontak.noSkripsi || ""} onChange={(e) => setKontak({...kontak, noSkripsi: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm" placeholder="Cth: 0823..." />
-                      </div>
                     </div> 
 
                     <div className="space-y-4 pt-4 border-t"> 
@@ -1214,7 +1179,6 @@ export default function AdminDashboard() {
                           <textarea required rows="3" value={profilText.misi_mersi} onChange={(e) => setProfilText({...profilText, misi_mersi: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
                         </div> 
                       </div> 
-                      
                       <h3 className="font-semibold text-amber-600 border-l-2 border-amber-500 pl-2 mt-4">Halaman Profil - Visi Misi Bundo Kanduang</h3> 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-amber-50 p-4 rounded border border-amber-200"> 
                         <div>
@@ -1235,10 +1199,7 @@ export default function AdminDashboard() {
                         <textarea required rows="2" value={profilText.jejakAlumni} onChange={(e) => setProfilText({...profilText, jejakAlumni: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea>
                       </div> 
                     </div> 
-                    
-                    <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-3 rounded-md font-bold w-full md:w-auto">
-                      Simpan Teks Utama
-                    </button> 
+                    <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-3 rounded-md font-bold w-full md:w-auto">Simpan Teks Utama</button> 
                   </form> 
                 </div> 
 
@@ -1263,9 +1224,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="flex flex-col md:flex-row gap-3 pt-2">
-                      <button type="submit" disabled={loading} className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-md font-semibold w-full md:w-auto">
-                        {editSejarahId ? "Simpan Perubahan" : "Tambah Lembaran"}
-                      </button>
+                      <button type="submit" disabled={loading} className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-md font-semibold w-full md:w-auto">{editSejarahId ? "Simpan Perubahan" : "Tambah Lembaran"}</button>
                       {editSejarahId && <button type="button" onClick={() => { setEditSejarahId(null); setJudulSejarah(""); setIsiSejarah(""); }} className="bg-stone-500 hover:bg-stone-600 text-white px-6 py-2 rounded-md font-semibold w-full md:w-auto">Batal Edit</button>}
                     </div>
                   </form>
@@ -1324,7 +1283,6 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
               <h2 className="text-lg font-bold mb-4 border-b pb-2">Status Kapasitas Asrama</h2> 
               <form onSubmit={handleSaveStatusAsrama} className="space-y-8"> 
-                
                 <div className="bg-red-50 p-5 rounded-lg border border-red-100">
                   <h3 className="font-bold text-red-800 mb-3 border-b border-red-200 pb-2">Data Mersi</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
@@ -1367,9 +1325,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-md font-bold transition-colors">
-                  Simpan Status Kapasitas
-                </button> 
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-md font-bold transition-colors">Simpan Status Kapasitas</button> 
               </form> 
             </div> 
             
