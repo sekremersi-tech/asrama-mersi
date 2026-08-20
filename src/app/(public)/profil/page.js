@@ -48,6 +48,9 @@ export default function ProfilAsrama() {
   const [isAnimasiFlip, setIsAnimasiFlip] = useState(false);
   const [arahFlip, setArahFlip] = useState("");
 
+  // STATE BARU: Untuk menyimpan foto yang sedang di-zoom dari Galeri
+  const [zoomedDokumentasi, setZoomedDokumentasi] = useState(null);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -103,8 +106,7 @@ export default function ProfilAsrama() {
     const imageUrl = Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar;
     return {
       image: imageUrl || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar",
-      alt: item.konteks || "Dokumentasi Asrama",
-      caption: item.konteks || ""
+      alt: item.konteks || "Dokumentasi Asrama"
     };
   });
 
@@ -166,6 +168,21 @@ export default function ProfilAsrama() {
           100% { transform: rotateY(0deg) skewY(0deg); opacity: 1; }
         }
       `}</style>
+
+      {/* MODAL ZOOM DOKUMENTASI (FOTO ASRAMA) */}
+      {zoomedDokumentasi && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 md:p-8 animate-[fadeIn_0.3s_ease-out]" onClick={() => { setZoomedDokumentasi(null); document.body.style.overflow = "auto"; }}>
+          <button onClick={() => { setZoomedDokumentasi(null); document.body.style.overflow = "auto"; }} className="absolute top-4 md:top-8 right-4 md:right-8 text-white/50 hover:text-white transition-colors z-50 p-2">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+          <img 
+            src={zoomedDokumentasi} 
+            alt="Zoomed Dokumentasi" 
+            className="max-w-full max-h-[90vh] object-contain drop-shadow-2xl rounded-md cursor-auto" 
+            onClick={e => e.stopPropagation()} 
+          />
+        </div>
+      )}
 
       <HeroSlider images={bgProfil} title="Profil Asrama" />
 
@@ -243,6 +260,7 @@ export default function ProfilAsrama() {
             <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Kilas Balik Suasana</h4>
             <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair mb-4">Dokumentasi Profil Asrama</h2>
             <div className="w-12 h-1 bg-red-800 mx-auto rounded-full"></div>
+            <p className="text-stone-500 text-sm mt-4 italic">Sentuh / Klik foto yang di tengah untuk memperbesar.</p>
           </div>
           
           <div style={{ height: '600px', position: 'relative' }}>
@@ -267,6 +285,10 @@ export default function ProfilAsrama() {
               autoplayDelay={3500}
               showControls={true}
               showIndicators={true}
+              onActiveCardClick={(item) => {
+                setZoomedDokumentasi(item.image);
+                document.body.style.overflow = "hidden";
+              }}
             />
           </div>
         </div>
