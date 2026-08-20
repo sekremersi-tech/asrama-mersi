@@ -265,9 +265,12 @@ export default function JejakPrestasi() {
         @keyframes slideNextIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slidePrevOut { to { transform: translateX(50px); opacity: 0; } }
         @keyframes slidePrevIn { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* MODAL FOTO FULL ALUMNI (DETAIL LENGKAP TANPA LANYARD) */}
+      {/* MODAL FOTO FULL ALUMNI (DETAIL LENGKAP BINGKAI SEWARNA) */}
       {selectedAlumni && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8 animate-[fadeIn_0.3s_ease-out]" onClick={closeAlumniModal}>
           <button onClick={closeAlumniModal} className="absolute top-4 md:top-8 right-4 md:right-8 text-white hover:text-amber-500 transition-colors z-50 p-2">
@@ -276,12 +279,15 @@ export default function JejakPrestasi() {
           
           <div className="bg-[#fcfbf9] w-full max-w-4xl max-h-[90vh] md:h-auto rounded-xl shadow-2xl flex flex-col md:flex-row overflow-hidden" onClick={e => e.stopPropagation()}>
             
-            {/* Kiri: Desain Foto Full Bingkai Minimalis */}
-            <div className="w-full md:w-2/5 bg-slate-800 p-8 flex items-center justify-center relative border-r border-slate-700">
-              <div className="bg-white p-3 rounded-lg shadow-2xl w-full max-w-[280px] aspect-[3/4] transition-transform duration-300 hover:scale-105">
+            {/* Kiri: Desain Foto Full Bingkai Merah Asrama */}
+            <div className="w-full md:w-2/5 bg-[#f4f2ec] p-8 md:p-12 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-[#e8e4db]">
+              <div className="relative group w-full max-w-[280px]">
+                 {/* Bingkai Latar (Merah) */}
+                 <div className="absolute inset-0 bg-red-800 transform rotate-3 rounded-lg shadow-xl transition-transform group-hover:rotate-6 duration-300"></div>
+                 {/* Foto Utama */}
                  <img 
                     src={selectedAlumni.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedAlumni.nama)}&background=991b1b&color=fff`} 
-                    className="w-full h-full object-cover rounded border border-stone-200" 
+                    className="relative z-10 w-full aspect-[3/4] object-cover rounded-lg shadow-md border-4 border-white transform transition-transform group-hover:-rotate-1 duration-300 bg-white" 
                     alt={selectedAlumni.nama} 
                  />
               </div>
@@ -430,10 +436,10 @@ export default function JejakPrestasi() {
         </div>
       </div>
 
-      {/* 2. DATABASE ALUMNI INTERAKTIF DENGAN KARTU RINGKAS */}
+      {/* 2. DATABASE ALUMNI INTERAKTIF DENGAN KARTU RINGKAS & FILTER KONTRAS */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         
-        {/* Filter Section */}
+        {/* Filter Section (Warna Teks Diperjelas) */}
         <div className="bg-white p-6 rounded-sm shadow-md border border-[#e8e4db] mb-8 flex flex-col lg:flex-row gap-4">
           <div className="w-full lg:w-1/3 relative">
             <input 
@@ -441,63 +447,63 @@ export default function JejakPrestasi() {
               placeholder="Cari nama, pekerjaan, skripsi..." 
               value={searchAlumni}
               onChange={(e) => setSearchAlumni(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-sans text-sm text-stone-800"
+              className="w-full pl-10 pr-4 py-3 bg-white border border-stone-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-red-800 font-sans text-sm text-stone-900 font-semibold shadow-sm"
             />
-            <svg className="absolute left-3 top-3.5 text-stone-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <svg className="absolute left-3 top-3.5 text-stone-500 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           </div>
           
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-2/3">
-            <select value={filterAngkatan} onChange={(e) => setFilterAngkatan(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm text-stone-800 focus:ring-2 focus:ring-amber-500 outline-none">
+            <select value={filterAngkatan} onChange={(e) => setFilterAngkatan(e.target.value)} className="w-full px-3 py-3 bg-white border border-stone-300 shadow-sm rounded-sm font-sans text-sm text-stone-900 font-semibold focus:ring-2 focus:ring-red-800 outline-none cursor-pointer">
               <option value="">Semua Angkatan</option>
               {optionAngkatan.map(opt => <option key={opt} value={opt}>Angkatan {opt}</option>)}
             </select>
-            <select value={filterAsal} onChange={(e) => setFilterAsal(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm text-stone-800 focus:ring-2 focus:ring-amber-500 outline-none">
+            <select value={filterAsal} onChange={(e) => setFilterAsal(e.target.value)} className="w-full px-3 py-3 bg-white border border-stone-300 shadow-sm rounded-sm font-sans text-sm text-stone-900 font-semibold focus:ring-2 focus:ring-red-800 outline-none cursor-pointer">
               <option value="">Semua Asal</option>
               {optionAsal.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
-            <select value={filterKampus} onChange={(e) => setFilterKampus(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm text-stone-800 focus:ring-2 focus:ring-amber-500 outline-none">
+            <select value={filterKampus} onChange={(e) => setFilterKampus(e.target.value)} className="w-full px-3 py-3 bg-white border border-stone-300 shadow-sm rounded-sm font-sans text-sm text-stone-900 font-semibold focus:ring-2 focus:ring-red-800 outline-none cursor-pointer">
               <option value="">Semua Kampus</option>
               {optionKampus.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
-            <select value={filterJurusan} onChange={(e) => setFilterJurusan(e.target.value)} className="w-full px-3 py-3 bg-stone-50 border border-stone-200 rounded-sm font-sans text-sm text-stone-800 focus:ring-2 focus:ring-amber-500 outline-none">
+            <select value={filterJurusan} onChange={(e) => setFilterJurusan(e.target.value)} className="w-full px-3 py-3 bg-white border border-stone-300 shadow-sm rounded-sm font-sans text-sm text-stone-900 font-semibold focus:ring-2 focus:ring-red-800 outline-none cursor-pointer">
               <option value="">Semua Jurusan</option>
               {optionJurusan.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
           </div>
         </div>
 
-        {/* Grid Alumni Cards - VERSI RINGKAS (KARTU NAMA) */}
+        {/* Grid Alumni Cards - VERSI RINGKAS (TANPA FOTO) */}
         {loading ? (
           <p className="text-center text-stone-500 py-10">Mencari data alumni...</p>
         ) : currentDataAlumni.length === 0 ? (
           <p className="text-center text-stone-500 bg-white p-12 border border-[#e8e4db] rounded-sm shadow-sm">Data alumni tidak ditemukan dengan filter tersebut.</p>
         ) : (
           <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {currentDataAlumni.map((item, idx) => (
                 <div 
                   key={item.id} 
                   onClick={() => openAlumniModal(item)}
-                  className="cursor-pointer bg-white rounded-sm shadow-md border border-[#e8e4db] overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group"
+                  className="cursor-pointer bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group relative"
                 >
-                  <div className="h-2 bg-red-800 w-full group-hover:bg-amber-500 transition-colors"></div>
-                  <div className="p-6 flex flex-col items-center text-center relative">
+                  <div className="h-1.5 bg-red-800 w-full group-hover:bg-amber-500 transition-colors"></div>
+                  <div className="p-5 flex flex-col h-full relative">
+                    
                     {/* Icon Klik Detail */}
-                    <div className="absolute top-3 right-3 text-stone-300 group-hover:text-amber-500 transition-colors">
+                    <div className="absolute top-4 right-4 text-stone-300 group-hover:text-red-800 transition-colors">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
                     </div>
 
-                    <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-20 h-20 object-cover rounded-full shadow-sm border-2 border-stone-100 mb-4" alt={item.nama} />
+                    <h3 className="font-playfair font-bold text-xl text-stone-900 leading-tight mb-3 pr-6 line-clamp-2">{item.nama}</h3>
                     
-                    <h3 className="font-playfair font-bold text-lg text-stone-900 leading-tight mb-3 line-clamp-1 px-2">{item.nama}</h3>
-                    
-                    <div className="flex flex-wrap justify-center gap-2 mb-4">
-                      {item.angkatanAsrama && <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Angk. {item.angkatanAsrama}</span>}
-                      {item.asal && <span className="bg-stone-100 text-stone-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">{item.asal}</span>}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {item.angkatanAsrama && <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-wider">Angk. {item.angkatanAsrama}</span>}
+                      {item.asal && <span className="bg-stone-100 text-stone-600 text-[10px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-wider">{item.asal}</span>}
                     </div>
 
-                    <div className="text-xs text-stone-500 font-sans px-2 flex flex-col gap-1 items-center">
-                       {item.kuliah && <span className="font-semibold text-stone-700">{item.kuliah}</span>}
+                    <div className="mt-auto pt-4 border-t border-stone-100 flex items-start gap-2 text-stone-600 text-sm font-sans font-medium">
+                       <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
+                       <span className="line-clamp-2 leading-snug">{item.kuliah || "Data Kampus Belum Ada"}</span>
                     </div>
                   </div>
                 </div>
