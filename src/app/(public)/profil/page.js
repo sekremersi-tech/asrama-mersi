@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
 import ProfileCard from "@/components/ProfileCard";
+import DepthCarousel from "@/components/DepthCarousel";
 
 const HeroSlider = ({ images, title }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
@@ -30,70 +31,6 @@ const HeroSlider = ({ images, title }) => {
     </div>
   );
 };
-
-const AutoSliderCard = ({ images, className }) => {
-  const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
-  const [idx, setIdx] = useState(0);
-
-  useEffect(() => {
-    if (imgArray.length <= 1) return;
-    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 3500);
-    return () => clearInterval(timer);
-  }, [imgArray.length]);
-
-  if (imgArray.length === 0) return <div className={`bg-stone-200 ${className}`}></div>;
-
-  return (
-    <div className={`relative overflow-hidden w-full h-full ${className}`}>
-      {imgArray.map((src, i) => (
-        <img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === idx ? "opacity-100 scale-105" : "opacity-0 scale-100"}`} alt="Dokumentasi Profil" />
-      ))}
-      {imgArray.length > 1 && (
-        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-lg border border-white/10 z-10 font-sans">
-          +{imgArray.length} Foto
-        </div>
-      )}
-    </div>
-  );
-};
-
-const StackedGallery = ({ data }) => {
-  const [activeIdx, setActiveIdx] = useState(0);
-  if (!data || data.length === 0) return null;
-
-  return (
-    <div className="w-full flex flex-col items-center">
-      <div className="relative w-full max-w-4xl h-[350px] md:h-[500px] flex items-center justify-center">
-        {data.map((item, idx) => {
-          const isActive = idx === activeIdx;
-          const isPrev = idx === (activeIdx - 1 + data.length) % data.length;
-          const isNext = idx === (activeIdx + 1) % data.length;
-          
-          let zIndex = 0; let transform = 'scale(0.75) translateY(-30px)'; let opacity = 0;
-          
-          if (isActive) { zIndex = 30; transform = 'scale(1) translateY(0)'; opacity = 1; }
-          else if (isPrev) { zIndex = 20; transform = 'scale(0.85) translateX(-50px) translateY(10px) rotate(-4deg)'; opacity = 0.5; }
-          else if (isNext) { zIndex = 20; transform = 'scale(0.85) translateX(50px) translateY(10px) rotate(4deg)'; opacity = 0.5; }
-
-          const images = Array.isArray(item.linkGambar) ? item.linkGambar : [item.linkGambar];
-          return (
-            <div key={item.id} className="absolute w-[85%] md:w-[65%] h-[90%] transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer shadow-2xl rounded-sm overflow-hidden border border-stone-200 bg-white" style={{ zIndex, transform, opacity, pointerEvents: isActive ? 'auto' : 'none' }} onClick={() => !isActive && setActiveIdx(idx)}>
-               <AutoSliderCard images={images} className="w-full h-[75%]" />
-               <div className="h-[25%] bg-white p-4 flex items-center justify-center border-t border-stone-100"><p className="text-stone-600 italic font-lora text-sm md:text-base text-center line-clamp-2">"{item.konteks}"</p></div>
-            </div>
-          );
-        })}
-        <button onClick={() => setActiveIdx((activeIdx - 1 + data.length) % data.length)} className="absolute left-0 md:left-4 z-40 bg-white/90 p-4 rounded-full shadow-lg text-stone-600 hover:text-red-800 transition-colors backdrop-blur-sm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-        <button onClick={() => setActiveIdx((activeIdx + 1) % data.length)} className="absolute right-0 md:right-4 z-40 bg-white/90 p-4 rounded-full shadow-lg text-stone-600 hover:text-red-800 transition-colors backdrop-blur-sm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
-      </div>
-      <div className="flex gap-2 mt-8 z-50">
-        {data.map((_, i) => (
-          <button key={i} onClick={() => setActiveIdx(i)} className={`h-2.5 rounded-full transition-all duration-500 ${i === activeIdx ? 'w-10 bg-amber-500' : 'w-2.5 bg-stone-300 hover:bg-stone-400'}`}></button>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export default function ProfilAsrama() {
   const [bgProfil, setBgProfil] = useState([]);
@@ -157,9 +94,19 @@ export default function ProfilAsrama() {
       setTimeout(() => {
         setHalAktif(newIndex);
         setIsAnimasiFlip(false);
-      }, 500); // Sinkron dengan durasi animasi CSS (0.5 detik)
+      }, 500); 
     }
   };
+
+  // MAPPING DATA UNTUK DEPTH CAROUSEL
+  const carouselItems = dataFotoProfil.map(item => {
+    const imageUrl = Array.isArray(item.linkGambar) ? item.linkGambar[0] : item.linkGambar;
+    return {
+      image: imageUrl || "https://placehold.co/600x400/e2e8f0/64748b?text=Tanpa+Gambar",
+      alt: item.konteks || "Dokumentasi Asrama",
+      caption: item.konteks || ""
+    };
+  });
 
   return (
     <div className="bg-[#f9f8f6] pb-24 font-lora overflow-x-hidden relative">
@@ -289,15 +236,39 @@ export default function ProfilAsrama() {
         </div>
       </div>
 
-      {/* 2. DOKUMENTASI */}
+      {/* 2. DOKUMENTASI MENGGUNAKAN DEPTH CAROUSEL 3D */}
       {dataFotoProfil.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-32 mb-32 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        <div className="w-full px-4 sm:px-6 lg:px-8 mt-32 mb-32 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
           <div className="text-center mb-12">
             <h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Kilas Balik Suasana</h4>
             <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-playfair mb-4">Dokumentasi Profil Asrama</h2>
             <div className="w-12 h-1 bg-red-800 mx-auto rounded-full"></div>
           </div>
-          <StackedGallery data={dataFotoProfil} />
+          
+          <div style={{ height: '600px', position: 'relative' }}>
+            <DepthCarousel
+              items={carouselItems}
+              depth={220}
+              spread={90}
+              tilt={22}
+              tiltDirection="right"
+              perspective={1400}
+              visibleCards={4}
+              falloff={0.2}
+              blur={6}
+              autoplay={true}
+              loop={true}
+              cardWidth={350}
+              cardHeight={450}
+              radius={8}
+              tint="#05060a"
+              duration={700}
+              ease="power3.out"
+              autoplayDelay={3500}
+              showControls={true}
+              showIndicators={true}
+            />
+          </div>
         </div>
       )}
 
