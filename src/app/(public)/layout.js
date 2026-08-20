@@ -10,13 +10,16 @@ export default function PublicLayout({ children }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
-  // STATE KONTAK YANG DIPERLUAS (Ada Mersi, BK, Sosmed)
+  // STATE KONTAK YANG DIPERLUAS (Mersi & BK Dipisah)
   const [kontak, setKontak] = useState({ 
-    namaKetuaMersi: "Ketua Mersi", noTelponMersi: "-", 
-    namaKetuaBk: "Ketua BK", noTelponBk: "-",
-    email: "sekremersi@gmail.com",
-    namaIg: "@asramamerapisinggalang", linkIg: "https://www.instagram.com/asramamerapisinggalang",
-    namaTiktok: "@asrama.mersi", linkTiktok: "https://www.tiktok.com/@asrama.mersi"
+    namaKetuaMersi: "", noTelponMersi: "", 
+    namaKetuaBk: "", noTelponBk: "",
+    emailMersi: "", emailBk: "",
+    namaIgMersi: "", linkIgMersi: "",
+    namaIgBk: "", linkIgBk: "",
+    namaTiktok: "", linkTiktok: "",
+    alamatMersi: "", linkMapMersi: "",
+    alamatBk: "", linkMapBk: ""
   });
 
   // CEK APAKAH INI HALAMAN VIEWER SKRIPSI
@@ -53,13 +56,20 @@ export default function PublicLayout({ children }) {
         setKontak({
           namaKetuaMersi: data.namaKetuaMersi || data.namaKetua || "Ketua Mersi",
           noTelponMersi: data.noTelponMersi || data.noTelpon || "-",
-          namaKetuaBk: data.namaKetuaBk || "Ketua Bundo Kanduang",
+          namaKetuaBk: data.namaKetuaBk || "Ketua BK",
           noTelponBk: data.noTelponBk || "-",
-          email: data.email || "sekremersi@gmail.com",
-          namaIg: data.namaIg || "@asramamerapisinggalang",
-          linkIg: data.linkIg || "https://instagram.com",
+          emailMersi: data.emailMersi || data.email || "sekremersi@gmail.com",
+          emailBk: data.emailBk || "",
+          namaIgMersi: data.namaIgMersi || data.namaIg || "@asramamerapisinggalang",
+          linkIgMersi: data.linkIgMersi || data.linkIg || "https://instagram.com",
+          namaIgBk: data.namaIgBk || "@asramaputribk",
+          linkIgBk: data.linkIgBk || "https://instagram.com",
           namaTiktok: data.namaTiktok || "@asrama.mersi",
-          linkTiktok: data.linkTiktok || "https://tiktok.com"
+          linkTiktok: data.linkTiktok || "https://tiktok.com",
+          alamatMersi: data.alamatMersi || "Jl. Marga Agung, Karangwaru, Kec. Tegalrejo, Kota Yogyakarta 55241",
+          linkMapMersi: data.linkMapMersi || "https://www.google.com/maps/search/?api=1&query=Asrama+Mahasiswa+Merapi+Singgalang",
+          alamatBk: data.alamatBk || "",
+          linkMapBk: data.linkMapBk || ""
         });
       }
     };
@@ -152,33 +162,35 @@ export default function PublicLayout({ children }) {
       {/* JIKA BUKAN HALAMAN VIEWER SKRIPSI, TAMPILKAN HEADER */}
       {!isViewerPage && (
         <nav className="bg-[#fcfbf9]/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-[#e8e4db]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-20 items-center">
               
-              <Link href="/" className="flex items-center gap-3 group shrink-0">
-                <div className="flex items-center gap-1">
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm border border-stone-200 shrink-0">
-                    <img src="/mersi.png" alt="Logo Mersi" className="w-6 h-6 object-contain" />
+              <Link href="/" className="flex items-center gap-4 group shrink-0">
+                {/* LOGO NAVBAR OVERLAPPING */}
+                <div className="flex items-center">
+                  <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-md border border-stone-200 z-20 group-hover:scale-105 transition-transform duration-300">
+                    <img src="/mersi.png" alt="Logo Mersi" className="w-7 h-7 object-contain" />
                   </div>
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm border border-stone-200 shrink-0 -ml-3 relative z-10">
-                    <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-6 h-6 object-contain" />
+                  <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-md border border-stone-200 -ml-4 z-10 group-hover:scale-105 transition-transform duration-300">
+                    <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-7 h-7 object-contain" />
                   </div>
                 </div>
-                {/* PENYESUAIAN NAMA DI NAVBAR */}
+                
+                {/* TEKS NAVBAR */}
                 <div className="hidden sm:flex flex-col justify-center">
-                  <span className="font-playfair font-bold text-lg md:text-xl text-stone-900 tracking-wide leading-tight">
+                  <span className="font-playfair font-bold text-xl md:text-2xl text-[#2a2626] tracking-wide leading-tight">
                     Asrama Pemerintah Sumbar
                   </span>
-                  <span className="text-[10px] text-stone-500 tracking-widest uppercase font-sans mt-0.5 hidden lg:block">
+                  <span className="text-[10px] text-stone-500 tracking-[0.15em] font-bold uppercase font-sans mt-0.5 hidden lg:block">
                     Merapi Singgalang & Bundo Kanduang
                   </span>
                 </div>
               </Link>
 
-              <div className="hidden lg:flex space-x-6 h-full">
+              <div className="hidden xl:flex space-x-6 h-full">
                 {navLinks.map((link, index) => (
                   <div key={link.name} className="relative group h-full flex items-center cursor-pointer">
-                    <Link href={link.path} className={`text-sm font-semibold transition-all py-2 border-b-2 ${pathname === link.path ? "border-red-800 text-red-800" : "border-transparent text-stone-600 hover:text-amber-600"}`}>
+                    <Link href={link.path} className={`text-[15px] font-semibold transition-all py-2 border-b-[3px] ${pathname === link.path ? "border-red-800 text-red-800" : "border-transparent text-stone-600 hover:text-amber-600"}`}>
                       {link.name}
                     </Link>
 
@@ -202,14 +214,14 @@ export default function PublicLayout({ children }) {
                 ))}
               </div>
 
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="lg:hidden p-2 text-stone-500 hover:text-amber-600 shrink-0">
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="xl:hidden p-2 text-stone-500 hover:text-amber-600 shrink-0">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
               </button>
             </div>
           </div>
 
           {isMenuOpen && (
-            <div className="lg:hidden bg-white border-t border-stone-100 px-4 py-4 space-y-2 shadow-lg max-h-[80vh] overflow-y-auto">
+            <div className="xl:hidden bg-white border-t border-stone-100 px-4 py-4 space-y-2 shadow-lg max-h-[80vh] overflow-y-auto">
               {navLinks.map((link) => (
                 <div key={link.name}>
                   <Link href={link.path} onClick={() => setIsMenuOpen(false)} className={`block px-4 py-3 rounded-lg font-medium text-sm transition-colors ${pathname === link.path ? "bg-red-50 text-red-800 border-l-4 border-red-800" : "text-stone-600 hover:bg-stone-50"}`}>
@@ -236,91 +248,146 @@ export default function PublicLayout({ children }) {
 
       {/* JIKA BUKAN HALAMAN VIEWER SKRIPSI, TAMPILKAN FOOTER */}
       {!isViewerPage && (
-        <footer className="bg-[#171412] text-stone-300 py-16 relative overflow-hidden">
+        <footer className="bg-[#171412] text-stone-300 py-16 md:py-20 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-800 via-amber-500 to-red-800"></div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 relative z-10">
+          <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8 relative z-10">
             
-            <div className="lg:col-span-1">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center gap-1 bg-white/10 p-1.5 rounded-full border border-white/20 shrink-0">
-                  <img src="/mersi.png" alt="Logo Mersi" className="w-8 h-8 object-contain shrink-0" />
-                  <img src="/BK.png" alt="Logo BK" className="w-8 h-8 object-contain shrink-0" />
+            {/* BLOK 1: IDENTITAS */}
+            <div className="lg:col-span-4 pr-0 lg:pr-8">
+              <div className="flex items-center gap-4 mb-6">
+                {/* WADAH LOGO KAPSUL */}
+                <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-3 py-2 rounded-full border border-white/10 shrink-0 shadow-lg">
+                  <img src="/mersi.png" alt="Logo Mersi" className="w-10 h-10 object-contain drop-shadow-md" />
+                  <div className="w-px h-8 bg-white/20"></div>
+                  <img src="/BK.png" alt="Logo BK" className="w-10 h-10 object-contain drop-shadow-md" />
                 </div>
-                {/* PENYESUAIAN NAMA DI FOOTER */}
+                
+                {/* TEKS IDENTITAS FOOTER */}
                 <div className="flex flex-col">
-                  <span className="font-playfair font-bold text-xl text-white tracking-wide leading-tight">Asrama Pemerintah <br/> Sumatera Barat</span>
-                  <span className="text-[10px] text-amber-500 tracking-widest uppercase font-sans mt-1">Merapi Singgalang & Bundo Kanduang</span>
+                  <span className="font-playfair font-bold text-2xl text-white tracking-wide leading-tight">Asrama <br/> Pemerintah <br/> Sumatera Barat</span>
                 </div>
               </div>
-              {/* PENJELASAN ASRAMA MAHASISWA SUMBAR DI JOGJA */}
-              <p className="text-sm leading-relaxed text-stone-400 font-lora">
+              <p className="text-amber-500 font-bold tracking-[0.1em] text-[10px] uppercase font-sans mb-4 ml-1">
+                Merapi Singgalang & Bundo Kanduang
+              </p>
+              <p className="text-[15px] leading-relaxed text-stone-400 font-lora">
                 Asrama mahasiswa untuk mahasiswa asal Sumatera Barat yang sedang menuntut ilmu di Daerah Istimewa Yogyakarta. Menjadi rumah tumbuh bersama, etalase prestasi, dan repositori intelektual bagi warga Asrama Mahasiswa Merapi Singgalang dan Asrama Putri Bundo Kanduang.
               </p>
             </div>
 
-            <div>
-              <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-sm font-sans">Navigasi Utama</h3>
-              <ul className="space-y-3 text-sm text-stone-400 font-lora">
-                <li><Link href="/beranda" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Beranda</Link></li>
-                <li><Link href="/profil" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Profil Asrama</Link></li>
-                <li><Link href="/fasilitas" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Fasilitas & Penyewaan</Link></li>
-                <li><Link href="/kehidupan" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Media & Publikasi</Link></li>
-                <li><Link href="/alumni" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600">›</span> Jejak & Prestasi</Link></li>
+            {/* BLOK 2: NAVIGASI */}
+            <div className="lg:col-span-2">
+              <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-[13px] font-sans">Navigasi Utama</h3>
+              <ul className="space-y-4 text-[15px] text-stone-400 font-lora">
+                <li><Link href="/beranda" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600 font-sans">›</span> Beranda</Link></li>
+                <li><Link href="/profil" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600 font-sans">›</span> Profil Asrama</Link></li>
+                <li><Link href="/fasilitas" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600 font-sans">›</span> Fasilitas & Penyewaan</Link></li>
+                <li><Link href="/kehidupan" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600 font-sans">›</span> Media & Publikasi</Link></li>
+                <li><Link href="/alumni" className="hover:text-amber-500 transition-colors flex items-center gap-2"><span className="text-stone-600 font-sans">›</span> Jejak & Prestasi</Link></li>
               </ul>
             </div>
 
-            <div>
-              <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-sm font-sans">Hubungi Kami</h3>
-              <ul className="space-y-4 text-sm text-stone-400 font-lora">
-                <li>
-                  <a href="https://www.google.com/maps/search/?api=1&query=Asrama+Mahasiswa+Merapi+Singgalang+Yogyakarta" target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 group hover:text-white transition-colors">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 mt-0.5 group-hover:text-amber-500 transition-colors"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                    <span className="leading-relaxed">Jl. Marga Agung, Karangwaru, Kec. Tegalrejo, Kota Yogyakarta 55241</span>
-                  </a>
-                </li>
-                {kontak.noTelponMersi !== "-" && (
+            {/* BLOK 3: HUBUNGI KAMI */}
+            <div className="lg:col-span-4">
+              <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-[13px] font-sans">Hubungi Kami</h3>
+              <ul className="space-y-5 text-[15px] text-stone-400 font-lora">
+                {kontak.alamatMersi && (
+                  <li>
+                    <a href={kontak.linkMapMersi} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 group hover:text-white transition-colors">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-600 shrink-0 mt-0.5 group-hover:text-amber-500 transition-colors"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      <span className="leading-relaxed">Mersi: {kontak.alamatMersi}</span>
+                    </a>
+                  </li>
+                )}
+                {kontak.alamatBk && (
+                  <li>
+                    <a href={kontak.linkMapBk} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 group hover:text-white transition-colors">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-500 shrink-0 mt-0.5 group-hover:text-red-500 transition-colors"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      <span className="leading-relaxed">BK: {kontak.alamatBk}</span>
+                    </a>
+                  </li>
+                )}
+                
+                {(kontak.noTelponMersi !== "-" && kontak.noTelponMersi !== "") && (
                   <li>
                     <a href={formatWhatsAppLink(kontak.noTelponMersi)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 group hover:text-white transition-colors">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 group-hover:text-amber-500 transition-colors"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-600 shrink-0 group-hover:text-amber-500 transition-colors"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                       <span>Ketua Mersi: {kontak.namaKetuaMersi}</span>
                     </a>
                   </li>
                 )}
-                {kontak.noTelponBk !== "-" && (
+                
+                {(kontak.noTelponBk !== "-" && kontak.noTelponBk !== "") && (
                   <li>
                     <a href={formatWhatsAppLink(kontak.noTelponBk)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 group hover:text-white transition-colors">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 group-hover:text-amber-500 transition-colors"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-500 shrink-0 group-hover:text-red-500 transition-colors"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                       <span>Ketua BK: {kontak.namaKetuaBk}</span>
                     </a>
                   </li>
                 )}
-                <li>
-                  <a href={`mailto:${kontak.email}`} className="flex items-center gap-3 group hover:text-white transition-colors">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 group-hover:text-amber-500 transition-colors">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                      <polyline points="22,6 12,13 2,6"></polyline>
-                    </svg>
-                    <span>{kontak.email}</span>
-                  </a>
-                </li>
+
+                {kontak.emailMersi && (
+                  <li>
+                    <a href={`mailto:${kontak.emailMersi}`} className="flex items-center gap-3 group hover:text-white transition-colors">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-600 shrink-0 group-hover:text-amber-500 transition-colors">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                      </svg>
+                      <span>{kontak.emailMersi}</span>
+                    </a>
+                  </li>
+                )}
+                {kontak.emailBk && (
+                  <li>
+                    <a href={`mailto:${kontak.emailBk}`} className="flex items-center gap-3 group hover:text-white transition-colors">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-500 shrink-0 group-hover:text-red-500 transition-colors">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                      </svg>
+                      <span>{kontak.emailBk}</span>
+                    </a>
+                  </li>
+                )}
               </ul>
             </div>
 
-            <div>
-              <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-sm font-sans">Sosial Media</h3>
-              <div className="flex flex-col gap-4 font-lora">
-                <a href={kontak.linkIg} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-stone-400 hover:text-white transition-colors group w-fit">
-                  <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center border border-stone-700 group-hover:border-amber-500 transition-colors"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg></div> {kontak.namaIg}
-                </a>
-                <a href={kontak.linkTiktok} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-stone-400 hover:text-white transition-colors group w-fit">
-                  <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center border border-stone-700 group-hover:border-amber-500 transition-colors"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg></div> {kontak.namaTiktok}
-                </a>
+            {/* BLOK 4: SOSIAL MEDIA */}
+            <div className="lg:col-span-2">
+              <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-[13px] font-sans">Sosial Media</h3>
+              <div className="flex flex-col gap-5 font-lora">
+                {kontak.linkIgMersi && (
+                  <a href={kontak.linkIgMersi} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-[15px] text-stone-400 hover:text-white transition-colors group w-fit">
+                    <div className="w-10 h-10 rounded-full bg-[#24211f] flex items-center justify-center border border-stone-800 group-hover:border-amber-500 transition-colors shrink-0">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                    </div> 
+                    {kontak.namaIgMersi}
+                  </a>
+                )}
+                
+                {kontak.linkIgBk && (
+                  <a href={kontak.linkIgBk} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-[15px] text-stone-400 hover:text-white transition-colors group w-fit">
+                    <div className="w-10 h-10 rounded-full bg-[#24211f] flex items-center justify-center border border-stone-800 group-hover:border-amber-500 transition-colors shrink-0">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                    </div> 
+                    {kontak.namaIgBk}
+                  </a>
+                )}
+
+                {kontak.linkTiktok && (
+                  <a href={kontak.linkTiktok} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-[15px] text-stone-400 hover:text-white transition-colors group w-fit">
+                    <div className="w-10 h-10 rounded-full bg-[#24211f] flex items-center justify-center border border-stone-800 group-hover:border-amber-500 transition-colors shrink-0">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg>
+                    </div> 
+                    {kontak.namaTiktok}
+                  </a>
+                )}
               </div>
             </div>
 
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-stone-800 flex flex-col items-center gap-4 relative z-10">
+          {/* HAK CIPTA & KREDIT */}
+          <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-stone-800/80 flex flex-col items-center gap-4 relative z-10">
             <p className="text-xs text-stone-500 font-sans tracking-wider text-center">
               © {new Date().getFullYear()} Asrama Pemerintah Sumatera Barat (Merapi Singgalang & Bundo Kanduang). Hak Cipta Dilindungi.
             </p>
