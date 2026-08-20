@@ -384,7 +384,7 @@ export default function PublicLayout({ children }) {
               <div className="flex items-center gap-1.5">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
                 <span>Dirancang oleh</span>
-                <a href="https://imam-portfolio-qb5g.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-400 font-bold transition-colors">Imam akbari</a>
+                <a href="https://imam-portfolio-qb5g.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-400 font-bold transition-colors">Imam akbari majid</a>
               </div>
               <span className="hidden md:block text-stone-700">•</span>
               <div className="flex items-center gap-1.5">
