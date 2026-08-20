@@ -10,7 +10,10 @@ const HeroSlider = ({ images, title, subtitle }) => {
   useEffect(() => { if (imgArray.length <= 1) return; const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000); return () => clearInterval(timer); }, [imgArray.length]);
   return (
     <div className="relative py-28 md:py-36 w-full bg-[#171412] flex flex-col items-center justify-center overflow-hidden text-center">
-      <div className="absolute inset-0 w-full h-full bg-[#171412]">{imgArray.map((bg, i) => (<div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-70' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>))}<div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/70 to-[#171412]/30 backdrop-blur-[1px]"></div></div>
+      <div className="absolute inset-0 w-full h-full bg-[#171412]">
+        {imgArray.map((bg, i) => (<div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-70' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>))}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/70 to-[#171412]/30 backdrop-blur-[1px]"></div>
+      </div>
       <div className="relative z-10 max-w-7xl mx-auto px-4 w-full flex flex-col items-center pb-8 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
         <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 font-playfair drop-shadow-lg">{title}</h1>
         {subtitle && <p className="text-stone-300 text-lg max-w-2xl mx-auto m-0 mb-6">{subtitle}</p>}
@@ -34,19 +37,60 @@ const AutoSliderCard = ({ images, className, onClick }) => {
   );
 };
 
+// KOMPONEN SLIDER BROSUR MANUAL (Bisa geser kiri-kanan)
+const BrosurSlider = ({ images }) => {
+  const [idx, setIdx] = useState(0);
+  const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
+
+  // Reset index jika asrama berubah
+  useEffect(() => { setIdx(0); }, [images]);
+
+  if (imgArray.length === 0) return (
+    <div className="text-white text-center p-8 flex flex-col items-center justify-center h-full">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mb-4 text-stone-600"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+      <p className="text-stone-400">Brosur belum tersedia.</p>
+    </div>
+  );
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center group">
+      <img src={imgArray[idx]} className="max-w-full max-h-[85vh] object-contain drop-shadow-2xl transition-opacity duration-500" alt={`Brosur ${idx + 1}`} />
+      {imgArray.length > 1 && (
+        <>
+          <button onClick={(e) => { e.stopPropagation(); setIdx(prev => (prev - 1 + imgArray.length) % imgArray.length); }} className="absolute left-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+          <button onClick={(e) => { e.stopPropagation(); setIdx(prev => (prev + 1) % imgArray.length); }} className="absolute right-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+          <div className="absolute bottom-6 bg-black/60 px-4 py-1.5 rounded-full text-white text-xs tracking-widest font-bold font-sans z-10">{idx + 1} / {imgArray.length}</div>
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function FasilitasAsrama() {
   const [bgFasilitas, setBgFasilitas] = useState([]);
   const [dataFasilitas, setDataFasilitas] = useState([]);
   const [dataPenyewaan, setDataPenyewaan] = useState([]); 
-  const [kontak, setKontak] = useState({ noTelpon: "-", noHumas: "-" });
-  const [loading, setLoading] = useState(true);
-  const [statusAsrama, setStatusAsrama] = useState({ kamar: "0", penghuni: "0", ketersediaan: "Penuh" });
   
-  const [brosurUrl, setBrosurUrl] = useState("");
+  // STATE KONTAK DAN BROSUR (Diperluas untuk Mersi & BK)
+  const [kontak, setKontak] = useState({ namaKetuaMersi: "", noTelponMersi: "-", namaKetuaBk: "", noTelponBk: "-", noHumas: "-" });
+  const [statusSemuaAsrama, setStatusSemuaAsrama] = useState({
+    mersi: { kamar: "0", penghuni: "0", ketersediaan: "Penuh" },
+    bk: { kamar: "0", penghuni: "0", ketersediaan: "Penuh" }
+  });
+  const [brosurUrls, setBrosurUrls] = useState({ mersi: [], bk: [] });
+  
+  const [loading, setLoading] = useState(true);
+  
+  // STATE TOGGLE TAB (Mersi / BK)
+  const [statusTab, setStatusTab] = useState("mersi");
+  const [daftarTab, setDaftarTab] = useState("mersi");
+  const [fasilitasTab, setFasilitasTab] = useState("mersi");
+  const [sewaTab, setSewaTab] = useState("mersi");
+
   const [showDaftarModal, setShowDaftarModal] = useState(false);
   const [isSubmittingDaftar, setIsSubmittingDaftar] = useState(false);
   
-  // STATE PENDAFTARAN DIPERBARUI (Hanya data teks, tanpa file)
+  // FORM PENDAFTARAN TEKS SAJA
   const [formDaftar, setFormDaftar] = useState({ nama: "", asal: "", email: "", noHp: "" });
   
   const [selectedItem, setSelectedItem] = useState(null);
@@ -55,8 +99,6 @@ export default function FasilitasAsrama() {
   const [komentarList, setKomentarList] = useState([]);
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
-
-  // State bantuan untuk melacak like secara lokal
   const [localLikes, setLocalLikes] = useState({});
 
   useEffect(() => {
@@ -64,14 +106,40 @@ export default function FasilitasAsrama() {
       try {
         const snapFoto = await getDoc(doc(db, "pengaturan", "tampilan"));
         if (snapFoto.exists() && snapFoto.data().fasilitas) setBgFasilitas(snapFoto.data().fasilitas);
+        
         const docKontak = await getDoc(doc(db, "pengaturan", "kontak"));
-        if (docKontak.exists()) setKontak(docKontak.data());
+        if (docKontak.exists()) {
+          const kd = docKontak.data();
+          setKontak({ 
+            namaKetuaMersi: kd.namaKetuaMersi || kd.namaKetua || "Ketua Mersi", 
+            noTelponMersi: kd.noTelponMersi || kd.noTelpon || "-", 
+            namaKetuaBk: kd.namaKetuaBk || "Ketua Bundo Kanduang", 
+            noTelponBk: kd.noTelponBk || "-", 
+            noHumas: kd.noHumas || "-" 
+          });
+        }
+        
         const docStatus = await getDoc(doc(db, "pengaturan", "statusAsrama"));
-        if (docStatus.exists()) setStatusAsrama(docStatus.data());
+        if (docStatus.exists()) {
+          const d = docStatus.data();
+          setStatusSemuaAsrama({
+            mersi: { kamar: d.kamarMersi || d.kamar || "0", penghuni: d.penghuniMersi || d.penghuni || "0", ketersediaan: d.ketersediaanMersi || d.ketersediaan || "Penuh" },
+            bk: { kamar: d.kamarBk || "0", penghuni: d.penghuniBk || "0", ketersediaan: d.ketersediaanBk || "Penuh" }
+          });
+        }
+        
         const docBrosur = await getDoc(doc(db, "pengaturan", "brosur"));
-        if (docBrosur.exists()) { setBrosurUrl(docBrosur.data().link || ""); }
+        if (docBrosur.exists()) { 
+          const d = docBrosur.data();
+          setBrosurUrls({
+            mersi: Array.isArray(d.linkMersi) ? d.linkMersi : (d.linkMersi ? [d.linkMersi] : (d.link ? [d.link] : [])),
+            bk: Array.isArray(d.linkBk) ? d.linkBk : (d.linkBk ? [d.linkBk] : [])
+          });
+        }
+
         const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "asc")));
         setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        
         const sewaSnap = await getDocs(query(collection(db, "daftar_penyewaan"), orderBy("createdAt", "desc")));
         setDataPenyewaan(sewaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (error) { console.error(error); } finally { setLoading(false); }
@@ -123,7 +191,6 @@ export default function FasilitasAsrama() {
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
 
-  // LOGIKA LIKE / UNLIKE
   const handleLikeKomentar = async (komenId) => {
     if (typeof window === 'undefined') return;
     const isCurrentlyLiked = localStorage.getItem(`liked_${komenId}`);
@@ -151,7 +218,6 @@ export default function FasilitasAsrama() {
     }
   };
 
-  // LOGIKA PENDAFTARAN BARU (TanPA Upload File, Langsung Masuk ke Database)
   const handleSubmitDaftar = async (e) => {
     e.preventDefault();
     if (!formDaftar.noHp.startsWith("08")) return alert("Nomor HP harus diawali dengan angka 08");
@@ -160,16 +226,16 @@ export default function FasilitasAsrama() {
 
     setIsSubmittingDaftar(true);
     try {
-      // Simpan data teks ke database tanpa perlu proses Cloudinary
       await addDoc(collection(db, "pendaftaran_asrama"), { 
         nama: formDaftar.nama, 
         asal: formDaftar.asal,
         email: formDaftar.email, 
         noHp: formDaftar.noHp, 
+        asramaTujuan: daftarTab, // Mersi atau BK
         waktuDaftar: serverTimestamp() 
       });
       
-      alert("Pendaftaran Awal Berhasil! Data Anda telah kami terima. Pengurus asrama akan segera menghubungi Anda melalui WhatsApp untuk proses selanjutnya.");
+      alert(`Pendaftaran Awal Berhasil! Data Anda telah kami terima. Pengurus Asrama ${daftarTab === 'mersi' ? 'Merapi Singgalang' : 'Bundo Kanduang'} akan segera menghubungi Anda melalui WhatsApp.`);
       closeDaftarModal();
       setFormDaftar({ nama: "", asal: "", email: "", noHp: "" });
     } catch (error) { 
@@ -183,10 +249,20 @@ export default function FasilitasAsrama() {
     if (!nomor || nomor === "-") return "#";
     let bersihkanNomor = nomor.replace(/\D/g, '');
     if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
-    let pesan = "Halo Kak, saya pengunjung website Asrama Merapi Singgalang.";
-    if (namaSewa) pesan = `Halo Kak, saya pengunjung website Asrama Merapi Singgalang. Saya ingin bertanya tentang penyewaan *${namaSewa}*.`;
+    let pesan = "Halo Admin Asrama, saya pengunjung website.";
+    if (namaSewa) pesan = `Halo Admin Asrama, saya pengunjung website. Saya ingin bertanya tentang penyewaan *${namaSewa}*.`;
     return `https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(pesan)}`;
   };
+
+  // FILTER DATA BERDASARKAN TOGGLE TAB
+  const filteredFasilitas = dataFasilitas.filter(f => (f.asrama || 'mersi') === fasilitasTab);
+  const filteredPenyewaan = dataPenyewaan.filter(s => (s.asrama || 'mersi') === sewaTab);
+  const currentStatus = statusSemuaAsrama[statusTab];
+  const currentBrosurImages = brosurUrls[daftarTab];
+
+  // Penentuan Kontak WA Pendaftaran
+  const waKetuaAktif = daftarTab === "mersi" ? kontak.noTelponMersi : kontak.noTelponBk;
+  const namaKetuaAktif = daftarTab === "mersi" ? kontak.namaKetuaMersi : kontak.namaKetuaBk;
 
   return (
     <div className="bg-[#f9f8f6] pb-24 min-h-screen text-left font-lora overflow-x-hidden relative">
@@ -198,18 +274,27 @@ export default function FasilitasAsrama() {
           
           <div className="bg-white w-full max-w-6xl md:w-fit rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[95vh]" onClick={e => e.stopPropagation()}>
             
-            {/* Kiri: Brosur */}
-            <div className="relative w-full md:w-auto bg-stone-900 flex items-center justify-center shrink-0 md:pr-[400px] lg:pr-[450px] md:min-h-[500px]">
-              {brosurUrl ? (
-                <img src={brosurUrl} className="w-full md:w-auto md:max-w-[50vw] max-h-[50vh] md:max-h-[95vh] object-contain block" alt="Brosur Asrama" />
-              ) : (
-                <div className="text-white text-center p-8"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-4 text-stone-600"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><p className="text-stone-400">Brosur belum tersedia.</p></div>
-              )}
+            {/* Kiri: Brosur Multi-Gambar dengan Slider */}
+            <div className="relative w-full md:w-[400px] lg:w-[450px] bg-stone-900 flex flex-col shrink-0 md:min-h-[500px]">
+              {/* Toggle Asrama Pendaftaran di atas brosur (Biar jelas mendaftar asrama apa) */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex bg-white/20 p-1 rounded-lg backdrop-blur-md border border-white/30 w-fit mx-auto shadow-xl">
+                 <button onClick={() => setDaftarTab("mersi")} className={`px-4 py-2 text-[10px] font-bold rounded-md transition-all font-sans uppercase tracking-wide ${daftarTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>Mersi</button>
+                 <button onClick={() => setDaftarTab("bk")} className={`px-4 py-2 text-[10px] font-bold rounded-md transition-all font-sans uppercase tracking-wide ${daftarTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>B. Kanduang</button>
+              </div>
+              
+              <div className="flex-grow w-full h-full pt-16">
+                 <BrosurSlider images={currentBrosurImages} />
+              </div>
             </div>
 
             {/* Kanan: Form Pendaftaran Singkat */}
-            <div className="w-full md:w-[400px] lg:w-[450px] md:absolute md:right-0 md:top-0 md:bottom-0 bg-[#fcfbf9] overflow-y-auto border-l border-stone-200">
-              <div className="p-6 md:p-10 flex flex-col h-max min-h-full">
+            <div className="w-full md:w-[400px] lg:w-[450px] md:relative bg-[#fcfbf9] overflow-y-auto border-l border-stone-200 hide-scrollbar flex flex-col max-h-[50vh] md:max-h-none">
+              <div className="p-6 md:p-10 flex flex-col flex-grow">
+                <div className="mb-2">
+                   <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${daftarTab === 'mersi' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                     Asrama {daftarTab === 'mersi' ? 'Merapi Singgalang' : 'Bundo Kanduang'}
+                   </span>
+                </div>
                 <h2 className="text-2xl md:text-3xl font-bold font-playfair text-[#1c1917] mb-2 leading-snug">Pendaftaran Warga</h2>
                 
                 <div className="mb-6 pb-4 border-b border-[#e8e4db]">
@@ -218,7 +303,7 @@ export default function FasilitasAsrama() {
                     <ul className="list-disc pl-5 space-y-1">
                       <li>Beragama Islam</li>
                       <li>Bergaris keturunan Minangkabau atau berasal dari Sumatera Barat</li>
-                      <li>Menempuh pendidikan tinggi (DI, DII, DIII, DIV, atau S1) di D.I. Yogyakarta</li>
+                      <li>Menempuh pendidikan tinggi (DI - S1) di D.I. Yogyakarta</li>
                     </ul>
                     <p className="pt-3 font-semibold text-amber-700 italic">Silakan lengkapi data awal Anda di bawah ini. Pengurus Asrama akan segera menghubungi Anda via WhatsApp untuk proses pemberkasan lanjutan.</p>
                   </div>
@@ -250,13 +335,13 @@ export default function FasilitasAsrama() {
                 <div className="mt-8 pt-6 border-t border-stone-200 font-sans">
                   <p className="text-xs text-[#44403c] font-bold mb-3 uppercase tracking-widest">Butuh Bantuan?</p>
                   <div className="flex flex-col gap-2">
-                    <a href={formatWhatsAppLink(kontak.noTelpon)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#44403c] hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
+                    <a href={formatWhatsAppLink(waKetuaAktif)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#44403c] hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                      Ketua Asrama ({kontak.noTelpon || "-"})
+                      Ketua Asrama: {namaKetuaAktif} ({waKetuaAktif || "-"})
                     </a>
                     <a href={formatWhatsAppLink(kontak.noHumas)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#44403c] hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                      Humas Asrama ({kontak.noHumas || "-"})
+                      Humas Umum Asrama ({kontak.noHumas || "-"})
                     </a>
                   </div>
                 </div>
@@ -357,15 +442,23 @@ export default function FasilitasAsrama() {
       <HeroSlider images={bgFasilitas} title="Fasilitas & Penyewaan" subtitle="Ruang fungsional yang mendukung produktivitas warga, serta layanan bakat yang disewakan untuk publik." />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
+        {/* TOGGLE TAB UNTUK STATUS ASRAMA */}
+        <div className="flex justify-center mb-6">
+          <div className="flex bg-white p-1 rounded-lg w-fit shadow-md border border-stone-200">
+            <button onClick={() => setStatusTab("mersi")} className={`px-6 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${statusTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
+            <button onClick={() => setStatusTab("bk")} className={`px-6 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${statusTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Bundo Kanduang</button>
+          </div>
+        </div>
+
         <div className="bg-[#fcfbf9] rounded-sm shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-[#e8e4db] p-8 grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-[#e8e4db]">
-          <div className="text-center px-4 pt-4 md:pt-0 flex flex-col items-center justify-center"><div className="text-5xl font-playfair font-bold text-stone-900 mb-2">{statusAsrama.kamar}</div><div className="text-xs font-bold tracking-widest uppercase text-stone-500 font-sans">Total Kamar</div></div>
-          <div className="text-center px-4 pt-8 md:pt-0 flex flex-col items-center justify-center"><div className="text-5xl font-playfair font-bold text-stone-900 mb-2">{statusAsrama.penghuni}</div><div className="text-xs font-bold tracking-widest uppercase text-stone-500 font-sans">Penghuni Aktif</div></div>
-          <div className="text-center px-4 pt-8 md:pt-0 flex flex-col items-center justify-center"><div className={`text-3xl md:text-4xl font-playfair font-bold mb-3 ${statusAsrama.ketersediaan === 'Tersedia' ? 'text-green-700' : 'text-red-800'}`}>{statusAsrama.ketersediaan === 'Tersedia' ? 'Tersedia' : 'Penuh'}</div><div className="text-xs font-bold tracking-widest uppercase text-stone-500 font-sans">Status Kuota</div></div>
+          <div className="text-center px-4 pt-4 md:pt-0 flex flex-col items-center justify-center"><div className="text-5xl font-playfair font-bold text-stone-900 mb-2">{currentStatus?.kamar || "0"}</div><div className="text-xs font-bold tracking-widest uppercase text-stone-500 font-sans">Total Kamar</div></div>
+          <div className="text-center px-4 pt-8 md:pt-0 flex flex-col items-center justify-center"><div className="text-5xl font-playfair font-bold text-stone-900 mb-2">{currentStatus?.penghuni || "0"}</div><div className="text-xs font-bold tracking-widest uppercase text-stone-500 font-sans">Penghuni Aktif</div></div>
+          <div className="text-center px-4 pt-8 md:pt-0 flex flex-col items-center justify-center"><div className={`text-3xl md:text-4xl font-playfair font-bold mb-3 ${currentStatus?.ketersediaan === 'Tersedia' ? 'text-green-700' : 'text-red-800'}`}>{currentStatus?.ketersediaan === 'Tersedia' ? 'Tersedia' : 'Penuh'}</div><div className="text-xs font-bold tracking-widest uppercase text-stone-500 font-sans">Status Kuota</div></div>
         </div>
       </div>
 
       <div id="pendaftaran" className="max-w-3xl mx-auto px-4 mt-28 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="text-center mb-12"><h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Informasi Pendaftaran</h4><h2 className="text-4xl font-bold text-stone-900 font-playfair mb-4">Penerimaan Warga Baru</h2><p className="text-stone-600 max-w-2xl mx-auto">Kami membuka kesempatan bagi mahasiswa perantau untuk bergabung dan menjadi bagian dari keluarga besar Asrama Mahasiswa Merapi Singgalang.</p></div>
+        <div className="text-center mb-12"><h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Informasi Pendaftaran</h4><h2 className="text-4xl font-bold text-stone-900 font-playfair mb-4">Penerimaan Warga Baru</h2><p className="text-stone-600 max-w-2xl mx-auto">Kami membuka kesempatan bagi mahasiswa perantau untuk bergabung dan menjadi bagian dari keluarga besar Asrama Pemerintah Sumatera Barat.</p></div>
         <div className="bg-white border border-[#e8e4db] p-8 md:p-12 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] text-center flex flex-col items-center">
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-800 border border-red-100 mb-6"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5c-1.3 0-2 .7-2 2v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></div>
           <h3 className="font-playfair text-2xl md:text-3xl font-bold text-stone-900 mb-4">Mari Bergabung Bersama Kami!</h3>
@@ -375,13 +468,21 @@ export default function FasilitasAsrama() {
       </div>
 
       <div id="fasilitas" className="max-w-7xl mx-auto px-4 mt-20 w-full text-left scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="flex items-center gap-4 mb-10 border-t border-[#e8e4db] pt-16">
-          <div className="w-14 h-14 bg-[#171412] rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div>
-          <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Fasilitas Asrama</h2><p className="text-stone-500 text-sm mt-1">Area penunjang keseharian warga asrama.</p></div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 border-t border-[#e8e4db] pt-16">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-[#171412] rounded-sm flex items-center justify-center text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div>
+            <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Fasilitas Asrama</h2><p className="text-stone-500 text-sm mt-1">Area penunjang keseharian warga asrama.</p></div>
+          </div>
+          {/* TOGGLE TAB FASILITAS */}
+          <div className="flex bg-stone-200 p-1 rounded-lg w-fit shadow-inner">
+            <button onClick={() => setFasilitasTab("mersi")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${fasilitasTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
+            <button onClick={() => setFasilitasTab("bk")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${fasilitasTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>B. Kanduang</button>
+          </div>
         </div>
-        {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat data...</p> : dataFasilitas.length === 0 ? <div className="bg-white p-12 rounded-sm border border-[#e8e4db] text-stone-500 text-center shadow-sm w-full">Belum ada fasilitas yang ditambahkan.</div> : (
+
+        {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat data...</p> : filteredFasilitas.length === 0 ? <div className="bg-white p-12 rounded-sm border border-[#e8e4db] text-stone-500 text-center shadow-sm w-full">Belum ada fasilitas yang ditambahkan untuk asrama ini.</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
-            {dataFasilitas.map(item => (
+            {filteredFasilitas.map(item => (
               <div key={item.id} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] border border-[#e8e4db] overflow-hidden flex flex-col transition-all duration-300 w-full text-left cursor-pointer group hover:-translate-y-1" onClick={() => openModal(item, "fasilitas")}>
                 <AutoSliderCard images={item.linkGambar} className="w-full h-64 bg-stone-100 shrink-0" />
                 <div className="p-8 flex flex-col flex-grow relative w-full text-left items-start justify-start">
@@ -396,13 +497,21 @@ export default function FasilitasAsrama() {
       </div>
 
       <div id="penyewaan" className="max-w-7xl mx-auto px-4 mt-28 mb-20 w-full text-left scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="flex items-center gap-4 mb-10 border-t border-amber-200 pt-16">
-          <div className="w-14 h-14 bg-amber-50 rounded-sm border border-amber-200 flex items-center justify-center text-amber-600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg></div>
-          <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Layanan & Penyewaan</h2><p className="text-stone-500 text-sm mt-1">Talenta seni budaya dan sarana yang disewakan untuk publik.</p></div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 border-t border-amber-200 pt-16">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-amber-50 rounded-sm border border-amber-200 flex items-center justify-center text-amber-600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg></div>
+            <div><h2 className="text-3xl font-bold text-stone-900 font-playfair">Layanan & Penyewaan</h2><p className="text-stone-500 text-sm mt-1">Talenta seni budaya dan sarana yang disewakan untuk publik.</p></div>
+          </div>
+          {/* TOGGLE TAB PENYEWAAN */}
+          <div className="flex bg-stone-200 p-1 rounded-lg w-fit shadow-inner">
+            <button onClick={() => setSewaTab("mersi")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${sewaTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
+            <button onClick={() => setSewaTab("bk")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${sewaTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>B. Kanduang</button>
+          </div>
         </div>
-        {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat data...</p> : dataPenyewaan.length === 0 ? <div className="bg-white p-12 rounded-sm border border-amber-200 text-stone-500 text-center shadow-sm w-full">Belum ada layanan yang ditambahkan.</div> : (
+        
+        {loading ? <p className="text-center py-20 text-stone-500 w-full">Memuat data...</p> : filteredPenyewaan.length === 0 ? <div className="bg-white p-12 rounded-sm border border-amber-200 text-stone-500 text-center shadow-sm w-full">Belum ada layanan yang ditambahkan untuk asrama ini.</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
-            {dataPenyewaan.map(item => (
+            {filteredPenyewaan.map(item => (
               <div key={item.id} onClick={() => openModal(item, "sewa")} className="bg-white rounded-sm shadow-[4px_4px_0px_0px_rgba(245,158,11,0.1)] border border-amber-200 overflow-hidden group flex flex-col transition-all duration-300 w-full text-left relative cursor-pointer hover:-translate-y-1">
                 <div className="absolute top-4 left-4 z-10 bg-amber-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-sm uppercase tracking-wider shadow-md font-sans">{item.kategori}</div>
                 <AutoSliderCard images={item.linkGambar} className="w-full h-64 bg-stone-100 shrink-0" />
