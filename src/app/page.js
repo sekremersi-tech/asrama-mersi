@@ -152,7 +152,7 @@ export default function Gateway() {
             Asrama Pemerintah Sumatera Barat
           </h2>
           <h1 className="text-4xl md:text-6xl font-serif text-white italic drop-shadow-lg leading-tight">
-            Merapi Singgalang & Bundo Kanduang <br/>
+            Asrama Mahasiswa Merapi Singgalang & Bundo Kanduang <br/>
           </h1>
           
           <p className="text-slate-300 mt-6 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
