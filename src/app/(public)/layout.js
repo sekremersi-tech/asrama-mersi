@@ -9,7 +9,15 @@ import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/fires
 export default function PublicLayout({ children }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [kontak, setKontak] = useState({ namaKetua: "Admin", noTelpon: "-" });
+  
+  // STATE KONTAK YANG DIPERLUAS (Ada Mersi, BK, Sosmed)
+  const [kontak, setKontak] = useState({ 
+    namaKetuaMersi: "Ketua Mersi", noTelponMersi: "-", 
+    namaKetuaBk: "Ketua BK", noTelponBk: "-",
+    email: "sekremersi@gmail.com",
+    namaIg: "@asramamerapisinggalang", linkIg: "https://www.instagram.com/asramamerapisinggalang",
+    namaTiktok: "@asrama.mersi", linkTiktok: "https://www.tiktok.com/@asrama.mersi"
+  });
 
   // CEK APAKAH INI HALAMAN VIEWER SKRIPSI
   const isViewerPage = pathname === "/skripsi-viewer";
@@ -36,11 +44,24 @@ export default function PublicLayout({ children }) {
     return () => { observer.disconnect(); mutationObserver.disconnect(); };
   }, [pathname]);
 
-  // 2. AMBIL DATA KONTAK
+  // 2. AMBIL DATA KONTAK DINAMIS DARI DATABASE
   useEffect(() => {
     const fetchKontak = async () => {
       const snap = await getDoc(doc(db, "pengaturan", "kontak"));
-      if(snap.exists()) setKontak(snap.data());
+      if(snap.exists()) {
+        const data = snap.data();
+        setKontak({
+          namaKetuaMersi: data.namaKetuaMersi || data.namaKetua || "Ketua Mersi",
+          noTelponMersi: data.noTelponMersi || data.noTelpon || "-",
+          namaKetuaBk: data.namaKetuaBk || "Ketua Bundo Kanduang",
+          noTelponBk: data.noTelponBk || "-",
+          email: data.email || "sekremersi@gmail.com",
+          namaIg: data.namaIg || "@asramamerapisinggalang",
+          linkIg: data.linkIg || "https://instagram.com",
+          namaTiktok: data.namaTiktok || "@asrama.mersi",
+          linkTiktok: data.linkTiktok || "https://tiktok.com"
+        });
+      }
     };
     fetchKontak();
   }, []);
@@ -135,11 +156,16 @@ export default function PublicLayout({ children }) {
             <div className="flex justify-between h-20 items-center">
               
               <Link href="/" className="flex items-center gap-3 group shrink-0">
-                <div className="w-10 h-10 bg-[#171412] rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-[2px_2px_0px_0px_rgba(180,83,9,1)] border border-stone-800 shrink-0">
-                  <img src="/mersi.png" alt="Logo Mersi" className="w-6 h-6 object-contain" />
+                <div className="flex items-center gap-1">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm border border-stone-200 shrink-0">
+                    <img src="/mersi.png" alt="Logo Mersi" className="w-6 h-6 object-contain" />
+                  </div>
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm border border-stone-200 shrink-0 -ml-3 relative z-10">
+                    <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-6 h-6 object-contain" />
+                  </div>
                 </div>
                 <span className="font-playfair font-bold text-lg md:text-xl text-stone-900 tracking-wide leading-tight hidden sm:block">
-                  Asrama Mahasiswa <br className="hidden lg:block"/><span className="lg:hidden"> </span>Merapi Singgalang
+                  Asrama Pemerintah <br className="hidden lg:block"/><span className="lg:hidden"> </span>Sumatera Barat
                 </span>
               </Link>
 
@@ -209,11 +235,14 @@ export default function PublicLayout({ children }) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 relative z-10">
             
             <div className="lg:col-span-1">
-              <div className="flex items-start gap-3 mb-6">
-                <img src="/mersi.png" alt="Logo Mersi" className="w-10 h-10 object-contain shrink-0" />
-                <span className="font-playfair font-bold text-xl text-white tracking-wide leading-tight">Asrama Mahasiswa <br/> Merapi Singgalang</span>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center gap-1 bg-white/10 p-1.5 rounded-full border border-white/20">
+                  <img src="/mersi.png" alt="Logo Mersi" className="w-8 h-8 object-contain shrink-0" />
+                  <img src="/BK.png" alt="Logo BK" className="w-8 h-8 object-contain shrink-0" />
+                </div>
+                <span className="font-playfair font-bold text-xl text-white tracking-wide leading-tight">Asrama Pemerintah <br/> Sumatera Barat</span>
               </div>
-              <p className="text-sm leading-relaxed text-stone-400 font-lora">Etalase prestasi dan repositori intelektual warga Asrama Mahasiswa Merapi Singgalang. Mengedepankan nilai kekeluargaan dan semangat perantau Minangkabau.</p>
+              <p className="text-sm leading-relaxed text-stone-400 font-lora">Etalase prestasi dan repositori intelektual warga Asrama Mahasiswa Merapi Singgalang dan Asrama Putri Bundo Kanduang. Mengedepankan nilai kekeluargaan dan semangat perantau Minangkabau.</p>
             </div>
 
             <div>
@@ -236,19 +265,29 @@ export default function PublicLayout({ children }) {
                     <span className="leading-relaxed">Jl. Marga Agung, Karangwaru, Kec. Tegalrejo, Kota Yogyakarta 55241</span>
                   </a>
                 </li>
+                {kontak.noTelponMersi !== "-" && (
+                  <li>
+                    <a href={formatWhatsAppLink(kontak.noTelponMersi)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 group hover:text-white transition-colors">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 group-hover:text-amber-500 transition-colors"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                      <span>Ketua Mersi: {kontak.namaKetuaMersi}</span>
+                    </a>
+                  </li>
+                )}
+                {kontak.noTelponBk !== "-" && (
+                  <li>
+                    <a href={formatWhatsAppLink(kontak.noTelponBk)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 group hover:text-white transition-colors">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 group-hover:text-amber-500 transition-colors"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                      <span>Ketua BK: {kontak.namaKetuaBk}</span>
+                    </a>
+                  </li>
+                )}
                 <li>
-                  <a href={formatWhatsAppLink(kontak.noTelpon)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 group hover:text-white transition-colors">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 group-hover:text-amber-500 transition-colors"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                    <span>Ketua: {kontak.namaKetua} ({kontak.noTelpon})</span>
-                  </a>
-                </li>
-                <li>
-                  <a href="mailto:sekremersi@gmail.com" className="flex items-center gap-3 group hover:text-white transition-colors">
+                  <a href={`mailto:${kontak.email}`} className="flex items-center gap-3 group hover:text-white transition-colors">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 group-hover:text-amber-500 transition-colors">
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                       <polyline points="22,6 12,13 2,6"></polyline>
                     </svg>
-                    <span>sekremersi@gmail.com</span>
+                    <span>{kontak.email}</span>
                   </a>
                 </li>
               </ul>
@@ -257,11 +296,11 @@ export default function PublicLayout({ children }) {
             <div>
               <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-sm font-sans">Sosial Media</h3>
               <div className="flex flex-col gap-4 font-lora">
-                <a href="https://www.instagram.com/asramamerapisinggalang" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-stone-400 hover:text-white transition-colors group w-fit">
-                  <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center border border-stone-700 group-hover:border-amber-500 transition-colors"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg></div> @asramamerapisinggalang
+                <a href={kontak.linkIg} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-stone-400 hover:text-white transition-colors group w-fit">
+                  <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center border border-stone-700 group-hover:border-amber-500 transition-colors"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg></div> {kontak.namaIg}
                 </a>
-                <a href="https://www.tiktok.com/@asrama.mersi" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-stone-400 hover:text-white transition-colors group w-fit">
-                  <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center border border-stone-700 group-hover:border-amber-500 transition-colors"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg></div> @asrama.mersi
+                <a href={kontak.linkTiktok} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-stone-400 hover:text-white transition-colors group w-fit">
+                  <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center border border-stone-700 group-hover:border-amber-500 transition-colors"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg></div> {kontak.namaTiktok}
                 </a>
               </div>
             </div>
@@ -270,10 +309,9 @@ export default function PublicLayout({ children }) {
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-stone-800 flex flex-col items-center gap-4 relative z-10">
             <p className="text-xs text-stone-500 font-sans tracking-wider text-center">
-              © {new Date().getFullYear()} Asrama Mahasiswa Merapi Singgalang Yogyakarta. Hak Cipta Dilindungi.
+              © {new Date().getFullYear()} Asrama Mahasiswa Merapi Singgalang & Bundo Kanduang. Hak Cipta Dilindungi.
             </p>
             
-            {/* KREDIT PEMBUAT WEBSITE */}
             <div className="flex flex-col md:flex-row items-center justify-center gap-3 text-[11px] text-stone-500 font-sans mt-2">
               <div className="flex items-center gap-1.5">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
