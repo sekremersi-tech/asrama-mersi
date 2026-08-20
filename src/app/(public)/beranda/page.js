@@ -8,15 +8,52 @@ import { collection, getDocs, query, orderBy, limit, doc, getDoc, addDoc, server
 const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
   const [idx, setIdx] = useState(0);
-  useEffect(() => { if (imgArray.length <= 1) return; const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000); return () => clearInterval(timer); }, [imgArray.length]);
+  
+  useEffect(() => { 
+    if (imgArray.length <= 1) return; 
+    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 4000); 
+    return () => clearInterval(timer); 
+  }, [imgArray.length]);
+  
   return (
     <section className="relative h-[80vh] flex items-center justify-center overflow-hidden bg-[#171412]">
-      <div className="absolute inset-0 w-full h-full bg-[#171412]">{imgArray.map((bg, i) => (<div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-100' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>))}<div className="absolute inset-0 bg-[#171412]/70"></div></div>
+      <div className="absolute inset-0 w-full h-full bg-[#171412]">
+        {imgArray.map((bg, i) => (
+          <div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${i === idx ? 'opacity-100' : 'opacity-0'}`} style={{ backgroundImage: `url('${bg}')` }}></div>
+        ))}
+        <div className="absolute inset-0 bg-[#171412]/70"></div>
+      </div>
+      
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-16 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <span className="inline-block py-1.5 px-4 rounded-full bg-red-800/90 text-amber-400 text-xs font-bold tracking-widest mb-6 border border-red-700/50 backdrop-blur-sm">ASRAMA MAHASISWA MERAPI SINGGALANG</span>
-        <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 font-playfair leading-tight">{titleLine1} <br/><span className="text-amber-500">{titleLine2}</span></h1>
+        {/* PENAMBAHAN 2 LOGO ASRAMA */}
+        <div className="flex justify-center items-center gap-6 mb-6">
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-sm rounded-full p-2 border border-white/20 shadow-lg flex items-center justify-center">
+            <img src="/mersi.png" alt="Logo Mersi" className="w-full h-full object-contain drop-shadow-md" />
+          </div>
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-sm rounded-full p-2 border border-white/20 shadow-lg flex items-center justify-center">
+            <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-full h-full object-contain drop-shadow-md" />
+          </div>
+        </div>
+
+        {/* PERUBAHAN LABEL ASRAMA PEMERINTAH SUMBAR */}
+        <span className="inline-block py-1.5 px-4 md:px-6 rounded-full bg-red-800/90 text-amber-400 text-xs md:text-sm font-bold tracking-widest mb-6 border border-red-700/50 backdrop-blur-sm uppercase">
+          Asrama Pemerintah Sumatera Barat
+        </span>
+        
+        <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 font-playfair leading-tight">
+          {titleLine1} <br/>
+          <span className="text-amber-500">{titleLine2}</span>
+        </h1>
         <p className="text-lg md:text-xl text-stone-300 mb-10 font-lora max-w-2xl mx-auto">{subtitle}</p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center font-sans"><Link href="/profil" className="bg-red-800 hover:bg-red-900 text-white px-8 py-3.5 rounded-lg font-semibold shadow-lg shadow-red-900/30 transition-all border border-red-700">Mengenal Asrama</Link><Link href="/kehidupan" className="bg-[#171412]/50 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 px-8 py-3.5 rounded-lg font-semibold transition-all backdrop-blur-sm">Lihat Media Publikasi</Link></div>
+        
+        <div className="flex flex-col sm:flex-row gap-4 justify-center font-sans">
+          <Link href="/profil" className="bg-red-800 hover:bg-red-900 text-white px-8 py-3.5 rounded-lg font-semibold shadow-lg shadow-red-900/30 transition-all border border-red-700">
+            Mengenal Asrama
+          </Link>
+          <Link href="/kehidupan" className="bg-[#171412]/50 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 px-8 py-3.5 rounded-lg font-semibold transition-all backdrop-blur-sm">
+            Lihat Media Publikasi
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -25,11 +62,20 @@ const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
 const AutoSliderCard = ({ images, className }) => {
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
   const [idx, setIdx] = useState(0);
-  useEffect(() => { if (imgArray.length <= 1) return; const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 3500); return () => clearInterval(timer); }, [imgArray.length]);
+  
+  useEffect(() => { 
+    if (imgArray.length <= 1) return; 
+    const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 3500); 
+    return () => clearInterval(timer); 
+  }, [imgArray.length]);
+  
   if (imgArray.length === 0) return <div className={`bg-stone-200 ${className}`}></div>;
+  
   return (
     <div className={`relative overflow-hidden group w-full h-full ${className}`}>
-      {imgArray.map((src, i) => (<img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 group-hover:scale-105 ease-in-out ${i === idx ? "opacity-100" : "opacity-0"}`} alt="Visual" />))}
+      {imgArray.map((src, i) => (
+        <img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 group-hover:scale-105 ease-in-out ${i === idx ? "opacity-100" : "opacity-0"}`} alt="Visual" />
+      ))}
       {imgArray.length > 1 && <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg border border-white/10 z-10 font-sans">+{imgArray.length} Foto</div>}
     </div>
   );
@@ -43,7 +89,7 @@ export default function Beranda() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalType, setModalType] = useState(""); 
   const [modalImageIdx, setModalImageIdx] = useState(0);
-  
+
   const [showLombaModal, setShowLombaModal] = useState(false);
   const [formLomba, setFormLomba] = useState({ nama: "", alamat: "", noHp: "" });
   const [isSubmittingLomba, setIsSubmittingLomba] = useState(false);
@@ -52,7 +98,6 @@ export default function Beranda() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
-  // State bantuan untuk melacak like secara lokal
   const [localLikes, setLocalLikes] = useState({});
 
   useEffect(() => {
@@ -87,8 +132,7 @@ export default function Beranda() {
         const snap = await getDocs(q);
         let comments = snap.docs.map(d => ({id: d.id, ...d.data()}));
         comments.sort((a, b) => (b.waktu?.toMillis() || 0) - (a.waktu?.toMillis() || 0));
-        
-        // Setup local likes
+
         let likesMap = {};
         comments.forEach(c => { likesMap[c.id] = c.likes || 0; });
         setLocalLikes(likesMap);
@@ -96,7 +140,7 @@ export default function Beranda() {
       } catch(e) { console.error(e); }
     }
   };
-  
+
   const closeModal = () => { setSelectedItem(null); setShowLombaModal(false); setKomentarList([]); setLocalLikes({}); setFormKomen({ nama: "", isi: "" }); document.body.style.overflow = "auto"; };
   const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
   const nextModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev + 1) % modalImages.length); };
@@ -122,7 +166,7 @@ export default function Beranda() {
       const judulPostingan = selectedItem.judul || selectedItem.nama || "Publikasi Beranda";
       const newKomen = { postId: targetId, postJudul: judulPostingan, nama: formKomen.nama.trim() || "Anonim", isi: formKomen.isi.trim(), likes: 0, waktu: serverTimestamp() };
       const docRef = await addDoc(collection(db, "komentar_publikasi"), newKomen);
-      
+
       const addedKomen = {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } };
       setKomentarList([addedKomen, ...komentarList]);
       setLocalLikes(prev => ({ ...prev, [docRef.id]: 0 }));
@@ -130,13 +174,11 @@ export default function Beranda() {
     } catch (err) { alert("Gagal mengirim! Error: " + err.message); } finally { setIsSubmittingKomen(false); }
   };
 
-  // LOGIKA LIKE / UNLIKE
   const handleLikeKomentar = async (komenId) => {
     if (typeof window === 'undefined') return;
     const isCurrentlyLiked = localStorage.getItem(`liked_${komenId}`);
 
     if (isCurrentlyLiked) {
-      // PROSES UNLIKE (BATAL SUKA)
       try {
         localStorage.removeItem(`liked_${komenId}`);
         setLocalLikes(prev => ({ ...prev, [komenId]: Math.max(0, (prev[komenId] || 0) - 1) }));
@@ -147,7 +189,6 @@ export default function Beranda() {
         setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
       }
     } else {
-      // PROSES LIKE (SUKA)
       try {
         localStorage.setItem(`liked_${komenId}`, 'true');
         setLocalLikes(prev => ({ ...prev, [komenId]: (prev[komenId] || 0) + 1 }));
@@ -164,17 +205,17 @@ export default function Beranda() {
     if (!nomor || nomor === "-") return "#";
     let bersihkanNomor = nomor.replace(/\D/g, '');
     if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
-    return `https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(`Halo Uda/Uni, saya pengunjung website Asrama Merapi Singgalang. Saya ingin bertanya tentang penyewaan *${namaSewa}*.`)}`;
+    return `https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(`Halo Admin, saya pengunjung website Asrama. Saya ingin bertanya tentang penyewaan *${namaSewa}*.`)}`;
   };
 
   return (
     <div className="bg-[#f9f8f6] font-lora overflow-x-hidden relative">
-      
+
       {/* MODAL POP-UP */}
       {selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={closeModal}>
           <button onClick={closeModal} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-black/50 p-2 rounded-full z-50"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-          
+
           <div className="bg-white w-full max-w-6xl md:w-fit rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[95vh]" onClick={e => e.stopPropagation()}>
             <div className="relative w-full md:w-auto bg-stone-900 flex shrink-0 md:pr-[400px] lg:pr-[450px] md:min-h-[450px]">
               <div className="relative w-full flex items-center justify-center group">
@@ -221,7 +262,7 @@ export default function Beranda() {
                     <p className="text-[#44403c] leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
                   </>
                 )}
-                
+
                 {!showLombaModal && (
                   <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
                     <h3 className="font-playfair font-bold text-xl text-[#1c1917] mb-4">{modalType === "sewa" ? "Tanya / Komentar" : "Komentar"} ({komentarList.length})</h3>
@@ -233,7 +274,7 @@ export default function Beranda() {
                             <div key={k.id} className="bg-white p-4 rounded border border-stone-100 shadow-sm">
                               <div className="flex justify-between items-center mb-1"><span className="font-bold text-sm text-[#1c1917]">{k.nama}</span><span className="text-[10px] text-[#a8a29e]">{k.waktu?.toDate ? k.waktu.toDate().toLocaleDateString('id-ID') : 'Baru saja'}</span></div>
                               <p className="text-sm text-[#44403c] mb-3">{k.isi}</p>
-                              
+
                               <div className="flex items-center gap-4 mb-1">
                                 <button onClick={() => handleLikeKomentar(k.id)} className={`text-xs flex items-center gap-1.5 font-bold transition-colors ${isLiked ? 'text-red-600' : 'text-[#a8a29e] hover:text-red-600'}`}>
                                   <svg width="14" height="14" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -244,7 +285,7 @@ export default function Beranda() {
                               {k.balasanAdmin && (
                                 <div className="mt-3 bg-amber-50 p-3 rounded-r-lg border-l-2 border-amber-500 ml-4 relative">
                                   <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-1 flex items-center gap-1">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin Mersi
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Admin
                                   </span>
                                   <p className="text-sm text-[#44403c]">{k.balasanAdmin}</p>
                                 </div>
@@ -267,7 +308,13 @@ export default function Beranda() {
         </div>
       )}
 
-      <HeroSlider images={bgHero} titleLine1="Ranah Minang di" titleLine2="Serambi Kota Pelajar" subtitle="Etalase prestasi, repositori intelektual, dan ruang tumbuh bersama merawat tradisi." />
+      {/* DISESUAIKAN: TEKS & LOGO HERO */}
+      <HeroSlider 
+        images={bgHero} 
+        titleLine1="Asrama Mahasiswa Merapi Singgalang" 
+        titleLine2="& Bundo Kanduang" 
+        subtitle="Etalase prestasi, repositori intelektual, dan ruang tumbuh bersama merawat tradisi perantau Minang di Kota Pelajar." 
+      />
 
       {/* SEKSI LAYANAN SEWA */}
       {layananSewa.length > 0 && (
@@ -309,7 +356,7 @@ export default function Beranda() {
             Lihat Publikasi Lain <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
           </Link>
         </div>
-        
+
         {kabarTerbaru.length === 0 ? <div className="text-center py-12 bg-white rounded-sm border border-[#e8e4db] text-stone-500 shadow-sm">Belum ada kabar terbaru.</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {kabarTerbaru.map((item) => (
