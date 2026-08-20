@@ -268,8 +268,29 @@ export default function PublicLayout({ children }) {
 
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-stone-800 text-center relative z-10">
-            <p className="text-xs text-stone-500 font-sans tracking-wider">© {new Date().getFullYear()} Asrama Mahasiswa Merapi Singgalang Yogyakarta. Hak Cipta Dilindungi.</p>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-stone-800 flex flex-col items-center gap-4 relative z-10">
+            <p className="text-xs text-stone-500 font-sans tracking-wider text-center">
+              © {new Date().getFullYear()} Asrama Mahasiswa Merapi Singgalang Yogyakarta. Hak Cipta Dilindungi.
+            </p>
+            
+            {/* KREDIT PEMBUAT WEBSITE */}
+            <div className="flex flex-col md:flex-row items-center justify-center gap-3 text-[11px] text-stone-500 font-sans mt-2">
+              <div className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                <span>Dirancang oleh</span>
+                <a href="https://imam-portfolio-qb5g.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-400 font-bold transition-colors">Imam</a>
+              </div>
+              <span className="hidden md:block text-stone-700">•</span>
+              <div className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span>Masukan dari Uda, Uni, & Sanak Asrama</span>
+              </div>
+              <span className="hidden md:block text-stone-700">•</span>
+              <div className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                <span>Ditenagai Kopi Susu</span>
+              </div>
+            </div>
           </div>
         </footer>
       )}
