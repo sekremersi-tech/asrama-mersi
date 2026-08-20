@@ -5,14 +5,13 @@ import gsap from 'gsap';
 import './DepthCarousel.css';
 
 const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
-const normalizeItem = it => (typeof it === 'string' ? { image: it, alt: '', caption: '' } : it);
+const normalizeItem = it => (typeof it === 'string' ? { image: it, alt: '' } : it);
 
 const DepthCarousel = ({
   items = [],
   cardWidth = 350,
   cardHeight = 450,
   radius = 8,
-  tint = '#05060a',
   depth = 220,
   spread = 90,
   tilt = 22,
@@ -37,7 +36,6 @@ const DepthCarousel = ({
   const rootRef = useRef(null);
   const stageRef = useRef(null);
   const cardRefs = useRef([]);
-  const overlayRefs = useRef([]);
 
   const posRef = useRef(0);
   const focusRef = useRef(0);
@@ -95,9 +93,6 @@ const DepthCarousel = ({
       el.style.filter = `brightness(${brightness.toFixed(3)}) blur(${blurPx.toFixed(2)}px)`;
       el.style.zIndex = String(zi);
       el.style.pointerEvents = shown && opacity > 0.05 ? 'auto' : 'none';
-
-      const ov = overlayRefs.current[i];
-      if (ov) ov.style.opacity = clamp(back * cfg.falloff * 1.25, 0, 0.86).toFixed(3);
     }
   }, []);
 
@@ -318,25 +313,17 @@ const DepthCarousel = ({
         {data.map((item, i) => (
           <div
             key={i}
-            className="depth-carousel__card border border-stone-200"
+            className="depth-carousel__card"
             ref={el => (cardRefs.current[i] = el)}
-            style={{ width: cardWidth, height: cardHeight, borderRadius: radius }}
+            style={{ width: cardWidth, height: cardHeight }}
             aria-roledescription="slide"
             aria-label={`${i + 1} of ${count}`}
             aria-hidden={active !== i}
             onClick={() => onCardClick(i)}
           >
-            <span className="depth-carousel__tint" ref={el => (overlayRefs.current[i] = el)} style={{ background: tint }} />
-            
-            <div className="depth-carousel__img-container border-b border-stone-100">
-                <img className="depth-carousel__img" src={item.image} alt={item.alt || ''} draggable={false} />
+            <div className="depth-carousel__img-container">
+                <img className="depth-carousel__img" src={item.image} alt={item.alt || ''} draggable={false} style={{ borderRadius: radius }} />
             </div>
-            
-            {item.caption && (
-                <div className="h-[25%] bg-white p-4 flex items-center justify-center relative z-20">
-                    <p className="text-stone-600 italic font-lora text-sm md:text-base text-center line-clamp-2">"{item.caption}"</p>
-                </div>
-            )}
           </div>
         ))}
       </div>
