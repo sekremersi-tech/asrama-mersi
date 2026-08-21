@@ -15,7 +15,8 @@ const TAB_ROLES = {
   tendor: ["fotoprofil", "galeri", "kehidupan", "penyewaan", "log"], 
   klh: ["fotoprofil", "galeri", "kehidupan"],
   rohani: ["fotoprofil", "galeri", "kehidupan"],
-  senbud: ["fotoprofil", "galeri", "kehidupan", "penyewaan"]  
+  senbud: ["fotoprofil", "galeri", "kehidupan", "penyewaan"],
+  warga_alumni: ["profil_saya"] // HAK AKSES KHUSUS ALUMNI / WARGA
 };
 
 const TAB_NAMES = {
@@ -30,7 +31,8 @@ const TAB_NAMES = {
   kehidupan: "Media Publikasi", 
   skripsi: "Skripsi", 
   suara_alumni: "Data Alumni & Warga", 
-  log: "Log Data"
+  log: "Log Data",
+  profil_saya: "Biodata Saya" // NAMA TAB KHUSUS ALUMNI / WARGA
 };
 
 // KOMPONEN PAGINATION BERSAMA
@@ -69,6 +71,9 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [currentUserEmail, setCurrentUserEmail] = useState("");
+
+  // STATE KHUSUS UNTUK ID ALUMNI YANG LOGIN
+  const [loggedInAlumniId, setLoggedInAlumniId] = useState(null);
 
   // STATE PENGATURAN UMUM
   const [tampilanUrls, setTampilanUrls] = useState({ hero: [], profil: [], fasilitas: [], kehidupan: [], alumni: [], gateway: [] });
@@ -222,7 +227,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     import("firebase/auth").then(({ onAuthStateChanged }) => {
-      onAuthStateChanged(auth, (user) => {
+      onAuthStateChanged(auth, async (user) => {
         if (!user) { router.push("/admin/login"); return; }
         
         const email = user.email || "";
@@ -245,11 +250,50 @@ export default function AdminDashboard() {
         else if (email.startsWith("rohani")) currRole = "rohani";
         else if (email.startsWith("senibudaya") || email.startsWith("senbud")) currRole = "senbud";
         else {
-          // JIKA EMAIL TIDAK ADA DI DAFTAR ATAS -> TOLAK & KELUARKAN
-          alert("Akses Ditolak! Email Anda tidak terdaftar sebagai Pengurus Asrama.");
-          signOut(auth);
-          router.push("/");
-          return;
+          // BUKAN PENGURUS, CEK APAKAH ALUMNI / WARGA YANG SUDAH TERDAFTAR DARI GOOGLE FORM
+          try {
+            const qAlumni = query(collection(db, "pesan_alumni"), where("emailPemilik", "==", email));
+            const snapAlumni = await getDocs(qAlumni);
+            
+            if (!snapAlumni.empty) {
+              currRole = "warga_alumni";
+              const myData = snapAlumni.docs[0];
+              setLoggedInAlumniId(myData.id);
+              
+              // Masukkan data milik dia sendiri ke dalam state Form
+              const d = myData.data();
+              setFormAlumni({
+                nama: d.nama || "",
+                asal: d.asal || "",
+                kuliah: d.kuliah || "",
+                jurusan: d.jurusan || "",
+                angkatanAsrama: d.angkatanAsrama || "",
+                pekerjaan: d.pekerjaan || "",
+                skripsi: d.skripsi || "",
+                prestasi: d.prestasi || "",
+                pesan: d.pesan || "",
+                asrama: d.asrama || "mersi",
+                statusWarga: d.statusWarga || "Alumni"
+              });
+              
+              setAuthReady(true);
+              const tabsForRole = TAB_ROLES[currRole] || [];
+              setRole(currRole); 
+              setAllowedTabs(tabsForRole); 
+              setActiveTab(tabsForRole[0]);
+              return; // Berhenti di sini, tidak perlu memuat data admin lainnya
+            } else {
+              alert("Akses Ditolak! Email Anda belum terdaftar di pangkalan data asrama. Silakan isi form pendataan terlebih dahulu sebelum login.");
+              signOut(auth);
+              router.push("/");
+              return;
+            }
+          } catch (err) {
+            console.error("Gagal memeriksa hak akses warga:", err);
+            signOut(auth);
+            router.push("/");
+            return;
+          }
         }
 
         const tabsForRole = TAB_ROLES[currRole] || [];
@@ -975,7 +1019,7 @@ export default function AdminDashboard() {
     } 
   };
 
-  // --- LOGIKA SUBMIT DATA ALUMNI & WARGA LENGKAP ---
+  // --- LOGIKA SUBMIT DATA ALUMNI & WARGA (KHUSUS PENGURUS/ADMIN) ---
   const handleSubmitPesanAlumni = async (e) => { 
     e.preventDefault(); 
     setLoading(true); 
@@ -1053,6 +1097,43 @@ export default function AdminDashboard() {
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
   };
 
+  // --- LOGIKA UPDATE PROFIL MANDIRI (KHUSUS WARGA / ALUMNI) ---
+  const handleUpdateProfilSaya = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setStatus({ type: "", message: "" });
+    try {
+      let payload = { 
+        nama: formAlumni.nama, 
+        asal: formAlumni.asal,
+        kuliah: formAlumni.kuliah,
+        jurusan: formAlumni.jurusan,
+        angkatanAsrama: formAlumni.angkatanAsrama,
+        pekerjaan: formAlumni.pekerjaan,
+        skripsi: formAlumni.skripsi || "",
+        prestasi: formAlumni.prestasi || "",
+        pesan: formAlumni.pesan, 
+        asrama: formAlumni.asrama,
+        statusWarga: formAlumni.statusWarga
+      };
+
+      if (fileFotoAlumni) { 
+        payload.foto = await uploadToCloudinary(fileFotoAlumni, "image"); 
+      } 
+      
+      await updateDoc(doc(db, "pesan_alumni", loggedInAlumniId), payload); 
+      setStatus({ type: "success", message: "Biodata berhasil diperbarui! Cek halaman publik untuk melihat hasilnya." }); 
+      setFileFotoAlumni(null); 
+      if(document.getElementById('fotoAlumniSaya')) {
+        document.getElementById('fotoAlumniSaya').value = "";
+      }
+    } catch (error) { 
+      setStatus({ type: "error", message: error.message }); 
+    } finally { 
+      setLoading(false); 
+    } 
+  };
+
   if (!authReady) {
     return (
       <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">
@@ -1072,7 +1153,9 @@ export default function AdminDashboard() {
       <nav className="bg-slate-900 text-white shadow-md sticky top-0 z-50 p-4 px-8 flex justify-between items-center">
         <div className="font-serif font-bold text-xl flex items-center gap-2">
           <img src="/mersi.png" alt="Logo" className="w-6 h-6 object-contain" /> Admin Asrama 
-          <span className="text-xs bg-red-800 px-2 py-0.5 rounded-full ml-2 font-sans font-normal uppercase tracking-wider">{role === "puki" ? "PUBLIKASI" : role}</span>
+          <span className="text-xs bg-red-800 px-2 py-0.5 rounded-full ml-2 font-sans font-normal uppercase tracking-wider">
+            {role === "warga_alumni" ? "WARGA / ALUMNI" : role === "puki" ? "PUBLIKASI" : role}
+          </span>
         </div>
         <button onClick={() => {signOut(auth); router.push("/admin/login")}} className="bg-red-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700">Logout</button>
       </nav>
@@ -2273,8 +2356,107 @@ export default function AdminDashboard() {
 
           </div> 
         )}
+
+        {/* TAB KHUSUS UNTUK WARGA/ALUMNI YANG LOGIN (BIODATA SAYA) */}
+        {activeTab === "profil_saya" && allowedTabs.includes("profil_saya") && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-emerald-600">
+              <h2 className="text-lg font-bold mb-2 border-b pb-2">Perbarui Biodata Saya</h2>
+              <p className="text-sm text-slate-500 mb-6">Perbarui data diri Anda jika ada perubahan status pekerjaan, status asrama, atau penyelesaian tugas akhir/skripsi.</p>
+              
+              <form onSubmit={handleUpdateProfilSaya} className="space-y-4">
+                {/* IDENTIFIKASI ASRAMA & STATUS KEANGGOTAAN */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Pilih Asal Asrama</label>
+                    <select
+                      value={formAlumni.asrama}
+                      onChange={(e) => setFormAlumni({ ...formAlumni, asrama: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm font-bold"
+                    >
+                      <option value="mersi">Asrama Mahasiswa Merapi Singgalang</option>
+                      <option value="bk">Asrama Putri Bundo Kanduang</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Kategori / Status Keanggotaan</label>
+                    <select
+                      value={formAlumni.statusWarga}
+                      onChange={(e) => {
+                        const newStatus = e.target.value;
+                        setFormAlumni({ 
+                          ...formAlumni, 
+                          statusWarga: newStatus,
+                          pekerjaan: (newStatus === "Warga Aktif" || newStatus === "Warga Cabang") ? "Mahasiswa" : formAlumni.pekerjaan 
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm font-bold text-emerald-800"
+                    >
+                      <option value="Alumni">Alumni</option>
+                      <option value="Warga Aktif">Warga Aktif</option>
+                      <option value="Warga Cabang">Warga Cabang</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Nama Lengkap</label>
+                    <input type="text" required value={formAlumni.nama} onChange={(e) => setFormAlumni({...formAlumni, nama: e.target.value})} placeholder="Nama Lengkap..." className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Asal Daerah / Kota</label>
+                    <input type="text" required value={formAlumni.asal} onChange={(e) => setFormAlumni({...formAlumni, asal: e.target.value})} placeholder="Contoh: Padang, Bukittinggi..." className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Kampus / Universitas</label>
+                    <input type="text" required value={formAlumni.kuliah} onChange={(e) => setFormAlumni({...formAlumni, kuliah: e.target.value})} placeholder="Contoh: UNY, UGM, UIN..." className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Program Studi / Jurusan</label>
+                    <input type="text" required value={formAlumni.jurusan} onChange={(e) => setFormAlumni({...formAlumni, jurusan: e.target.value})} placeholder="Contoh: Teknik Elektro..." className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Tahun Masuk Asrama (Angkatan)</label>
+                    <input type="number" required value={formAlumni.angkatanAsrama} onChange={(e) => setFormAlumni({...formAlumni, angkatanAsrama: e.target.value})} placeholder="Contoh: 2018" className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold mb-1 block">Pekerjaan / Aktivitas Saat Ini</label>
+                    <input type="text" required value={formAlumni.pekerjaan} onChange={(e) => setFormAlumni({...formAlumni, pekerjaan: e.target.value})} placeholder="Contoh: Mahasiswa, Guru, Engineer, PNS..." className="w-full px-4 py-2 border rounded-md" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold mb-1 block">
+                    Judul Skripsi {formAlumni.statusWarga !== "Alumni" ? "(Opsional untuk Warga Aktif / Cabang)" : "(Opsional jika belum/tidak ada)"}
+                  </label>
+                  <textarea rows="2" value={formAlumni.skripsi} onChange={(e) => setFormAlumni({...formAlumni, skripsi: e.target.value})} placeholder="Judul Skripsi / Tugas Akhir (kosongkan jika belum ada)..." className="w-full px-4 py-2 border rounded-md"></textarea>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold mb-1 block text-amber-700">Prestasi / Karya / Jurnal (Opsional)</label>
+                  <textarea rows="2" value={formAlumni.prestasi} onChange={(e) => setFormAlumni({...formAlumni, prestasi: e.target.value})} placeholder="Contoh: Publikasi Jurnal Scopus Q1, Juara 1 Robotik Nasional..." className="w-full px-4 py-2 border border-amber-300 bg-amber-50 rounded-md"></textarea>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold mb-1 block">Kata-kata / Kesan Pesan untuk Asrama</label>
+                  <textarea required rows="3" value={formAlumni.pesan} onChange={(e) => setFormAlumni({...formAlumni, pesan: e.target.value})} placeholder="Kesan dan pesan singkat..." className="w-full px-4 py-2 border rounded-md"></textarea>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold mb-1 block">Update Foto Profil (Pilih file baru jika ingin mengganti)</label>
+                  <input type="file" id="fotoAlumniSaya" accept="image/*" onChange={(e) => setFileFotoAlumni(e.target.files[0])} className="w-full text-sm border p-2 rounded bg-slate-50" />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <button type="submit" disabled={loading} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-3 rounded-md font-bold transition-colors">
+                    {loading ? "Menyimpan Perubahan..." : "Simpan Perubahan Biodata"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
 }
-
