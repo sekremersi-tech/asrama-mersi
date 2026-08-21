@@ -68,11 +68,6 @@ export default function JejakPrestasi() {
   // MENGUBAH LIMIT ALUMNI JADI 10
   const alumniPerPage = 10;
 
-  const [showSkripsiModal, setShowSkripsiModal] = useState(false);
-  const [selectedSkripsi, setSelectedSkripsi] = useState(null);
-  const [formPermohonan, setFormPermohonan] = useState({ nama: "", instansi: "", noHp: "", tujuan: "" });
-  const [isSubmittingPermohonan, setIsSubmittingPermohonan] = useState(false);
-
   const [searchSkripsi, setSearchSkripsi] = useState("");
   const [skripsiPage, setSkripsiPage] = useState(0);
   const [isSkripsiAnimating, setIsSkripsiAnimating] = useState(false);
@@ -173,38 +168,6 @@ export default function JejakPrestasi() {
       setKomentarList([...komentarList, {id: docRef.id, ...newKomen, waktu: { toDate: () => new Date() } }]);
       setFormKomen({nama: "", isi: ""});
     } catch (err) { alert("Gagal mengirim komentar!"); } finally { setIsSubmittingKomen(false); }
-  };
-
-  const handleAjukanAkses = async (e) => {
-    e.preventDefault();
-    if (!formPermohonan.noHp.startsWith("08")) {
-      return alert("Gagal: Nomor HP / WA harus diawali dengan angka 08");
-    }
-    if (formPermohonan.noHp.length < 11) {
-      return alert("Gagal: Nomor HP / WA tidak valid. Minimal harus 11 angka.");
-    }
-
-    setIsSubmittingPermohonan(true);
-    try {
-      await addDoc(collection(db, "permohonan_skripsi"), {
-        nama: formPermohonan.nama,
-        instansi: formPermohonan.instansi,
-        noHp: formPermohonan.noHp,
-        tujuan: formPermohonan.tujuan,
-        skripsiId: selectedSkripsi.id,
-        judulSkripsi: selectedSkripsi.judul,
-        status: "Menunggu",
-        waktu: serverTimestamp()
-      });
-      alert("Permohonan berhasil dikirim! Silakan tunggu konfirmasi dan link akses dari Sekretaris via WhatsApp.");
-      setShowSkripsiModal(false);
-      setFormPermohonan({ nama: "", instansi: "", noHp: "", tujuan: "" });
-      document.body.style.overflow = "auto";
-    } catch (error) { 
-      alert("Gagal memproses permohonan. Coba lagi."); 
-    } finally { 
-      setIsSubmittingPermohonan(false); 
-    }
   };
 
   const handleTanyaLinkResmi = (skripsi) => {
@@ -416,37 +379,6 @@ export default function JejakPrestasi() {
                 </form>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL PERMOHONAN AKSES SKRIPSI */}
-      {showSkripsiModal && selectedSkripsi && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]" onClick={() => {setShowSkripsiModal(false); document.body.style.overflow = "auto";}}>
-          <div className="bg-white p-8 rounded-lg shadow-2xl max-w-md w-full border-t-4 border-red-800" onClick={e => e.stopPropagation()}>
-            <h3 className="font-playfair text-2xl font-bold text-stone-900 mb-2">Akses Skripsi</h3>
-            <p className="text-sm text-stone-500 mb-6 pb-4 border-b border-stone-100">Silakan isi form ini untuk memohon akses baca skripsi. Link akses rahasia (hanya baca halaman pertama) akan dikirimkan via WhatsApp setelah permohonan disetujui.</p>
-            <form onSubmit={handleAjukanAkses} className="space-y-4 font-sans">
-              <div>
-                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nama Lengkap</label>
-                <input type="text" required value={formPermohonan.nama} onChange={(e) => setFormPermohonan({...formPermohonan, nama: e.target.value.replace(/[^a-zA-Z\s]/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Hanya isi dengan huruf..." />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Instansi / Asal Kampus</label>
-                <input type="text" required value={formPermohonan.instansi} onChange={(e) => setFormPermohonan({...formPermohonan, instansi: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Nama instansi atau kampus Anda" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Nomor WA / HP Aktif</label>
-                <input type="tel" required maxLength={14} value={formPermohonan.noHp} onChange={(e) => setFormPermohonan({...formPermohonan, noHp: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Awali dengan 08..." />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-600 uppercase tracking-widest block mb-1">Tujuan Membaca Skripsi</label>
-                <textarea required rows="2" value={formPermohonan.tujuan} onChange={(e) => setFormPermohonan({...formPermohonan, tujuan: e.target.value})} className="w-full px-4 py-2 bg-white border border-stone-200 rounded focus:ring-2 focus:ring-red-800 focus:outline-none text-sm text-stone-900" placeholder="Contoh: Untuk referensi penelitian..." ></textarea>
-              </div>
-              <button type="submit" disabled={isSubmittingPermohonan} className="w-full bg-[#171412] hover:bg-red-800 text-white font-bold py-3 rounded transition-colors mt-2">
-                {isSubmittingPermohonan ? "Memproses..." : "Ajukan Permohonan Akses"}
-              </button>
-            </form>
           </div>
         </div>
       )}
@@ -685,14 +617,6 @@ export default function JejakPrestasi() {
                             <td className="py-5 px-4 text-center font-sans font-bold text-stone-600 bg-stone-50/50">{item.tahun}</td>
                             <td className="py-5 px-4 text-center">
                               <div className="flex flex-col gap-2">
-                                <button 
-                                  onClick={() => { setSelectedSkripsi(item); setShowSkripsiModal(true); document.body.style.overflow = "hidden"; }} 
-                                  className="w-full bg-[#171412] hover:bg-stone-800 text-white py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2 font-sans shadow-sm"
-                                  title="Pratinjau Halaman Depan"
-                                >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                  PREVIEW BAB 1
-                                </button>
                                 <button 
                                   onClick={() => handleTanyaLinkResmi(item)} 
                                   className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2 font-sans shadow-sm"
