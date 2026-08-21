@@ -130,6 +130,7 @@ export default function AdminDashboard() {
   const [dataPendaftarAsrama, setDataPendaftarAsrama] = useState([]);
   const [dataKomentar, setDataKomentar] = useState([]);
   const [dataPengunjung, setDataPengunjung] = useState([]); 
+  const [dataPermohonanSkripsi, setDataPermohonanSkripsi] = useState([]); 
 
   // STATE FORM INPUT & EDIT ID
   const [judulSejarah, setJudulSejarah] = useState(""); 
@@ -179,6 +180,7 @@ export default function AdminDashboard() {
   const [jurusan, setJurusan] = useState(""); 
   const [judulSkripsi, setJudulSkripsi] = useState(""); 
   const [tahun, setTahun] = useState(""); 
+  const [filePDF, setFilePDF] = useState(null); 
   const [editSkripsiId, setEditSkripsiId] = useState(null);
   
   const [replyKomenId, setReplyKomenId] = useState(null); 
@@ -209,6 +211,7 @@ export default function AdminDashboard() {
   const [pageGaleri, setPageGaleri] = useState(1);
   const [pageKehidupan, setPageKehidupan] = useState(1);
   const [pageSkripsi, setPageSkripsi] = useState(1);
+  const [pagePermohonan, setPagePermohonan] = useState(1);
   const [pagePesanAlumni, setPagePesanAlumni] = useState(1); 
   const [pageDaftarAsrama, setPageDaftarAsrama] = useState(1);
   const [pageDaftarLomba, setPageDaftarLomba] = useState(1);
@@ -405,6 +408,9 @@ export default function AdminDashboard() {
     const pengSnap = await getDocs(query(collection(db, "log_pengunjung"), orderBy("waktu", "desc"))); 
     setDataPengunjung(pengSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     
+    const mohonSkripsiSnap = await getDocs(query(collection(db, "permohonan_skripsi"), orderBy("waktu", "desc"))); 
+    setDataPermohonanSkripsi(mohonSkripsiSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    
     const pesanSnap = await getDocs(query(collection(db, "pesan_alumni"), orderBy("createdAt", "desc"))); 
     setDataPesanAlumni(pesanSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
@@ -427,6 +433,40 @@ export default function AdminDashboard() {
       await deleteDoc(doc(db, koleksi, id)); 
       fetchAllData(); 
     } 
+  };
+  
+  // -- FUNGSI KONFIRMASI AKSES SKRIPSI --
+  const handleKirimAksesSkripsi = async (item) => {
+    try {
+      await updateDoc(doc(db, "permohonan_skripsi", item.id), { status: "Disetujui" });
+      const baseUrl = window.location.origin;
+      const secretLink = `${baseUrl}/skripsi-viewer?id=${item.skripsiId}&nama=${encodeURIComponent(item.nama)}&hp=${item.noHp}`;
+      let bersihkanNomor = item.noHp.replace(/\D/g, '');
+      if (bersihkanNomor.startsWith('0')) bersihkanNomor = '62' + bersihkanNomor.substring(1);
+      const pesanWa = `Halo ${item.nama},\n\nPermohonan akses skripsi Anda untuk judul *"${item.judulSkripsi}"* telah disetujui.\n\nBerikut adalah link akses rahasia Anda (Hanya pratinjau halaman pertama):\n${secretLink}\n\nTerima kasih.`;
+      window.open(`https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(pesanWa)}`, "_blank");
+      fetchAllData();
+    } catch (error) { 
+      alert("Gagal memperbarui status."); 
+    }
+  };
+
+  const handleTolakSkripsi = async (item) => {
+    try { 
+      await updateDoc(doc(db, "permohonan_skripsi", item.id), { status: "Ditolak" }); 
+      fetchAllData(); 
+    } catch (error) { 
+      alert("Gagal menolak."); 
+    }
+  };
+
+  const handleResetStatusSkripsi = async (id) => {
+    try { 
+      await updateDoc(doc(db, "permohonan_skripsi", id), { status: "Menunggu" }); 
+      fetchAllData(); 
+    } catch (error) { 
+      alert("Gagal mengembalikan status."); 
+    }
   };
 
   // --- SAVE FUNCTIONS ---
@@ -1128,7 +1168,7 @@ export default function AdminDashboard() {
                         </div> 
                       </div> 
 
-                      {/* --- BLOK MAPS / LOKASI --- */}
+                      {/* --- TAMBAHAN BLOK MAPS / LOKASI --- */}
                       <h3 className="font-semibold text-emerald-800 border-l-2 border-emerald-500 pl-2 mt-6">Lokasi & Google Maps</h3> 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                         {/* Maps Mersi */}
@@ -1796,7 +1836,6 @@ export default function AdminDashboard() {
         {/* --- KHUSUS TAB SKRIPSI --- */}
         {activeTab === "skripsi" && allowedTabs.includes("skripsi") && ( 
           <div className="space-y-6"> 
-            
             <div className="bg-white rounded-xl shadow-md p-6"> 
               <h2 className="text-lg font-bold mb-4 border-b pb-2">{editSkripsiId ? "Edit Skripsi" : "Tambah Skripsi Manual"}</h2> 
               <form onSubmit={handleSubmitSkripsi} className="space-y-4"> 
@@ -2238,4 +2277,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
+jadi untuk file ini sudah bisa ditambahkan api? kalau bisa tambahkan dan jangan mengurangi kodenya cukup sisipkan atau sesuaikan saja. kodenya sekitar 2315an baris, berikan kode file penuhi supaya saya gampang mereplacenya
