@@ -257,23 +257,32 @@ export default function AdminDashboard() {
             
             if (!snapAlumni.empty) {
               currRole = "warga_alumni";
-              const myData = snapAlumni.docs[0];
-              setLoggedInAlumniId(myData.id);
+              
+              // MENGAMBIL SEMUA DATA & MENGURUTKAN DARI YANG PALING BARU
+              // Logika pintar: Jika ada data kosong sisa error masa lalu, sistem akan memilih data yang paling baru diisi.
+              let myRecords = snapAlumni.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+              myRecords.sort((a, b) => {
+                const timeA = a.createdAt?.toMillis() || 0;
+                const timeB = b.createdAt?.toMillis() || 0;
+                return timeB - timeA; // Descending (Terbaru di atas)
+              });
+
+              const myLatestData = myRecords[0];
+              setLoggedInAlumniId(myLatestData.id);
               
               // Masukkan data milik dia sendiri ke dalam state Form
-              const d = myData.data();
               setFormAlumni({
-                nama: d.nama || "",
-                asal: d.asal || "",
-                kuliah: d.kuliah || "",
-                jurusan: d.jurusan || "",
-                angkatanAsrama: d.angkatanAsrama || "",
-                pekerjaan: d.pekerjaan || "",
-                skripsi: d.skripsi || "",
-                prestasi: d.prestasi || "",
-                pesan: d.pesan || "",
-                asrama: d.asrama || "mersi",
-                statusWarga: d.statusWarga || "Alumni"
+                nama: myLatestData.nama || "",
+                asal: myLatestData.asal || "",
+                kuliah: myLatestData.kuliah || "",
+                jurusan: myLatestData.jurusan || "",
+                angkatanAsrama: myLatestData.angkatanAsrama || "",
+                pekerjaan: myLatestData.pekerjaan || "",
+                skripsi: myLatestData.skripsi || "",
+                prestasi: myLatestData.prestasi || "",
+                pesan: myLatestData.pesan || "",
+                asrama: myLatestData.asrama || "mersi",
+                statusWarga: myLatestData.statusWarga || "Alumni"
               });
               
               setAuthReady(true);
