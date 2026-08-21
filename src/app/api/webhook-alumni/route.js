@@ -16,8 +16,8 @@ export async function POST(request) {
     // 3. Menyusun kerangka data sesuai dengan format database website kita
     const payload = {
       nama: data.nama || "",
-      asrama: data.asrama || "mersi", // default mersi
-      statusWarga: data.statusWarga || "Alumni", // default alumni
+      asrama: data.asrama || "mersi", 
+      statusWarga: data.statusWarga || "Alumni",
       asal: data.asal || "",
       kuliah: data.kuliah || "",
       jurusan: data.jurusan || "",
@@ -26,7 +26,8 @@ export async function POST(request) {
       skripsi: data.skripsi || "",
       prestasi: data.prestasi || "",
       pesan: data.pesan || "",
-      foto: data.foto || "", // Jika kosong akan pakai avatar inisial nama
+      foto: data.foto || "", 
+      emailPemilik: data.emailPemilik || "", // INI KUNCI PENTING UNTUK LOGIN MANDIRI
       createdAt: serverTimestamp(),
     };
 
