@@ -278,8 +278,8 @@ export default function FasilitasAsrama() {
             <div className="relative w-full md:w-[400px] lg:w-[450px] bg-stone-900 flex flex-col shrink-0 md:min-h-[500px]">
               {/* Toggle Asrama Pendaftaran di atas brosur (Biar jelas mendaftar asrama apa) */}
               <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex bg-white/20 p-1 rounded-lg backdrop-blur-md border border-white/30 w-fit mx-auto shadow-xl">
-                 <button onClick={() => setDaftarTab("mersi")} className={`px-4 py-2 text-[10px] font-bold rounded-md transition-all font-sans uppercase tracking-wide ${daftarTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>Mersi</button>
-                 <button onClick={() => setDaftarTab("bk")} className={`px-4 py-2 text-[10px] font-bold rounded-md transition-all font-sans uppercase tracking-wide ${daftarTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>B. Kanduang</button>
+                 <button onClick={() => setDaftarTab("mersi")} className={`px-4 py-2 text-[10px] font-bold rounded-md transition-all font-sans uppercase tracking-wide ${daftarTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>Merapi Singgalang</button>
+                 <button onClick={() => setDaftarTab("bk")} className={`px-4 py-2 text-[10px] font-bold rounded-md transition-all font-sans uppercase tracking-wide ${daftarTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>Bundo Kanduang</button>
               </div>
               
               <div className="flex-grow w-full h-full pt-16">
@@ -445,7 +445,7 @@ export default function FasilitasAsrama() {
         {/* TOGGLE TAB UNTUK STATUS ASRAMA */}
         <div className="flex justify-center mb-6">
           <div className="flex bg-white p-1 rounded-lg w-fit shadow-md border border-stone-200">
-            <button onClick={() => setStatusTab("mersi")} className={`px-6 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${statusTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
+            <button onClick={() => setStatusTab("mersi")} className={`px-6 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${statusTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Merapi Singgalang</button>
             <button onClick={() => setStatusTab("bk")} className={`px-6 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${statusTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Bundo Kanduang</button>
           </div>
         </div>
@@ -458,7 +458,7 @@ export default function FasilitasAsrama() {
       </div>
 
       <div id="pendaftaran" className="max-w-3xl mx-auto px-4 mt-28 mb-20 scroll-mt-28 reveal opacity-0 translate-y-12 transition-all duration-1000 ease-out">
-        <div className="text-center mb-12"><h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Informasi Pendaftaran</h4><h2 className="text-4xl font-bold text-stone-900 font-playfair mb-4">Penerimaan Warga Baru</h2><p className="text-stone-600 max-w-2xl mx-auto">Kami membuka kesempatan bagi mahasiswa perantau untuk bergabung dan menjadi bagian dari keluarga besar Asrama Pemerintah Sumatera Barat.</p></div>
+        <div className="text-center mb-12"><h4 className="text-amber-600 font-bold tracking-widest text-xs uppercase font-sans mb-3">Informasi Pendaftaran</h4><h2 className="text-4xl font-bold text-stone-900 font-playfair mb-4">Penerimaan Warga Baru</h2><p className="text-stone-600 max-w-2xl mx-auto">Kami membuka kesempatan bagi mahasiswa perantau untuk bergabung dan menjadi bagian dari keluarga besar Asrama Mahasiswa Daerah Sumatera Barat.</p></div>
         <div className="bg-white border border-[#e8e4db] p-8 md:p-12 rounded-sm shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] text-center flex flex-col items-center">
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-800 border border-red-100 mb-6"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5c-1.3 0-2 .7-2 2v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></div>
           <h3 className="font-playfair text-2xl md:text-3xl font-bold text-stone-900 mb-4">Mari Bergabung Bersama Kami!</h3>
@@ -475,8 +475,8 @@ export default function FasilitasAsrama() {
           </div>
           {/* TOGGLE TAB FASILITAS */}
           <div className="flex bg-stone-200 p-1 rounded-lg w-fit shadow-inner">
-            <button onClick={() => setFasilitasTab("mersi")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${fasilitasTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
-            <button onClick={() => setFasilitasTab("bk")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${fasilitasTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>B. Kanduang</button>
+            <button onClick={() => setFasilitasTab("mersi")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${fasilitasTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Merapi Singgalang</button>
+            <button onClick={() => setFasilitasTab("bk")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${fasilitasTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Bundo Kanduang</button>
           </div>
         </div>
 
@@ -504,8 +504,8 @@ export default function FasilitasAsrama() {
           </div>
           {/* TOGGLE TAB PENYEWAAN */}
           <div className="flex bg-stone-200 p-1 rounded-lg w-fit shadow-inner">
-            <button onClick={() => setSewaTab("mersi")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${sewaTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
-            <button onClick={() => setSewaTab("bk")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${sewaTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>B. Kanduang</button>
+            <button onClick={() => setSewaTab("mersi")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${sewaTab === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Merapi Singgalang</button>
+            <button onClick={() => setSewaTab("bk")} className={`px-5 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${sewaTab === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Bundo Kanduang</button>
           </div>
         </div>
         
