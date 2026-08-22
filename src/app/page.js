@@ -90,7 +90,7 @@ export default function Gateway() {
           {/* Teks Judul */}
           <div className="text-center mb-10">
             <h2 className="text-yellow-600 font-semibold tracking-[0.15em] text-xs md:text-sm mb-3 uppercase">
-              Asrama Pemerintah Sumatera Barat
+              Asrama Mahasiswa Daerah Sumatera Barat
             </h2>
             <h1 className="text-2xl md:text-4xl font-serif text-white italic tracking-wide leading-snug">
               Merapi Singgalang <br className="md:hidden" /> & Bundo Kanduang
@@ -149,7 +149,7 @@ export default function Gateway() {
           </div>
 
           <h2 className="text-amber-500 font-bold tracking-[0.15em] text-xs md:text-sm mb-3 uppercase drop-shadow-md">
-            Asrama Pemerintah Sumatera Barat
+            Asrama Mahasiswa Daerah Sumatera Barat
           </h2>
           <h1 className="text-4xl md:text-6xl font-serif text-white italic drop-shadow-lg leading-tight">
             Asrama Mahasiswa Merapi Singgalang & Bundo Kanduang <br/>
