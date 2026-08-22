@@ -74,13 +74,23 @@ export default function Gateway() {
 
         <div className="flex flex-col items-center z-10 w-full max-w-3xl relative">
           
-          {/* Box Logo Mersi & BK Berdampingan */}
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-20 h-20 bg-[#24211f] rounded-2xl flex items-center justify-center shadow-2xl border border-stone-700/40 backdrop-blur-sm p-3">
-              <img src="/mersi.png" alt="Logo Mersi" className="w-full h-full object-contain" />
+          {/* Logo Mersi & BK (Efek Siluet Putih Transparan) */}
+          <div className="flex items-center gap-8 mb-8">
+            <div className="w-20 h-20 flex items-center justify-center">
+              <img 
+                src="/mersi.png" 
+                alt="Logo Mersi" 
+                className="w-full h-full object-contain opacity-90" 
+                style={{ filter: 'grayscale(100%) invert(100%) contrast(500%) brightness(200%)', mixBlendMode: 'screen' }} 
+              />
             </div>
-            <div className="w-20 h-20 bg-[#24211f] rounded-2xl flex items-center justify-center shadow-2xl border border-stone-700/40 backdrop-blur-sm p-3">
-              <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-full h-full object-contain" />
+            <div className="w-20 h-20 flex items-center justify-center">
+              <img 
+                src="/BK.png" 
+                alt="Logo Bundo Kanduang" 
+                className="w-full h-full object-contain opacity-90" 
+                style={{ filter: 'grayscale(100%) invert(100%) contrast(500%) brightness(200%)', mixBlendMode: 'screen' }} 
+              />
             </div>
           </div>
           
@@ -138,13 +148,23 @@ export default function Gateway() {
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center animate-[fadeIn_1s_ease-out]">
         <div className="mb-12 text-center w-full">
           
-          {/* Dua Logo Asrama */}
-          <div className="flex justify-center items-center gap-4 mb-6">
-            <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-800/90 rounded-2xl flex items-center justify-center shadow-xl backdrop-blur-md border border-slate-700 p-2.5">
-              <img src="/mersi.png" alt="Logo Mersi" className="w-full h-full object-contain drop-shadow-md" />
+          {/* Dua Logo Asrama (Siluet Putih Transparan & Glowing) */}
+          <div className="flex justify-center items-center gap-8 mb-8">
+            <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center">
+              <img 
+                src="/mersi.png" 
+                alt="Logo Mersi" 
+                className="w-full h-full object-contain opacity-80 hover:opacity-100 transition-opacity duration-500 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" 
+                style={{ filter: 'grayscale(100%) invert(100%) contrast(500%) brightness(200%)', mixBlendMode: 'screen' }} 
+              />
             </div>
-            <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-800/90 rounded-2xl flex items-center justify-center shadow-xl backdrop-blur-md border border-slate-700 p-2.5">
-              <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-full h-full object-contain drop-shadow-md" />
+            <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center">
+              <img 
+                src="/BK.png" 
+                alt="Logo Bundo Kanduang" 
+                className="w-full h-full object-contain opacity-80 hover:opacity-100 transition-opacity duration-500 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" 
+                style={{ filter: 'grayscale(100%) invert(100%) contrast(500%) brightness(200%)', mixBlendMode: 'screen' }} 
+              />
             </div>
           </div>
 
