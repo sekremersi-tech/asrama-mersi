@@ -179,7 +179,7 @@ export default function PublicLayout({ children }) {
                 {/* TEKS NAVBAR */}
                 <div className="hidden sm:flex flex-col justify-center">
                   <span className="font-playfair font-bold text-xl md:text-2xl text-[#2a2626] tracking-wide leading-tight">
-                    Asrama Pemerintah Sumbar
+                    Asrama Mahasiswa Daerah Sumbar
                   </span>
                   <span className="text-[10px] text-stone-500 tracking-[0.15em] font-bold uppercase font-sans mt-0.5 hidden lg:block">
                     Merapi Singgalang & Bundo Kanduang
