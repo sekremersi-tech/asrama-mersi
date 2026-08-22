@@ -268,7 +268,7 @@ export default function PublicLayout({ children }) {
                 
                 {/* TEKS IDENTITAS FOOTER */}
                 <div className="flex flex-col">
-                  <span className="font-playfair font-bold text-2xl text-white tracking-wide leading-tight">Asrama <br/> Pemerintah <br/> Sumatera Barat</span>
+                  <span className="font-playfair font-bold text-2xl text-white tracking-wide leading-tight">Asrama <br/> Mahasiswa Daerah <br/> Sumatera Barat</span>
                 </div>
               </div>
               <p className="text-amber-500 font-bold tracking-[0.1em] text-[10px] uppercase font-sans mb-4 ml-1">
@@ -377,7 +377,7 @@ export default function PublicLayout({ children }) {
           {/* HAK CIPTA & KREDIT */}
           <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-white/10 flex flex-col items-center gap-4 relative z-10">
             <p className="text-xs text-stone-500 font-sans tracking-wider text-center">
-              © {new Date().getFullYear()} Asrama Pemerintah Sumatera Barat (Merapi Singgalang & Bundo Kanduang). Hak Cipta Dilindungi.
+              © {new Date().getFullYear()} Asrama Mahasiswa Daerah Sumatera Barat (Merapi Singgalang & Bundo Kanduang). Hak Cipta Dilindungi.
             </p>
             
             <div className="flex flex-col md:flex-row items-center justify-center gap-3 text-[11px] text-stone-500 font-sans mt-2">
