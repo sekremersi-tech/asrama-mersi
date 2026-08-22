@@ -228,7 +228,7 @@ export default function ProfilAsrama() {
                 <div className="flex flex-col gap-2">
                   <p className="text-xs font-bold text-stone-500 uppercase tracking-widest font-sans">Pilih Sejarah Asrama:</p>
                   <div className="flex flex-wrap bg-stone-200 p-1 rounded-lg w-fit">
-                    <button onClick={() => { setSejarahAsrama("mersi"); setHalAktif(0); }} className={`px-4 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${sejarahAsrama === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
+                    <button onClick={() => { setSejarahAsrama("mersi"); setHalAktif(0); }} className={`px-4 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${sejarahAsrama === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Merapi Singgalang</button>
                     <button onClick={() => { setSejarahAsrama("bk"); setHalAktif(0); }} className={`px-4 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${sejarahAsrama === 'bk' ? 'bg-amber-500 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Bundo Kanduang</button>
                   </div>
                 </div>
@@ -361,7 +361,7 @@ export default function ProfilAsrama() {
           {/* TOGGLE ASRAMA DI KEPENGURUSAN */}
           <div className="flex justify-center mb-4">
             <div className="flex bg-stone-200 p-1 rounded-lg w-fit shadow-inner">
-              <button onClick={() => setPengurusAsrama("mersi")} className={`px-5 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${pengurusAsrama === 'mersi' ? 'bg-red-800 text-white shadow-md' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
+              <button onClick={() => setPengurusAsrama("mersi")} className={`px-5 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${pengurusAsrama === 'mersi' ? 'bg-red-800 text-white shadow-md' : 'text-stone-500 hover:text-stone-700'}`}>Merapi Singgalang</button>
               <button onClick={() => setPengurusAsrama("bk")} className={`px-5 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${pengurusAsrama === 'bk' ? 'bg-amber-500 text-white shadow-md' : 'text-stone-500 hover:text-stone-700'}`}>Bundo Kanduang</button>
             </div>
           </div>
@@ -455,7 +455,7 @@ export default function ProfilAsrama() {
           {/* TOGGLE ASRAMA DI VISI MISI */}
           <div className="flex justify-center mb-8">
             <div className="flex bg-stone-200 p-1 rounded-lg w-fit shadow-inner">
-              <button onClick={() => setVisiMisiAsrama("mersi")} className={`px-5 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${visiMisiAsrama === 'mersi' ? 'bg-red-800 text-white shadow-md' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
+              <button onClick={() => setVisiMisiAsrama("mersi")} className={`px-5 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${visiMisiAsrama === 'mersi' ? 'bg-red-800 text-white shadow-md' : 'text-stone-500 hover:text-stone-700'}`}>Merapi Singgalang</button>
               <button onClick={() => setVisiMisiAsrama("bk")} className={`px-5 py-2.5 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${visiMisiAsrama === 'bk' ? 'bg-amber-500 text-white shadow-md' : 'text-stone-500 hover:text-stone-700'}`}>Bundo Kanduang</button>
             </div>
           </div>
@@ -493,8 +493,8 @@ export default function ProfilAsrama() {
             {/* TOGGLE ASRAMA DI LOKASI */}
             <div className="flex justify-center lg:justify-start mb-8 w-full">
               <div className="flex bg-stone-100 p-1 rounded-lg w-fit border border-stone-200">
-                <button onClick={() => setLokasiAsrama("mersi")} className={`px-4 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${lokasiAsrama === 'mersi' ? 'bg-red-800 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
-                <button onClick={() => setLokasiAsrama("bk")} className={`px-4 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${lokasiAsrama === 'bk' ? 'bg-amber-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>B. Kanduang</button>
+                <button onClick={() => setLokasiAsrama("mersi")} className={`px-4 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${lokasiAsrama === 'mersi' ? 'bg-red-800 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>Merapi Singgalang</button>
+                <button onClick={() => setLokasiAsrama("bk")} className={`px-4 py-2 text-xs font-bold rounded-md transition-all font-sans uppercase tracking-wide ${lokasiAsrama === 'bk' ? 'bg-amber-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>Bundo Kanduang</button>
               </div>
             </div>
 
