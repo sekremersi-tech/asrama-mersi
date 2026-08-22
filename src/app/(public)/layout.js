@@ -293,7 +293,7 @@ export default function PublicLayout({ children }) {
 
             {/* BLOK 3: HUBUNGI KAMI (Col-3) */}
             <div className="lg:col-span-3">
-              <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-[12px] font-sans">Pusat Informasi Mersi</h3>
+              <h3 className="text-amber-500 font-bold mb-6 tracking-widest uppercase text-[12px] font-sans">Pusat Informasi Merapi Singgalang</h3>
               <ul className="space-y-4 text-[13px] text-stone-400 font-lora border-l-2 border-red-800/50 pl-4 py-1">
                 {kontak.alamatMersi && (
                   <li>
