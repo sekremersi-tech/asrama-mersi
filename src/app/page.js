@@ -74,21 +74,13 @@ export default function Gateway() {
 
         <div className="flex flex-col items-center z-10 w-full max-w-3xl relative">
           
-          {/* Logo Mersi & BK */}
-          <div className="flex items-center gap-8 mb-8">
-            <div className="w-20 h-20 flex items-center justify-center">
-              <img 
-                src="/mersi.png" 
-                alt="Logo Mersi" 
-                className="w-full h-full object-contain opacity-90 drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]" 
-              />
+          {/* LOGO: Lingkaran Putih Solid */}
+          <div className="flex justify-center items-center gap-4 md:gap-6 mb-6 md:mb-8">
+            <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full p-3 md:p-3.5 shadow-[0_0_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
+              <img src="/mersi.png" alt="Logo Mersi" className="w-full h-full object-contain" />
             </div>
-            <div className="w-20 h-20 flex items-center justify-center">
-              <img 
-                src="/BK.png" 
-                alt="Logo Bundo Kanduang" 
-                className="w-full h-full object-contain opacity-90 drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]" 
-              />
+            <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full p-3 md:p-3.5 shadow-[0_0_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
+              <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-full h-full object-contain" />
             </div>
           </div>
           
@@ -146,21 +138,13 @@ export default function Gateway() {
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center animate-[fadeIn_1s_ease-out]">
         <div className="mb-12 text-center w-full">
           
-          {/* Dua Logo Asrama */}
-          <div className="flex justify-center items-center gap-8 mb-8">
-            <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center">
-              <img 
-                src="/mersi.png" 
-                alt="Logo Mersi" 
-                className="w-full h-full object-contain opacity-80 hover:opacity-100 transition-opacity duration-500 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" 
-              />
+          {/* LOGO: Lingkaran Putih Solid */}
+          <div className="flex justify-center items-center gap-4 md:gap-6 mb-6 md:mb-8">
+            <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full p-3 md:p-3.5 shadow-[0_0_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
+              <img src="/mersi.png" alt="Logo Mersi" className="w-full h-full object-contain" />
             </div>
-            <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center">
-              <img 
-                src="/BK.png" 
-                alt="Logo Bundo Kanduang" 
-                className="w-full h-full object-contain opacity-80 hover:opacity-100 transition-opacity duration-500 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" 
-              />
+            <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full p-3 md:p-3.5 shadow-[0_0_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
+              <img src="/BK.png" alt="Logo Bundo Kanduang" className="w-full h-full object-contain" />
             </div>
           </div>
 
