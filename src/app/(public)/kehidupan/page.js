@@ -176,6 +176,44 @@ export default function Kehidupan() {
     }
   };
 
+  // FUNGSI SHARE KE MEDIA SOSIAL
+  const handleShare = (platform) => {
+    if (typeof window === 'undefined') return;
+    const shareUrl = window.location.href; // URL Halaman Saat Ini
+    const title = selectedItem?.judul || "Kabar Asrama";
+    const text = `Kabar terbaru dari Asrama: ${title}. Baca selengkapnya di: `;
+
+    switch (platform) {
+      case 'whatsapp':
+        window.open(`https://wa.me/?text=${encodeURIComponent(text + shareUrl)}`, '_blank');
+        break;
+      case 'facebook':
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
+        break;
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(`${text} ${shareUrl}`).then(() => {
+          alert('Tautan dan informasi berhasil disalin!');
+        });
+        break;
+      case 'native':
+        if (navigator.share) {
+          navigator.share({
+            title: title,
+            text: text,
+            url: shareUrl
+          }).catch((err) => console.log('Batal berbagi:', err));
+        } else {
+          alert('Browser ini belum mendukung berbagi langsung. Silakan gunakan ikon lain.');
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
   const totalNewsPages = Math.ceil(dataBerita.length / newsPerPage);
   const displayedNews = dataBerita.slice(newsPage * newsPerPage, (newsPage + 1) * newsPerPage);
 
@@ -221,7 +259,34 @@ export default function Kehidupan() {
                     <div className="w-10 h-1 bg-amber-500 mb-6 rounded-full"></div>
                     <p className="text-[#44403c] leading-relaxed text-base whitespace-pre-line">{selectedItem.deskripsi}</p>
                     
-                    <div className="mt-8 pt-8 border-t border-stone-200 font-sans">
+                    {/* ===== FITUR BAGIKAN (SHARE) ===== */}
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <span className="text-xs font-bold text-stone-400 uppercase tracking-widest font-sans">Bagikan:</span>
+                      <div className="flex items-center gap-2">
+                         {/* Native Share (IG/Lainnya via HP) */}
+                         <button onClick={() => handleShare('native')} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-amber-100 text-stone-600 hover:text-amber-600 flex items-center justify-center transition-colors shadow-sm" title="Bagikan Langsung">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                         </button>
+                         {/* WhatsApp */}
+                         <button onClick={() => handleShare('whatsapp')} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-green-100 text-stone-600 hover:text-green-600 flex items-center justify-center transition-colors shadow-sm" title="Bagikan ke WhatsApp">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                         </button>
+                         {/* Facebook */}
+                         <button onClick={() => handleShare('facebook')} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-blue-100 text-stone-600 hover:text-blue-700 flex items-center justify-center transition-colors shadow-sm" title="Bagikan ke Facebook">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                         </button>
+                         {/* X / Twitter */}
+                         <button onClick={() => handleShare('twitter')} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-300 text-stone-600 hover:text-stone-900 flex items-center justify-center transition-colors shadow-sm" title="Bagikan ke X / Twitter">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
+                         </button>
+                         {/* Copy Link */}
+                         <button onClick={() => handleShare('copy')} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-red-100 text-stone-600 hover:text-red-700 flex items-center justify-center transition-colors shadow-sm" title="Salin Tautan">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                         </button>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6 pt-8 border-t border-stone-200 font-sans">
                       <h3 className="font-playfair font-bold text-xl text-[#1c1917] mb-4">Komentar ({komentarList.length})</h3>
                       <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
                         {komentarList.length === 0 ? (
