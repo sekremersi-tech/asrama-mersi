@@ -187,57 +187,89 @@ export default function PublicLayout({ children }) {
                 </div>
               </Link>
 
-              <div className="hidden xl:flex space-x-6 h-full">
-                {navLinks.map((link, index) => (
-                  <div key={link.name} className="relative group h-full flex items-center cursor-pointer">
-                    <Link href={link.path} className={`text-[15px] font-semibold transition-all py-2 border-b-[3px] ${pathname === link.path ? "border-red-800 text-red-800" : "border-transparent text-stone-600 hover:text-amber-600"}`}>
-                      {link.name}
-                    </Link>
+              {/* MENU DESKTOP & TOMBOL LOGIN */}
+              <div className="hidden xl:flex items-center h-full">
+                {/* Menu Links */}
+                <div className="flex space-x-6 h-full">
+                  {navLinks.map((link, index) => (
+                    <div key={link.name} className="relative group h-full flex items-center cursor-pointer">
+                      <Link href={link.path} className={`text-[15px] font-semibold transition-all py-2 border-b-[3px] ${pathname === link.path ? "border-red-800 text-red-800" : "border-transparent text-stone-600 hover:text-amber-600"}`}>
+                        {link.name}
+                      </Link>
 
-                    {link.subLinks && (
-                      <div className={`absolute top-full pt-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 ${index >= 3 ? 'right-0' : 'left-1/2 -translate-x-1/2'}`}>
-                        <div className="bg-[#fcfbf9] border border-[#e8e4db] rounded-sm shadow-2xl relative">
-                          <div className={`absolute -top-2 w-4 h-4 bg-[#fcfbf9] border-l border-t border-[#e8e4db] rotate-45 ${index >= 3 ? 'right-8' : 'left-1/2 -translate-x-1/2'}`}></div>
-                          <ul className="relative z-10 flex flex-col py-2">
-                            {link.subLinks.map((sub, idx) => (
-                              <li key={idx}>
-                                <Link href={sub.path} className="block px-6 py-3 text-sm font-lora font-medium text-stone-600 hover:text-red-800 hover:bg-[#f4f2ec] border-l-2 border-transparent hover:border-red-800 transition-colors">
-                                  {sub.name}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
+                      {link.subLinks && (
+                        <div className={`absolute top-full pt-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 ${index >= 3 ? 'right-0' : 'left-1/2 -translate-x-1/2'}`}>
+                          <div className="bg-[#fcfbf9] border border-[#e8e4db] rounded-sm shadow-2xl relative">
+                            <div className={`absolute -top-2 w-4 h-4 bg-[#fcfbf9] border-l border-t border-[#e8e4db] rotate-45 ${index >= 3 ? 'right-8' : 'left-1/2 -translate-x-1/2'}`}></div>
+                            <ul className="relative z-10 flex flex-col py-2">
+                              {link.subLinks.map((sub, idx) => (
+                                <li key={idx}>
+                                  <Link href={sub.path} className="block px-6 py-3 text-sm font-lora font-medium text-stone-600 hover:text-red-800 hover:bg-[#f4f2ec] border-l-2 border-transparent hover:border-red-800 transition-colors">
+                                    {sub.name}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Tombol Login Desktop */}
+                <div className="ml-8 pl-8 border-l border-stone-200 flex items-center h-8">
+                  <Link href="/admin/login" className="flex items-center gap-2.5 px-6 py-2.5 bg-stone-900 hover:bg-amber-600 text-white rounded-full transition-all duration-300 shadow-md hover:shadow-lg group">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 transition-transform">
+                      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                      <polyline points="10 17 15 12 10 7"></polyline>
+                      <line x1="15" y1="12" x2="3" y2="12"></line>
+                    </svg>
+                    <span className="text-[11px] font-bold font-sans tracking-widest uppercase mt-0.5">Login</span>
+                  </Link>
+                </div>
               </div>
 
+              {/* TOMBOL MENU HAMBURGER (MOBILE) */}
               <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="xl:hidden p-2 text-stone-500 hover:text-amber-600 shrink-0">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
               </button>
             </div>
           </div>
 
+          {/* MENU DROPDOWN MOBILE */}
           {isMenuOpen && (
-            <div className="xl:hidden bg-white border-t border-stone-100 px-4 py-4 space-y-2 shadow-lg max-h-[80vh] overflow-y-auto">
-              {navLinks.map((link) => (
-                <div key={link.name}>
-                  <Link href={link.path} onClick={() => setIsMenuOpen(false)} className={`block px-4 py-3 rounded-lg font-medium text-sm transition-colors ${pathname === link.path ? "bg-red-50 text-red-800 border-l-4 border-red-800" : "text-stone-600 hover:bg-stone-50"}`}>
-                    {link.name}
-                  </Link>
-                  {link.subLinks && (
-                    <div className="pl-6 flex flex-col space-y-1 mt-1 border-l-2 border-stone-100 ml-6">
-                      {link.subLinks.map((sub, idx) => (
-                        <Link key={idx} href={sub.path} onClick={() => setIsMenuOpen(false)} className="text-sm font-lora text-stone-500 hover:text-red-800 py-2">
-                          • {sub.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+            <div className="xl:hidden bg-white border-t border-stone-100 px-4 py-4 shadow-lg max-h-[85vh] overflow-y-auto flex flex-col">
+              <div className="space-y-2">
+                {navLinks.map((link) => (
+                  <div key={link.name}>
+                    <Link href={link.path} onClick={() => setIsMenuOpen(false)} className={`block px-4 py-3 rounded-lg font-medium text-sm transition-colors ${pathname === link.path ? "bg-red-50 text-red-800 border-l-4 border-red-800" : "text-stone-600 hover:bg-stone-50"}`}>
+                      {link.name}
+                    </Link>
+                    {link.subLinks && (
+                      <div className="pl-6 flex flex-col space-y-1 mt-1 border-l-2 border-stone-100 ml-6">
+                        {link.subLinks.map((sub, idx) => (
+                          <Link key={idx} href={sub.path} onClick={() => setIsMenuOpen(false)} className="text-sm font-lora text-stone-500 hover:text-red-800 py-2">
+                            • {sub.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Tombol Login Mobile */}
+              <div className="mt-6 pt-4 border-t border-stone-100">
+                <Link href="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-center gap-2 w-full px-4 py-3.5 bg-stone-900 hover:bg-amber-600 text-white font-bold font-sans tracking-widest uppercase text-xs rounded-lg transition-colors shadow-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                    <polyline points="10 17 15 12 10 7"></polyline>
+                    <line x1="15" y1="12" x2="3" y2="12"></line>
+                  </svg>
+                  Login Portal
+                </Link>
+              </div>
             </div>
           )}
         </nav>
