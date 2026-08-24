@@ -210,7 +210,8 @@ export default function ProfilAsrama() {
           <div className="absolute -inset-3 md:-inset-4 bg-[#1e1a17] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] transform translate-y-2"></div>
           <div className="absolute -inset-3 md:-inset-4 bg-gradient-to-b from-[#2a2522] to-[#171412] rounded-xl shadow-inner border border-stone-800"></div>
 
-          <div className="relative w-full bg-[#fdfcf7] rounded-sm flex shadow-[inset_0_0_20px_rgba(0,0,0,0.05)] overflow-hidden min-h-[480px]">
+          {/* PERUBAHAN: MENAMBAHKAN HEIGHT TETAP h-[580px] md:h-[650px] AGAR BUKU TIDAK LOMPAT */}
+          <div className="relative w-full bg-[#fdfcf7] rounded-sm flex shadow-[inset_0_0_20px_rgba(0,0,0,0.05)] overflow-hidden h-[580px] lg:h-[650px]">
             
             <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-12 lg:w-16 bg-gradient-to-r from-transparent via-black/10 to-transparent z-20 pointer-events-none hidden md:block"></div>
             <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-12 bg-red-800 shadow-md z-30 hidden md:block" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)" }}></div>
@@ -242,10 +243,10 @@ export default function ProfilAsrama() {
             </div>
 
             {/* HALAMAN KANAN (Teks Sejarah) */}
-            <div className="w-full md:w-1/2 p-8 md:p-12 lg:p-16 relative z-10 perspective-2000 shadow-[inset_20px_0_30px_-15px_rgba(0,0,0,0.1)] bg-[#fdfcf7]">
+            <div className="w-full md:w-1/2 p-6 md:p-10 lg:p-14 relative z-10 perspective-2000 shadow-[inset_20px_0_30px_-15px_rgba(0,0,0,0.1)] bg-[#fdfcf7] flex flex-col">
               
               {/* Toggle versi Mobile */}
-              <div className="md:hidden flex flex-col items-center gap-2 mb-8 border-b-2 border-stone-200 pb-6">
+              <div className="md:hidden flex flex-col items-center gap-2 mb-4 border-b-2 border-stone-200 pb-4 shrink-0">
                  <p className="text-xs font-bold text-stone-500 uppercase tracking-widest font-sans">Pilih Asrama:</p>
                  <div className="flex bg-stone-200 p-1 rounded-lg w-fit">
                     <button onClick={() => { setSejarahAsrama("mersi"); setHalAktif(0); }} className={`px-4 py-2 text-[10px] font-bold rounded-md transition-all font-sans uppercase tracking-wide ${sejarahAsrama === 'mersi' ? 'bg-red-800 text-white shadow' : 'text-stone-500 hover:text-stone-700'}`}>Mersi</button>
@@ -253,16 +254,16 @@ export default function ProfilAsrama() {
                  </div>
               </div>
 
-              <div className={`flex flex-col h-full transform-style-3d origin-spine ${isAnimasiFlip ? (arahFlip === 'next' ? 'book-flip-next' : 'book-flip-prev') : (arahFlip ? (arahFlip === 'next' ? 'book-enter-next' : 'book-enter-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500')}`}>
+              <div className={`flex flex-col flex-grow min-h-0 transform-style-3d origin-spine ${isAnimasiFlip ? (arahFlip === 'next' ? 'book-flip-next' : 'book-flip-prev') : (arahFlip ? (arahFlip === 'next' ? 'book-enter-next' : 'book-enter-prev') : 'transform rotateY-0 opacity-100 transition-all duration-500')}`}>
                 
                 {/* Header Kanan */}
-                <div className="hidden md:flex justify-between items-center mb-8 border-b-2 border-stone-200 pb-4">
+                <div className="hidden md:flex justify-between items-center mb-4 border-b-2 border-stone-200 pb-4 shrink-0">
                   <span className="text-red-800 font-bold tracking-widest uppercase font-sans text-xs">{displaySejarah[halAktif]?.judul}</span>
                   <span className="text-stone-400 font-serif italic text-sm">{halAktif + 1} / {displaySejarah.length || 1}</span>
                 </div>
                 
-                {/* Isi Sejarah */}
-                <div className="flex-grow">
+                {/* PERUBAHAN: ISI SEJARAH SEKARANG BISA DI-SCROLL, BUKU TETAP DIAM */}
+                <div className="flex-grow overflow-y-auto custom-scrollbar pr-4 min-h-0 relative pb-2">
                   <h3 className="md:hidden font-playfair font-bold text-xl mb-4 text-red-800">{displaySejarah[halAktif]?.judul}</h3>
                   <p className="text-stone-700 leading-[2.2] text-base lg:text-lg text-justify whitespace-pre-line font-lora drop-cap">
                     {loading ? "Menyibak lembaran sejarah..." : displaySejarah[halAktif]?.isi}
@@ -270,7 +271,7 @@ export default function ProfilAsrama() {
                 </div>
                 
                 {/* Navigasi Kertas */}
-                <div className="mt-12 flex justify-between items-center text-xs lg:text-sm font-bold tracking-widest font-sans uppercase pt-6">
+                <div className="mt-4 flex justify-between items-center text-xs lg:text-sm font-bold tracking-widest font-sans uppercase pt-4 border-t border-stone-100 shrink-0">
                   <button onClick={() => changePage(halAktif - 1, 'prev', displaySejarah.length)} disabled={halAktif === 0 || isAnimasiFlip} className={`flex items-center gap-2 transition-colors ${halAktif === 0 ? 'text-stone-300 cursor-not-allowed' : 'text-stone-600 hover:text-red-800'}`}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg> Prev
                   </button>
