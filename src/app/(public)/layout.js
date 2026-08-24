@@ -163,7 +163,7 @@ export default function PublicLayout({ children }) {
       {!isViewerPage && (
         <nav className="bg-[#fcfbf9]/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-[#e8e4db]">
           <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-20 items-center">
+            <div className="flex justify-between h-20 items-center gap-4 xl:gap-8">
               
               <Link href="/" className="flex items-center gap-4 group shrink-0">
                 {/* LOGO NAVBAR OVERLAPPING */}
@@ -178,22 +178,22 @@ export default function PublicLayout({ children }) {
                 
                 {/* TEKS NAVBAR */}
                 <div className="hidden sm:flex flex-col justify-center">
-                  <span className="font-playfair font-bold text-xl md:text-2xl text-[#2a2626] tracking-wide leading-tight">
+                  <span className="font-playfair font-bold text-lg xl:text-xl 2xl:text-2xl text-[#2a2626] tracking-wide leading-tight">
                     Asrama Mahasiswa Daerah Sumbar
                   </span>
-                  <span className="text-[10px] text-stone-500 tracking-[0.15em] font-bold uppercase font-sans mt-0.5 hidden lg:block">
+                  <span className="text-[9px] 2xl:text-[10px] text-stone-500 tracking-[0.15em] font-bold uppercase font-sans mt-0.5 hidden lg:block">
                     Merapi Singgalang & Bundo Kanduang
                   </span>
                 </div>
               </Link>
 
               {/* MENU DESKTOP & TOMBOL LOGIN */}
-              <div className="hidden xl:flex items-center h-full">
+              <div className="hidden xl:flex items-center justify-end h-full flex-grow">
                 {/* Menu Links */}
-                <div className="flex space-x-6 h-full">
+                <div className="flex space-x-4 2xl:space-x-6 h-full">
                   {navLinks.map((link, index) => (
                     <div key={link.name} className="relative group h-full flex items-center cursor-pointer">
-                      <Link href={link.path} className={`text-[15px] font-semibold transition-all py-2 border-b-[3px] ${pathname === link.path ? "border-red-800 text-red-800" : "border-transparent text-stone-600 hover:text-amber-600"}`}>
+                      <Link href={link.path} className={`whitespace-nowrap text-[14px] 2xl:text-[15px] font-semibold transition-all py-2 border-b-[3px] ${pathname === link.path ? "border-red-800 text-red-800" : "border-transparent text-stone-600 hover:text-amber-600"}`}>
                         {link.name}
                       </Link>
 
@@ -218,14 +218,14 @@ export default function PublicLayout({ children }) {
                 </div>
 
                 {/* Tombol Login Desktop */}
-                <div className="ml-8 pl-8 border-l border-stone-200 flex items-center h-8">
-                  <Link href="/admin/login" className="flex items-center gap-2.5 px-6 py-2.5 bg-stone-900 hover:bg-amber-600 text-white rounded-full transition-all duration-300 shadow-md hover:shadow-lg group">
+                <div className="ml-4 2xl:ml-8 pl-4 2xl:pl-8 border-l border-stone-200 flex items-center h-8 shrink-0">
+                  <Link href="/admin/login" className="flex items-center gap-2 px-5 2xl:px-6 py-2 2xl:py-2.5 bg-stone-900 hover:bg-amber-600 text-white rounded-full transition-all duration-300 shadow-md hover:shadow-lg group">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 transition-transform">
                       <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
                       <polyline points="10 17 15 12 10 7"></polyline>
                       <line x1="15" y1="12" x2="3" y2="12"></line>
                     </svg>
-                    <span className="text-[11px] font-bold font-sans tracking-widest uppercase mt-0.5">Login</span>
+                    <span className="text-[10px] 2xl:text-[11px] font-bold font-sans tracking-widest uppercase mt-0.5">Login</span>
                   </Link>
                 </div>
               </div>
