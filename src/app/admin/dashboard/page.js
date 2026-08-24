@@ -178,7 +178,8 @@ export default function AdminDashboard() {
   const [kategori, setKategori] = useState("PRESTASI"); 
   const [customKategori, setCustomKategori] = useState(""); 
   const [deskripsi, setDeskripsi] = useState(""); 
-  const [filesGambar, setFilesGambar] = useState([]); 
+  const [filesGambar, setFilesGambar] = useState([]);
+  const [tanggalPublikasi, setTanggalPublikasi] = useState(""); // STATE BARU UNTUK KALENDER PUBLIKASI
   const [editKehidupanId, setEditKehidupanId] = useState(null);
   
   const [nama, setNama] = useState(""); 
@@ -936,11 +937,24 @@ export default function AdminDashboard() {
       } 
       const finalKategori = kategori === "LAINNYA" ? customKategori.toUpperCase() : kategori; 
       
+      // LOGIKA TANGGAL DINAMIS (KALENDER)
+      let finalTanggal = "";
+      if (tanggalPublikasi) {
+        const dateObj = new Date(tanggalPublikasi);
+        finalTanggal = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      }
+
       if (editKehidupanId) { 
-        await updateDoc(doc(db, "kehidupan", editKehidupanId), { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls }); 
+        const updateData = { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls };
+        if (finalTanggal) updateData.tanggal = finalTanggal; // Mengupdate tanggal jika admin mengubahnya
+        
+        await updateDoc(doc(db, "kehidupan", editKehidupanId), updateData); 
         setStatus({ type: "success", message: "Publikasi diperbarui!" }); 
       } else { 
-        await addDoc(collection(db, "kehidupan"), { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls, tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), createdAt: serverTimestamp() }); 
+        if (!finalTanggal) {
+          finalTanggal = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        await addDoc(collection(db, "kehidupan"), { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls, tanggal: finalTanggal, createdAt: serverTimestamp() }); 
         setStatus({ type: "success", message: "Publikasi ditambahkan!" }); 
       } 
       setJudulKonten(""); 
@@ -948,6 +962,7 @@ export default function AdminDashboard() {
       setCustomKategori(""); 
       setKategori("PRESTASI"); 
       setFilesGambar([]); 
+      setTanggalPublikasi(""); // Reset Tanggal
       setEditKehidupanId(null); 
       fetchAllData(); 
     } catch (error) { 
@@ -969,6 +984,7 @@ export default function AdminDashboard() {
       setCustomKategori(item.kategori); 
     } 
     setFilesGambar([]); 
+    setTanggalPublikasi(""); // Sengaja dikosongkan agar jika disimpan tidak mengubah tanggal lama secara tak sengaja
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
   };
 
@@ -1881,25 +1897,48 @@ export default function AdminDashboard() {
           </div> 
         )}
         
-        {/* TAB KEHIDUPAN / PUBLIKASI */}
+        {/* TAB KEHIDUPAN / PUBLIKASI DENGAN FITUR TANGGAL BARU */}
         {activeTab === "kehidupan" && allowedTabs.includes("kehidupan") && ( 
           <div className="space-y-6"> 
             <div className="bg-white rounded-xl shadow-md p-6"> 
               <h2 className="text-lg font-bold mb-4 border-b pb-2">{editKehidupanId ? "Edit Publikasi" : "Tambah Publikasi Baru"}</h2> 
-              <form onSubmit={handleSubmitKehidupan} className="space-y-4"> 
-                <input type="text" required value={judulKonten} onChange={(e) => setJudulKonten(e.target.value)} placeholder="Judul Berita..." className="w-full px-4 py-2 border rounded-md" /> 
-                <select value={kategori} onChange={(e) => setKategori(e.target.value)} className="w-full px-4 py-2 border rounded-md font-bold"> 
-                  <option value="PRESTASI">Prestasi</option> 
-                  <option value="MERSI X BK">MERSI X BK</option> 
-                  <option value="LOMBA TERBUKA">Lomba Terbuka</option> 
-                  <option value="LAINNYA">Lainnya... (Isi Manual)</option> 
-                </select> 
-                {kategori === "LAINNYA" && <input type="text" required value={customKategori} onChange={(e) => setCustomKategori(e.target.value)} placeholder="Tuliskan nama kategori..." className="w-full px-4 py-2 border border-amber-500 bg-amber-50 rounded-md" />} 
-                <textarea required rows="4" value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)} placeholder="Isi Berita..." className="w-full px-4 py-2 border rounded-md"></textarea> 
-                <input type="file" multiple accept="image/*" required={!editKehidupanId} onChange={(e) => setFilesGambar(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-slate-50" /> 
-                <div className="flex gap-2">
-                  <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md">{editKehidupanId ? "Simpan Perubahan" : "Publikasikan"}</button>
-                  {editKehidupanId && <button type="button" onClick={()=>{setEditKehidupanId(null); setJudulKonten(""); setDeskripsi("");}} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
+              <form onSubmit={handleSubmitKehidupan} className="space-y-4 bg-slate-50 p-5 rounded border border-slate-200"> 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Judul Berita</label>
+                    <input type="text" required value={judulKonten} onChange={(e) => setJudulKonten(e.target.value)} placeholder="Judul Berita..." className="w-full px-4 py-2 border rounded-md" /> 
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Tanggal Kejadian (Opsional)</label>
+                    <input type="date" value={tanggalPublikasi} onChange={(e) => setTanggalPublikasi(e.target.value)} className="w-full px-4 py-2 border rounded-md text-sm text-slate-700" /> 
+                    <p className="text-[10px] text-slate-500 mt-1 italic">{editKehidupanId ? "Kosongkan jika tidak ingin merubah tanggal rilis lama." : "Kosongkan jika ingin otomatis memakai tanggal hari ini."}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Kategori</label>
+                  <select value={kategori} onChange={(e) => setKategori(e.target.value)} className="w-full px-4 py-2 border rounded-md font-bold"> 
+                    <option value="PRESTASI">Prestasi</option> 
+                    <option value="MERSI X BK">MERSI X BK</option> 
+                    <option value="LOMBA TERBUKA">Lomba Terbuka</option> 
+                    <option value="LAINNYA">Lainnya... (Isi Manual)</option> 
+                  </select> 
+                  {kategori === "LAINNYA" && <input type="text" required value={customKategori} onChange={(e) => setCustomKategori(e.target.value)} placeholder="Tuliskan nama kategori..." className="w-full px-4 py-2 border border-amber-500 bg-amber-50 rounded-md mt-2" />} 
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Isi Berita</label>
+                  <textarea required rows="4" value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)} placeholder="Tuliskan detail liputan atau acara di sini..." className="w-full px-4 py-2 border rounded-md"></textarea> 
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Foto Dokumentasi</label>
+                  <input type="file" multiple accept="image/*" required={!editKehidupanId} onChange={(e) => setFilesGambar(Array.from(e.target.files))} className="w-full text-sm border p-2 rounded bg-white" /> 
+                </div>
+                
+                <div className="flex gap-2 pt-2">
+                  <button type="submit" disabled={loading} className="w-full md:w-auto bg-slate-900 text-white px-8 py-2.5 rounded-md font-bold">{editKehidupanId ? "Simpan Perubahan" : "Publikasikan"}</button>
+                  {editKehidupanId && <button type="button" onClick={()=>{setEditKehidupanId(null); setJudulKonten(""); setDeskripsi(""); setTanggalPublikasi("");}} className="w-full md:w-auto bg-stone-500 text-white px-6 py-2.5 rounded-md font-bold">Batal</button>}
                 </div> 
               </form> 
             </div> 
