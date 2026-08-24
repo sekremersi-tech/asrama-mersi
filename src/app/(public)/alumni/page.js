@@ -91,11 +91,32 @@ export default function JejakPrestasi() {
         const prestasiData = allBerita.filter(item => item.kategori === "PRESTASI");
         setDataPrestasi(prestasiData);
 
+        // --- BAGIAN YANG DIUBAH: MENYEDOT DATA SKRIPSI ALUMNI OTOMATIS ---
+        
+        // 1. Ambil Skripsi Manual (yang diinput dari Dashboard Admin)
         const skrSnap = await getDocs(query(collection(db, "skripsi"), orderBy("tahun", "desc")));
-        setDataSkripsi(skrSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const manualSkripsi = skrSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+        // 2. Ambil Data Warga & Alumni
         const pesanSnap = await getDocs(query(collection(db, "pesan_alumni"), orderBy("createdAt", "desc")));
-        setDataPesanAlumni(pesanSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const alumniData = pesanSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setDataPesanAlumni(alumniData);
+
+        // 3. SCRIPT PENYEDOT OTOMATIS (Mengekstrak skripsi dari profil alumni)
+        const otomatisSkripsi = alumniData
+          .filter(item => item.skripsi && item.skripsi.trim() !== "" && item.skripsi !== "-")
+          .map(item => ({
+            id: `auto-${item.id}`, 
+            nama: item.nama,
+            jurusan: item.jurusan || item.kuliah || "Tidak diketahui",
+            judul: item.skripsi,
+            // Jika tahun lulus tidak ada, gunakan angkatan asrama sebagai patokan sementara
+            tahun: item.tahunLulus || item.angkatanAsrama || "2024" 
+          }));
+
+        // 4. Gabungkan keduanya dan tampilkan ke tabel Repositori!
+        setDataSkripsi([...manualSkripsi, ...otomatisSkripsi]);
+        // -----------------------------------------------------------------
 
       } catch (error) { console.error(error); } finally { setLoading(false); }
     };
