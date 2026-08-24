@@ -54,36 +54,14 @@ export default function Kehidupan() {
   const [formKomen, setFormKomen] = useState({ nama: "", isi: "" });
   const [isSubmittingKomen, setIsSubmittingKomen] = useState(false);
 
-  // State bantuan untuk melacak like secara lokal
   const [localLikes, setLocalLikes] = useState({});
 
-  // STATE SLIDER BERITA
   const [newsPage, setNewsPage] = useState(0);
   const newsPerPage = 2;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const snapFoto = await getDoc(doc(db, "pengaturan", "tampilan"));
-        if (snapFoto.exists() && snapFoto.data().kehidupan) setBgMedia(snapFoto.data().kehidupan);
-        
-        const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "desc")));
-        setDataGaleri(galSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        
-        const berSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
-        setDataBerita(berSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      } catch (error) { console.error(error); } finally { setLoading(false); }
-    };
-    fetchData();
-  }, []);
-
-  const domeImages = dataGaleri.reduce((acc, item) => {
-    const links = Array.isArray(item.linkGambar) ? item.linkGambar : (item.linkGambar ? [item.linkGambar] : []);
-    const mapped = links.map(src => ({ src, alt: item.judul || "Galeri Asrama", color: item.warna || '#ffffff' }));
-    return [...acc, ...mapped];
-  }, []);
-
-  const openModal = async (item) => { 
+  // --- FUNGSI UNTUK MEMBUKA MODAL SECARA GLOBAL ---
+  // Kita pisahkan agar bisa dipanggil dari useEffect (Auto-Open) maupun saat di-klik
+  const openModalData = async (item) => { 
     setSelectedItem(item); setModalImageIdx(0); document.body.style.overflow = "hidden"; 
     setFormKomen({ nama: "", isi: "" });
     
@@ -109,10 +87,69 @@ export default function Kehidupan() {
     }
   };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const snapFoto = await getDoc(doc(db, "pengaturan", "tampilan"));
+        if (snapFoto.exists() && snapFoto.data().kehidupan) setBgMedia(snapFoto.data().kehidupan);
+        
+        const galSnap = await getDocs(query(collection(db, "fasilitas"), orderBy("createdAt", "desc")));
+        setDataGaleri(galSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        
+        const berSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
+        const beritaList = berSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setDataBerita(beritaList);
+
+        // =================================================================
+        // FITUR DEEP LINKING: AUTO-OPEN POST JIKA ADA PARAMETER DI URL
+        // =================================================================
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const postId = params.get('post');
+          
+          if (postId) {
+            const postToOpen = beritaList.find(item => item.id === postId);
+            if (postToOpen) {
+              // Beri jeda sedikit agar halaman selesai merender, lalu buka pop-up nya
+              setTimeout(() => {
+                openModalData(postToOpen);
+                // Otomatis scroll ke bagian berita agar tampilannya pas
+                const el = document.getElementById("kabar");
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }, 600);
+            }
+          }
+        }
+
+      } catch (error) { console.error(error); } finally { setLoading(false); }
+    };
+    fetchData();
+  }, []);
+
+  const domeImages = dataGaleri.reduce((acc, item) => {
+    const links = Array.isArray(item.linkGambar) ? item.linkGambar : (item.linkGambar ? [item.linkGambar] : []);
+    const mapped = links.map(src => ({ src, alt: item.judul || "Galeri Asrama", color: item.warna || '#ffffff' }));
+    return [...acc, ...mapped];
+  }, []);
+
+  // Fungsi openModal untuk klik biasa dari kartu berita
+  const openModal = (item) => {
+    // Opsional: kita bisa mengubah URL di atas browser saat modal diklik, tapi
+    // agar history back button pengunjung tidak rusak, cukup panggil modalnya saja.
+    openModalData(item);
+  };
+
   const closeModal = () => { 
     setSelectedItem(null); setShowLombaModal(false); setKomentarList([]); setLocalLikes({});
     setFormKomen({ nama: "", isi: "" }); 
     document.body.style.overflow = "auto"; 
+    
+    // Membersihkan Parameter URL saat Modal ditutup agar link kembali bersih
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location);
+      url.searchParams.delete('post');
+      window.history.replaceState({}, '', url);
+    }
   };
 
   const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
@@ -175,26 +212,25 @@ export default function Kehidupan() {
     }
   };
 
-  // FUNGSI SHARE KE MEDIA SOSIAL DIPERBARUI DENGAN INSTAGRAM
   const handleShare = (platform) => {
     if (typeof window === 'undefined') return;
-    const shareUrl = window.location.href; // URL Halaman Saat Ini
+    
+    // PERBAIKAN: BUAT URL SPESIFIK MENGANDUNG ID BERITA
+    const shareUrl = `${window.location.origin}${window.location.pathname}?post=${selectedItem.id}`; 
     const title = selectedItem?.judul || "Kabar Asrama";
     const text = `Kabar terbaru dari Asrama: ${title}. Baca selengkapnya di: `;
 
     switch (platform) {
       case 'instagram':
         if (navigator.share && /Mobi|Android|iPhone/i.test(navigator.userAgent)) {
-          // Di HP: Buka sistem share bawaan OS (pilih IG Story dari daftar aplikasi)
           navigator.share({
             title: title,
             text: text,
             url: shareUrl
           }).catch((err) => console.log('Batal berbagi:', err));
         } else {
-          // Di PC/Laptop: Copy link otomatis dengan instruksi
           navigator.clipboard.writeText(shareUrl).then(() => {
-            alert('Tautan disalin!\n\nUntuk membagikan ke IG Story:\nBuka aplikasi Instagram di HP Anda, buat Story, lalu gunakan stiker "Tautan" (Link) dan tempel tautan ini.');
+            alert('Tautan Khusus Berita Disalin!\n\nUntuk membagikan ke IG Story:\nBuka aplikasi Instagram di HP Anda, buat Story, lalu gunakan stiker "Tautan" (Link) dan tempel tautan yang baru saja disalin.');
           });
         }
         break;
@@ -208,8 +244,8 @@ export default function Kehidupan() {
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
         break;
       case 'copy':
-        navigator.clipboard.writeText(`${text} ${shareUrl}`).then(() => {
-          alert('Tautan dan informasi berhasil disalin!');
+        navigator.clipboard.writeText(`${shareUrl}`).then(() => {
+          alert('Tautan Khusus menuju berita ini berhasil disalin!');
         });
         break;
       case 'native':
@@ -298,7 +334,7 @@ export default function Kehidupan() {
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
                          </button>
                          {/* Copy Link */}
-                         <button onClick={() => handleShare('copy')} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-red-100 text-stone-600 hover:text-red-700 flex items-center justify-center transition-colors shadow-sm" title="Salin Tautan">
+                         <button onClick={() => handleShare('copy')} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-red-100 text-stone-600 hover:text-red-700 flex items-center justify-center transition-colors shadow-sm" title="Salin Tautan Khusus Berita">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                          </button>
                       </div>
@@ -400,7 +436,7 @@ export default function Kehidupan() {
         {loading ? <p className="text-center py-10 text-stone-500">Memuat kabar...</p> : dataBerita.length === 0 ? <div className="bg-white p-8 border border-[#e8e4db] text-center text-stone-500">Belum ada publikasi berita.</div> : (
           <div key={newsPage} className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-[fadeIn_0.5s_ease-out]">
             {displayedNews.map((item, idx) => (
-              <div key={item.id} onClick={() => openModal(item, "berita")} className={`bg-[#fcfbf9] border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] flex flex-col md:flex-row overflow-hidden group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
+              <div key={item.id} onClick={() => openModal(item)} className={`bg-[#fcfbf9] border border-[#e8e4db] shadow-[4px_4px_0px_0px_rgba(23,20,18,0.05)] flex flex-col md:flex-row overflow-hidden group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
                 <div className="w-full md:w-2/5 h-48 md:h-auto shrink-0 relative overflow-hidden bg-stone-100"><NewsAutoSliderCard images={item.linkGambar} /></div>
                 <div className="p-6 md:p-8 flex flex-col justify-center w-full">
                   <div className="flex items-center gap-3 mb-3"><span className="text-xs font-bold tracking-widest uppercase text-red-800 font-sans">{item.kategori}</span><span className="text-stone-300">•</span><span className="text-xs text-stone-500 font-sans">{item.tanggal}</span></div>
