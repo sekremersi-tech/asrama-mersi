@@ -5,6 +5,20 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, doc, getDoc, addDoc, serverTimestamp, where, updateDoc, increment } from "firebase/firestore";
 import DomeGallery from "@/components/DomeGallery";
 
+// FUNGSI BANTUAN UNTUK MENERJEMAHKAN TANGGAL INDONESIA KE ANGKA AGAR BISA DIURUTKAN
+const parseIndoDate = (dateStr) => {
+  if (!dateStr) return 0;
+  const months = {
+    "Januari": 0, "Februari": 1, "Maret": 2, "April": 3, "Mei": 4, "Juni": 5,
+    "Juli": 6, "Agustus": 7, "September": 8, "Oktober": 9, "November": 10, "Desember": 11
+  };
+  const parts = dateStr.split(" ");
+  if (parts.length === 3) {
+    return new Date(parseInt(parts[2]), months[parts[1]], parseInt(parts[0])).getTime();
+  }
+  return 0; // Fallback jika format salah
+};
+
 const HeroSlider = ({ images, title, subtitle }) => { 
   const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
   const [idx, setIdx] = useState(0);
@@ -60,7 +74,6 @@ export default function Kehidupan() {
   const newsPerPage = 2;
 
   // --- FUNGSI UNTUK MEMBUKA MODAL SECARA GLOBAL ---
-  // Kita pisahkan agar bisa dipanggil dari useEffect (Auto-Open) maupun saat di-klik
   const openModalData = async (item) => { 
     setSelectedItem(item); setModalImageIdx(0); document.body.style.overflow = "hidden"; 
     setFormKomen({ nama: "", isi: "" });
@@ -97,7 +110,15 @@ export default function Kehidupan() {
         setDataGaleri(galSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         
         const berSnap = await getDocs(query(collection(db, "kehidupan"), orderBy("createdAt", "desc")));
-        const beritaList = berSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        let beritaList = berSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        // PERBAIKAN: MENGURUTKAN ULANG BERITA BERDASARKAN TANGGAL KEJADIAN
+        beritaList.sort((a, b) => {
+          const timeA = parseIndoDate(a.tanggal);
+          const timeB = parseIndoDate(b.tanggal);
+          return timeB - timeA; // Descending (Terbaru di atas)
+        });
+
         setDataBerita(beritaList);
 
         // =================================================================
@@ -110,10 +131,8 @@ export default function Kehidupan() {
           if (postId) {
             const postToOpen = beritaList.find(item => item.id === postId);
             if (postToOpen) {
-              // Beri jeda sedikit agar halaman selesai merender, lalu buka pop-up nya
               setTimeout(() => {
                 openModalData(postToOpen);
-                // Otomatis scroll ke bagian berita agar tampilannya pas
                 const el = document.getElementById("kabar");
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }, 600);
@@ -132,10 +151,7 @@ export default function Kehidupan() {
     return [...acc, ...mapped];
   }, []);
 
-  // Fungsi openModal untuk klik biasa dari kartu berita
   const openModal = (item) => {
-    // Opsional: kita bisa mengubah URL di atas browser saat modal diklik, tapi
-    // agar history back button pengunjung tidak rusak, cukup panggil modalnya saja.
     openModalData(item);
   };
 
@@ -144,7 +160,6 @@ export default function Kehidupan() {
     setFormKomen({ nama: "", isi: "" }); 
     document.body.style.overflow = "auto"; 
     
-    // Membersihkan Parameter URL saat Modal ditutup agar link kembali bersih
     if (typeof window !== 'undefined') {
       const url = new URL(window.location);
       url.searchParams.delete('post');
@@ -215,7 +230,6 @@ export default function Kehidupan() {
   const handleShare = (platform) => {
     if (typeof window === 'undefined') return;
     
-    // PERBAIKAN: BUAT URL SPESIFIK MENGANDUNG ID BERITA
     const shareUrl = `${window.location.origin}${window.location.pathname}?post=${selectedItem.id}`; 
     const title = selectedItem?.judul || "Kabar Asrama";
     const text = `Kabar terbaru dari Asrama: ${title}. Baca selengkapnya di: `;
