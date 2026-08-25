@@ -179,7 +179,7 @@ export default function AdminDashboard() {
   const [customKategori, setCustomKategori] = useState(""); 
   const [deskripsi, setDeskripsi] = useState(""); 
   const [filesGambar, setFilesGambar] = useState([]);
-  const [tanggalPublikasi, setTanggalPublikasi] = useState(""); // STATE BARU UNTUK KALENDER PUBLIKASI
+  const [tanggalPublikasi, setTanggalPublikasi] = useState(""); 
   const [editKehidupanId, setEditKehidupanId] = useState(null);
   
   const [nama, setNama] = useState(""); 
@@ -229,17 +229,18 @@ export default function AdminDashboard() {
   useEffect(() => {
     import("firebase/auth").then(({ onAuthStateChanged }) => {
       onAuthStateChanged(auth, async (user) => {
-        if (!user) { router.push("/admin/login"); return; }
+        // PERBAIKAN: Menggunakan router.replace agar tidak menyimpan jejak history
+        if (!user) { router.replace("/admin/login"); return; }
         
         const email = user.email || "";
         setCurrentUserEmail(email);
         
-        let currRole = ""; // Default dikosongkan agar aman
+        let currRole = ""; 
         
         // TULIS EMAIL SEKRETARIS YANG DIIZINKAN DI SINI
         const daftarSekretaris = [
-          "aspuribkrancak123@gmail.com", // Ganti dengan email sekre bk yang asli
-          "sekremersi@gmail.com", // Ganti dengan email sekre mersi yang asli
+          "aspuribkrancak123@gmail.com", 
+          "sekremersi@gmail.com", 
         ];
         
         if (daftarSekretaris.includes(email)) currRole = "sekre";
@@ -251,7 +252,6 @@ export default function AdminDashboard() {
         else if (email.startsWith("rohani")) currRole = "rohani";
         else if (email.startsWith("senibudaya") || email.startsWith("senbud")) currRole = "senbud";
         else {
-          // BUKAN PENGURUS, CEK APAKAH ALUMNI / WARGA YANG SUDAH TERDAFTAR DARI GOOGLE FORM
           try {
             const qAlumni = query(collection(db, "pesan_alumni"), where("emailPemilik", "==", email));
             const snapAlumni = await getDocs(qAlumni);
@@ -259,19 +259,16 @@ export default function AdminDashboard() {
             if (!snapAlumni.empty) {
               currRole = "warga_alumni";
               
-              // MENGAMBIL SEMUA DATA & MENGURUTKAN DARI YANG PALING BARU
-              // Logika pintar: Jika ada data kosong sisa error masa lalu, sistem akan memilih data yang paling baru diisi.
               let myRecords = snapAlumni.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               myRecords.sort((a, b) => {
                 const timeA = a.createdAt?.toMillis() || 0;
                 const timeB = b.createdAt?.toMillis() || 0;
-                return timeB - timeA; // Descending (Terbaru di atas)
+                return timeB - timeA; 
               });
 
               const myLatestData = myRecords[0];
               setLoggedInAlumniId(myLatestData.id);
               
-              // Masukkan data milik dia sendiri ke dalam state Form
               setFormAlumni({
                 nama: myLatestData.nama || "",
                 asal: myLatestData.asal || "",
@@ -291,17 +288,17 @@ export default function AdminDashboard() {
               setRole(currRole); 
               setAllowedTabs(tabsForRole); 
               setActiveTab(tabsForRole[0]);
-              return; // Berhenti di sini, tidak perlu memuat data admin lainnya
+              return; 
             } else {
               alert("Akses Ditolak! Email Anda belum terdaftar di pangkalan data asrama. Silakan isi form pendataan terlebih dahulu sebelum login.");
               signOut(auth);
-              router.push("/");
+              router.replace("/beranda"); // PERBAIKAN: Gunakan replace ke beranda
               return;
             }
           } catch (err) {
             console.error("Gagal memeriksa hak akses warga:", err);
             signOut(auth);
-            router.push("/");
+            router.replace("/beranda"); // PERBAIKAN: Gunakan replace ke beranda
             return;
           }
         }
@@ -311,7 +308,6 @@ export default function AdminDashboard() {
         setAllowedTabs(tabsForRole); 
         setActiveTab(tabsForRole[0]); 
 
-        // OTOMATISKAN PILIHAN ASRAMA BERDASARKAN EMAIL LOGIN
         const isBkAdmin = email.includes("@bk.com") || email === "aspuribkrancak123@gmail.com";
         const defaultAsrama = isBkAdmin ? "bk" : "mersi";
         setAsramaSejarah(defaultAsrama);
@@ -489,7 +485,6 @@ export default function AdminDashboard() {
     } 
   };
   
-  // -- FUNGSI KONFIRMASI AKSES SKRIPSI --
   const handleKirimAksesSkripsi = async (item) => {
     try {
       await updateDoc(doc(db, "permohonan_skripsi", item.id), { status: "Disetujui" });
@@ -937,7 +932,6 @@ export default function AdminDashboard() {
       } 
       const finalKategori = kategori === "LAINNYA" ? customKategori.toUpperCase() : kategori; 
       
-      // LOGIKA TANGGAL DINAMIS (KALENDER)
       let finalTanggal = "";
       if (tanggalPublikasi) {
         const dateObj = new Date(tanggalPublikasi);
@@ -946,7 +940,7 @@ export default function AdminDashboard() {
 
       if (editKehidupanId) { 
         const updateData = { judul: judulKonten, kategori: finalKategori, deskripsi, linkGambar: urls };
-        if (finalTanggal) updateData.tanggal = finalTanggal; // Mengupdate tanggal jika admin mengubahnya
+        if (finalTanggal) updateData.tanggal = finalTanggal; 
         
         await updateDoc(doc(db, "kehidupan", editKehidupanId), updateData); 
         setStatus({ type: "success", message: "Publikasi diperbarui!" }); 
@@ -962,7 +956,7 @@ export default function AdminDashboard() {
       setCustomKategori(""); 
       setKategori("PRESTASI"); 
       setFilesGambar([]); 
-      setTanggalPublikasi(""); // Reset Tanggal
+      setTanggalPublikasi(""); 
       setEditKehidupanId(null); 
       fetchAllData(); 
     } catch (error) { 
@@ -984,7 +978,7 @@ export default function AdminDashboard() {
       setCustomKategori(item.kategori); 
     } 
     setFilesGambar([]); 
-    setTanggalPublikasi(""); // Sengaja dikosongkan agar jika disimpan tidak mengubah tanggal lama secara tak sengaja
+    setTanggalPublikasi(""); 
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
   };
 
@@ -1182,7 +1176,7 @@ export default function AdminDashboard() {
             {role === "warga_alumni" ? "WARGA / ALUMNI" : role === "puki" ? "PUBLIKASI" : role}
           </span>
         </div>
-        <button onClick={() => {signOut(auth); router.push("/admin/login")}} className="bg-red-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700">Logout</button>
+        <button onClick={() => {signOut(auth); router.replace("/beranda")}} className="bg-red-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700">Logout</button>
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
