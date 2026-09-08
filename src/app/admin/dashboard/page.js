@@ -72,6 +72,9 @@ export default function AdminDashboard() {
   const [status, setStatus] = useState({ type: "", message: "" });
   const [currentUserEmail, setCurrentUserEmail] = useState("");
 
+  // STATE KHUSUS UNTUK MEMBATASI HAK AKSES ASRAMA (MERSI / BK)
+  const [adminDorm, setAdminDorm] = useState("mersi"); 
+
   // STATE KHUSUS UNTUK ID ALUMNI YANG LOGIN
   const [loggedInAlumniId, setLoggedInAlumniId] = useState(null);
 
@@ -82,13 +85,10 @@ export default function AdminDashboard() {
   // STATE MERSI & BK DIPISAH (Termasuk Sosmed, Kontak, Maps)
   const [profilText, setProfilText] = useState({ visi_mersi: "", misi_mersi: "", visi_bk: "", misi_bk: "", jejakAlumni: "" });
   const [kontak, setKontak] = useState({ 
-    // Data Mersi
     namaKetuaMersi: "", noTelponMersi: "", noHumasMersi: "", emailMersi: "", namaIgMersi: "", linkIgMersi: "",
     alamatMersi: "", linkMapMersi: "", iframeMapMersi: "",
-    // Data BK
     namaKetuaBk: "", noTelponBk: "", noHumasBk: "", emailBk: "", namaIgBk: "", linkIgBk: "",
     alamatBk: "", linkMapBk: "", iframeMapBk: "",
-    // Bersama
     noSkripsi: "", namaTiktok: "", linkTiktok: "" 
   });
   
@@ -268,6 +268,10 @@ export default function AdminDashboard() {
               const myLatestData = myRecords[0];
               setLoggedInAlumniId(myLatestData.id);
               
+              // KUNCI ALUMNI DI ASRAMANYA SENDIRI
+              const myDorm = myLatestData.asrama || "mersi";
+              setAdminDorm(myDorm);
+              
               setFormAlumni({
                 nama: myLatestData.nama || "",
                 asal: myLatestData.asal || "",
@@ -278,7 +282,7 @@ export default function AdminDashboard() {
                 skripsi: myLatestData.skripsi || "",
                 prestasi: myLatestData.prestasi || "",
                 pesan: myLatestData.pesan || "",
-                asrama: myLatestData.asrama || "mersi",
+                asrama: myDorm,
                 statusWarga: myLatestData.statusWarga || "Alumni"
               });
               
@@ -307,13 +311,17 @@ export default function AdminDashboard() {
         setAllowedTabs(tabsForRole); 
         setActiveTab(tabsForRole[0]); 
 
+        // --- SISTEM PEMBATASAN OTOMATIS BERDASARKAN EMAIL ---
         const isBkAdmin = email.includes("@bk.com") || email === "aspuribkrancak123@gmail.com";
-        const defaultAsrama = isBkAdmin ? "bk" : "mersi";
-        setAsramaSejarah(defaultAsrama);
-        setAsramaDivisi(defaultAsrama);
-        setAsramaFasilitas(defaultAsrama);
-        setAsramaSewa(defaultAsrama);
-        setFormAlumni(prev => ({ ...prev, asrama: defaultAsrama }));
+        const currentDorm = isBkAdmin ? "bk" : "mersi";
+        
+        // MENGUNCI SEMUA DROPDOWN KE ASRAMA MASING-MASING
+        setAdminDorm(currentDorm);
+        setAsramaSejarah(currentDorm);
+        setAsramaDivisi(currentDorm);
+        setAsramaFasilitas(currentDorm);
+        setAsramaSewa(currentDorm);
+        setFormAlumni(prev => ({ ...prev, asrama: currentDorm }));
 
         setAuthReady(true);
         fetchAllData();
@@ -1152,6 +1160,14 @@ export default function AdminDashboard() {
     } 
   };
 
+  // --- PEMFILTERAN DATA UNTUK DITAMPILKAN DI TABEL BERDASARKAN HAK AKSES ---
+  const filteredSejarah = dataSejarah.filter(item => item.asrama === adminDorm);
+  const filteredDivisi = dataDivisi.filter(item => item.asrama === adminDorm);
+  const filteredFasilitas = dataFasilitas.filter(item => item.asrama === adminDorm);
+  const filteredPenyewaan = dataPenyewaan.filter(item => item.asrama === adminDorm);
+  const filteredPesanAlumni = dataPesanAlumni.filter(item => item.asrama === adminDorm);
+  const filteredPendaftarAsrama = dataPendaftarAsrama.filter(item => item.asramaTujuan === adminDorm);
+
   if (!authReady) {
     return (
       <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">
@@ -1210,49 +1226,50 @@ export default function AdminDashboard() {
                     <div className="space-y-4"> 
                       <h3 className="font-semibold text-red-800 border-l-2 pl-2">Kontak Asrama (Footer & Pendaftaran)</h3> 
                       
-                      {/* --- PERBAIKAN: LAYOUT DIPISAH MERSI DAN BK SESUAI GAMBAR --- */}
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        {/* Kolom Kiri & Tengah (Grid 2 Kolom) */}
                         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                           
-                          {/* Row 1: Ketua Mersi */}
-                          <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 shadow-sm">
-                            <label className="text-sm block mb-1 font-bold text-red-800">Nama Ketua Mersi</label>
-                            <input required type="text" value={kontak.namaKetuaMersi || ""} onChange={(e) => setKontak({...kontak, namaKetuaMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-red-500 outline-none" />
-                          </div>
-                          <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 shadow-sm">
-                            <label className="text-sm block mb-1 font-bold text-red-800">No WA Ketua Mersi</label>
-                            <input required type="text" value={kontak.noTelponMersi || ""} onChange={(e) => setKontak({...kontak, noTelponMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-red-500 outline-none" placeholder="Cth: 0812..." />
-                          </div>
+                          {/* HANYA MUNCUL JIKA ADMIN MERSI */}
+                          {adminDorm === "mersi" && (
+                            <>
+                              <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 shadow-sm">
+                                <label className="text-sm block mb-1 font-bold text-red-800">Nama Ketua Mersi</label>
+                                <input required type="text" value={kontak.namaKetuaMersi || ""} onChange={(e) => setKontak({...kontak, namaKetuaMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-red-500 outline-none" />
+                              </div>
+                              <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 shadow-sm">
+                                <label className="text-sm block mb-1 font-bold text-red-800">No WA Ketua Mersi</label>
+                                <input required type="text" value={kontak.noTelponMersi || ""} onChange={(e) => setKontak({...kontak, noTelponMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-red-500 outline-none" placeholder="Cth: 0812..." />
+                              </div>
+                              <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 shadow-sm mt-2">
+                                <label className="text-sm block mb-1 font-bold text-red-800">No WA Humas Mersi</label>
+                                <input required type="text" value={kontak.noHumasMersi || ""} onChange={(e) => setKontak({...kontak, noHumasMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-red-500 outline-none" placeholder="Cth: 0852..." />
+                              </div>
+                            </>
+                          )}
 
-                          {/* Row 2: Ketua BK */}
-                          <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 shadow-sm mt-2">
-                            <label className="text-sm block mb-1 font-bold text-amber-700">Nama Ketua BK</label>
-                            <input required type="text" value={kontak.namaKetuaBk || ""} onChange={(e) => setKontak({...kontak, namaKetuaBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 outline-none" />
-                          </div>
-                          <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 shadow-sm mt-2">
-                            <label className="text-sm block mb-1 font-bold text-amber-700">No WA Ketua BK</label>
-                            <input required type="text" value={kontak.noTelponBk || ""} onChange={(e) => setKontak({...kontak, noTelponBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 outline-none" placeholder="Cth: 0852..." />
-                          </div>
-
-                          {/* Row 3: Humas */}
-                          <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 shadow-sm mt-2">
-                            <label className="text-sm block mb-1 font-bold text-red-800">No WA Humas Mersi</label>
-                            <input required type="text" value={kontak.noHumasMersi || ""} onChange={(e) => setKontak({...kontak, noHumasMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-red-500 outline-none" placeholder="Cth: 0852..." />
-                          </div>
-                          <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 shadow-sm mt-2">
-                            <label className="text-sm block mb-1 font-bold text-amber-700">No WA Humas BK</label>
-                            <input required type="text" value={kontak.noHumasBk || ""} onChange={(e) => setKontak({...kontak, noHumasBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 outline-none" placeholder="Cth: 0852..." />
-                          </div>
+                          {/* HANYA MUNCUL JIKA ADMIN BK */}
+                          {adminDorm === "bk" && (
+                            <>
+                              <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 shadow-sm mt-2">
+                                <label className="text-sm block mb-1 font-bold text-amber-700">Nama Ketua BK</label>
+                                <input required type="text" value={kontak.namaKetuaBk || ""} onChange={(e) => setKontak({...kontak, namaKetuaBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 outline-none" />
+                              </div>
+                              <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 shadow-sm mt-2">
+                                <label className="text-sm block mb-1 font-bold text-amber-700">No WA Ketua BK</label>
+                                <input required type="text" value={kontak.noTelponBk || ""} onChange={(e) => setKontak({...kontak, noTelponBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 outline-none" placeholder="Cth: 0852..." />
+                              </div>
+                              <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 shadow-sm mt-2">
+                                <label className="text-sm block mb-1 font-bold text-amber-700">No WA Humas BK</label>
+                                <input required type="text" value={kontak.noHumasBk || ""} onChange={(e) => setKontak({...kontak, noHumasBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 outline-none" placeholder="Cth: 0852..." />
+                              </div>
+                            </>
+                          )}
                         </div>
 
                         {/* Kolom Kanan (Email & Admin Skripsi) */}
                         <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 shadow-sm flex flex-col justify-start">
-                          <label className="text-sm block mb-1 font-bold text-stone-700">Email Utama Mersi</label>
-                          <input required type="email" value={kontak.emailMersi || ""} onChange={(e) => setKontak({...kontak, emailMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded mb-4 focus:ring-1 focus:ring-stone-500 outline-none" placeholder="sekremersi@gmail.com" />
-                          
-                          <label className="text-sm block mb-1 font-bold text-stone-700">Email Utama BK</label>
-                          <input required type="email" value={kontak.emailBk || ""} onChange={(e) => setKontak({...kontak, emailBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded mb-4 focus:ring-1 focus:ring-stone-500 outline-none" placeholder="sekrebk@gmail.com" />
+                          <label className="text-sm block mb-1 font-bold text-stone-700">Email Utama (Bersama)</label>
+                          <input required type="email" value={adminDorm === "mersi" ? kontak.emailMersi : kontak.emailBk} onChange={(e) => setKontak({...kontak, [adminDorm === "mersi" ? "emailMersi" : "emailBk"]: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded mb-4 focus:ring-1 focus:ring-stone-500 outline-none" placeholder="Email asrama..." />
 
                           <label className="text-sm block mb-1 font-bold text-stone-700">No WA Admin Skripsi (Bersama)</label>
                           <input required type="text" value={kontak.noSkripsi || ""} onChange={(e) => setKontak({...kontak, noSkripsi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-stone-500 outline-none" placeholder="Cth: 0823..." />
@@ -1262,15 +1279,22 @@ export default function AdminDashboard() {
                       <h3 className="font-semibold text-blue-800 border-l-2 border-blue-500 pl-2 mt-6">Sosial Media Asrama</h3> 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 border rounded-lg"> 
                         <div className="border-r border-slate-200 pr-4">
-                          <label className="text-xs font-bold block mb-1 text-slate-600">Tampilan IG Mersi</label>
-                          <input required type="text" value={kontak.namaIgMersi || ""} onChange={(e) => setKontak({...kontak, namaIgMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="@asramamerapisinggalang" />
-                          <label className="text-xs font-bold block mb-1 text-slate-600">Link Akun IG Mersi</label>
-                          <input required type="url" value={kontak.linkIgMersi || ""} onChange={(e) => setKontak({...kontak, linkIgMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-5" placeholder="https://instagram.com/..." />
-                          
-                          <label className="text-xs font-bold block mb-1 text-slate-600">Tampilan IG BK</label>
-                          <input required type="text" value={kontak.namaIgBk || ""} onChange={(e) => setKontak({...kontak, namaIgBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="@asramaputribk" />
-                          <label className="text-xs font-bold block mb-1 text-slate-600">Link Akun IG BK</label>
-                          <input required type="url" value={kontak.linkIgBk || ""} onChange={(e) => setKontak({...kontak, linkIgBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="https://instagram.com/..." />
+                          {adminDorm === "mersi" && (
+                            <>
+                              <label className="text-xs font-bold block mb-1 text-slate-600">Tampilan IG Mersi</label>
+                              <input required type="text" value={kontak.namaIgMersi || ""} onChange={(e) => setKontak({...kontak, namaIgMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="@asramamerapisinggalang" />
+                              <label className="text-xs font-bold block mb-1 text-slate-600">Link Akun IG Mersi</label>
+                              <input required type="url" value={kontak.linkIgMersi || ""} onChange={(e) => setKontak({...kontak, linkIgMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-5" placeholder="https://instagram.com/..." />
+                            </>
+                          )}
+                          {adminDorm === "bk" && (
+                            <>
+                              <label className="text-xs font-bold block mb-1 text-slate-600">Tampilan IG BK</label>
+                              <input required type="text" value={kontak.namaIgBk || ""} onChange={(e) => setKontak({...kontak, namaIgBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="@asramaputribk" />
+                              <label className="text-xs font-bold block mb-1 text-slate-600">Link Akun IG BK</label>
+                              <input required type="url" value={kontak.linkIgBk || ""} onChange={(e) => setKontak({...kontak, linkIgBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="https://instagram.com/..." />
+                            </>
+                          )}
                         </div> 
                         <div className="pl-2">
                           <label className="text-xs font-bold block mb-1 text-slate-600">Tampilan Nama Tiktok (Bersama)</label>
@@ -1282,60 +1306,71 @@ export default function AdminDashboard() {
 
                       <h3 className="font-semibold text-emerald-800 border-l-2 border-emerald-500 pl-2 mt-6">Lokasi & Google Maps</h3> 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
-                        {/* Maps Mersi */}
-                        <div className="bg-red-50 p-4 border border-red-100 rounded-lg">
-                          <h4 className="font-bold text-red-900 mb-3 text-sm">Titik Temu Mersi</h4>
-                          <label className="text-xs font-bold block mb-1 text-red-800">Alamat Teks Lengkap</label>
-                          <textarea rows="2" required value={kontak.alamatMersi || ""} onChange={(e) => setKontak({...kontak, alamatMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm"></textarea>
-                          
-                          <label className="text-xs font-bold block mb-1 text-red-800">Link Google Maps (Untuk Tombol Buka di Maps)</label>
-                          <input required type="url" value={kontak.linkMapMersi || ""} onChange={(e) => setKontak({...kontak, linkMapMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm" placeholder="https://www.google.com/maps/search/?api=1&query=..." />
-                          
-                          <label className="text-xs font-bold block mb-1 text-red-800">Link Embed/Iframe (Untuk Gambar Peta)</label>
-                          <p className="text-[10px] text-red-700 mb-1 italic">Ambil dari Gmaps {'>'} Share {'>'} Embed a map {'>'} Copy src="..." saja.</p>
-                          <input required type="url" value={kontak.iframeMapMersi || ""} onChange={(e) => setKontak({...kontak, iframeMapMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded text-sm" placeholder="https://www.google.com/maps/embed?pb=..." />
-                        </div>
+                        {adminDorm === "mersi" && (
+                          <div className="bg-red-50 p-4 border border-red-100 rounded-lg">
+                            <h4 className="font-bold text-red-900 mb-3 text-sm">Titik Temu Mersi</h4>
+                            <label className="text-xs font-bold block mb-1 text-red-800">Alamat Teks Lengkap</label>
+                            <textarea rows="2" required value={kontak.alamatMersi || ""} onChange={(e) => setKontak({...kontak, alamatMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm"></textarea>
+                            
+                            <label className="text-xs font-bold block mb-1 text-red-800">Link Google Maps (Untuk Tombol Buka di Maps)</label>
+                            <input required type="url" value={kontak.linkMapMersi || ""} onChange={(e) => setKontak({...kontak, linkMapMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm" placeholder="https://www.google.com/maps/search/?api=1&query=..." />
+                            
+                            <label className="text-xs font-bold block mb-1 text-red-800">Link Embed/Iframe (Untuk Gambar Peta)</label>
+                            <p className="text-[10px] text-red-700 mb-1 italic">Ambil dari Gmaps {'>'} Share {'>'} Embed a map {'>'} Copy src="..." saja.</p>
+                            <input required type="url" value={kontak.iframeMapMersi || ""} onChange={(e) => setKontak({...kontak, iframeMapMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded text-sm" placeholder="https://www.google.com/maps/embed?pb=..." />
+                          </div>
+                        )}
 
-                        {/* Maps BK */}
-                        <div className="bg-amber-50 p-4 border border-amber-200 rounded-lg">
-                          <h4 className="font-bold text-amber-900 mb-3 text-sm">Titik Temu Bundo Kanduang</h4>
-                          <label className="text-xs font-bold block mb-1 text-amber-800">Alamat Teks Lengkap</label>
-                          <textarea rows="2" required value={kontak.alamatBk || ""} onChange={(e) => setKontak({...kontak, alamatBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm"></textarea>
-                          
-                          <label className="text-xs font-bold block mb-1 text-amber-800">Link Google Maps (Untuk Tombol Buka di Maps)</label>
-                          <input required type="url" value={kontak.linkMapBk || ""} onChange={(e) => setKontak({...kontak, linkMapBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm" placeholder="https://www.google.com/maps/search/?api=1&query=..." />
-                          
-                          <label className="text-xs font-bold block mb-1 text-amber-800">Link Embed/Iframe (Untuk Gambar Peta)</label>
-                          <p className="text-[10px] text-amber-700 mb-1 italic">Ambil dari Gmaps {'>'} Share {'>'} Embed a map {'>'} Copy src="..." saja.</p>
-                          <input required type="url" value={kontak.iframeMapBk || ""} onChange={(e) => setKontak({...kontak, iframeMapBk: e.target.value})} className="w-full px-3 py-1.5 border rounded text-sm" placeholder="https://www.google.com/maps/embed?pb=..." />
-                        </div>
+                        {adminDorm === "bk" && (
+                          <div className="bg-amber-50 p-4 border border-amber-200 rounded-lg">
+                            <h4 className="font-bold text-amber-900 mb-3 text-sm">Titik Temu Bundo Kanduang</h4>
+                            <label className="text-xs font-bold block mb-1 text-amber-800">Alamat Teks Lengkap</label>
+                            <textarea rows="2" required value={kontak.alamatBk || ""} onChange={(e) => setKontak({...kontak, alamatBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm"></textarea>
+                            
+                            <label className="text-xs font-bold block mb-1 text-amber-800">Link Google Maps (Untuk Tombol Buka di Maps)</label>
+                            <input required type="url" value={kontak.linkMapBk || ""} onChange={(e) => setKontak({...kontak, linkMapBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3 text-sm" placeholder="https://www.google.com/maps/search/?api=1&query=..." />
+                            
+                            <label className="text-xs font-bold block mb-1 text-amber-800">Link Embed/Iframe (Untuk Gambar Peta)</label>
+                            <p className="text-[10px] text-amber-700 mb-1 italic">Ambil dari Gmaps {'>'} Share {'>'} Embed a map {'>'} Copy src="..." saja.</p>
+                            <input required type="url" value={kontak.iframeMapBk || ""} onChange={(e) => setKontak({...kontak, iframeMapBk: e.target.value})} className="w-full px-3 py-1.5 border rounded text-sm" placeholder="https://www.google.com/maps/embed?pb=..." />
+                          </div>
+                        )}
                       </div>
 
                     </div> 
 
                     <div className="space-y-4 pt-4 border-t"> 
-                      <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Profil - Visi Misi Mersi</h3> 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-red-50 p-4 rounded border border-red-100"> 
-                        <div>
-                          <label className="text-sm block mb-1 font-bold text-red-900">Visi Mersi</label>
-                          <textarea required rows="3" value={profilText.visi_mersi} onChange={(e) => setProfilText({...profilText, visi_mersi: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
-                        </div> 
-                        <div>
-                          <label className="text-sm block mb-1 font-bold text-red-900">Misi Mersi</label>
-                          <textarea required rows="3" value={profilText.misi_mersi} onChange={(e) => setProfilText({...profilText, misi_mersi: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
-                        </div> 
-                      </div> 
-                      <h3 className="font-semibold text-amber-600 border-l-2 border-amber-500 pl-2 mt-4">Halaman Profil - Visi Misi Bundo Kanduang</h3> 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-amber-50 p-4 rounded border border-amber-200"> 
-                        <div>
-                          <label className="text-sm block mb-1 font-bold text-amber-900">Visi BK</label>
-                          <textarea required rows="3" value={profilText.visi_bk} onChange={(e) => setProfilText({...profilText, visi_bk: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
-                        </div> 
-                        <div>
-                          <label className="text-sm block mb-1 font-bold text-amber-900">Misi BK</label>
-                          <textarea required rows="3" value={profilText.misi_bk} onChange={(e) => setProfilText({...profilText, misi_bk: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
-                        </div> 
-                      </div> 
+                      {adminDorm === "mersi" && (
+                        <>
+                          <h3 className="font-semibold text-red-800 border-l-2 pl-2">Halaman Profil - Visi Misi Mersi</h3> 
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-red-50 p-4 rounded border border-red-100"> 
+                            <div>
+                              <label className="text-sm block mb-1 font-bold text-red-900">Visi Mersi</label>
+                              <textarea required rows="3" value={profilText.visi_mersi} onChange={(e) => setProfilText({...profilText, visi_mersi: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
+                            </div> 
+                            <div>
+                              <label className="text-sm block mb-1 font-bold text-red-900">Misi Mersi</label>
+                              <textarea required rows="3" value={profilText.misi_mersi} onChange={(e) => setProfilText({...profilText, misi_mersi: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
+                            </div> 
+                          </div> 
+                        </>
+                      )}
+
+                      {adminDorm === "bk" && (
+                        <>
+                          <h3 className="font-semibold text-amber-600 border-l-2 border-amber-500 pl-2 mt-4">Halaman Profil - Visi Misi Bundo Kanduang</h3> 
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-amber-50 p-4 rounded border border-amber-200"> 
+                            <div>
+                              <label className="text-sm block mb-1 font-bold text-amber-900">Visi BK</label>
+                              <textarea required rows="3" value={profilText.visi_bk} onChange={(e) => setProfilText({...profilText, visi_bk: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
+                            </div> 
+                            <div>
+                              <label className="text-sm block mb-1 font-bold text-amber-900">Misi BK</label>
+                              <textarea required rows="3" value={profilText.misi_bk} onChange={(e) => setProfilText({...profilText, misi_bk: e.target.value})} className="w-full px-4 py-2 border rounded-md bg-white"></textarea>
+                            </div> 
+                          </div> 
+                        </>
+                      )}
                     </div> 
 
                     <div className="space-y-4 pt-4 border-t"> 
@@ -1355,7 +1390,7 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-[150px_200px_1fr] gap-4">
                       <div>
                         <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Untuk Asrama</label>
-                        <select value={asramaSejarah} onChange={(e) => setAsramaSejarah(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm font-bold">
+                        <select value={asramaSejarah} disabled className="w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-200 text-slate-500 text-sm font-bold cursor-not-allowed">
                           <option value="mersi">Mersi</option>
                           <option value="bk">Bundo Kanduang</option>
                         </select>
@@ -1377,7 +1412,7 @@ export default function AdminDashboard() {
                   
                   <h3 className="font-bold text-sm text-slate-500 uppercase tracking-widest mb-3">Daftar Lembaran Sejarah</h3>
                   <div className="space-y-3">
-                    {dataSejarah.slice((pageSejarah - 1) * itemsPerPage, pageSejarah * itemsPerPage).map((item) => (
+                    {filteredSejarah.slice((pageSejarah - 1) * itemsPerPage, pageSejarah * itemsPerPage).map((item) => (
                       <div key={item.id} className="flex justify-between items-center p-4 bg-white border border-slate-200 rounded-lg shadow-sm gap-4">
                         <div className="w-full">
                           <div className="flex items-center gap-2 mb-1">
@@ -1393,7 +1428,7 @@ export default function AdminDashboard() {
                       </div>
                     ))}
                   </div>
-                  <Pagination totalItems={dataSejarah.length} itemsPerPage={itemsPerPage} currentPage={pageSejarah} setCurrentPage={setPageSejarah} />
+                  <Pagination totalItems={filteredSejarah.length} itemsPerPage={itemsPerPage} currentPage={pageSejarah} setCurrentPage={setPageSejarah} />
                 </div>
               </>
             )}
@@ -1430,49 +1465,52 @@ export default function AdminDashboard() {
               <h2 className="text-lg font-bold mb-4 border-b pb-2">Status Kapasitas Asrama</h2> 
               <form onSubmit={handleSaveStatusAsrama} className="space-y-6"> 
                 
-                {/* --- PERBAIKAN LAYOUT STATUS KAPASITAS MERSI --- */}
-                <div className="bg-red-50/50 p-5 rounded-lg border border-red-100">
-                  <h3 className="font-bold text-red-800 mb-4 border-b border-red-200 pb-2">Data Mersi</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
-                    <div>
-                      <label className="text-[10px] font-bold text-red-800 mb-1.5 block uppercase tracking-wider">Total Kamar</label>
-                      <input type="number" required value={statusAsrama.kamarMersi} onChange={(e) => setStatusAsrama({...statusAsrama, kamarMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-red-500" />
-                    </div> 
-                    <div>
-                      <label className="text-[10px] font-bold text-red-800 mb-1.5 block uppercase tracking-wider">Penghuni Aktif</label>
-                      <input type="number" required value={statusAsrama.penghuniMersi} onChange={(e) => setStatusAsrama({...statusAsrama, penghuniMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-red-500" />
-                    </div> 
-                    <div>
-                      <label className="text-[10px] font-bold text-red-800 mb-1.5 block uppercase tracking-wider">Status Kuota</label>
-                      <select value={statusAsrama.ketersediaanMersi} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaanMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white font-bold text-sm outline-none focus:ring-1 focus:ring-red-500">
-                        <option value="Tersedia">🟢 Masih Tersedia</option>
-                        <option value="Penuh">🔴 Kuota Penuh</option>
-                      </select>
-                    </div> 
+                {/* --- HANYA TAMPILKAN STATUS ASRAMANYA SENDIRI --- */}
+                {adminDorm === "mersi" && (
+                  <div className="bg-red-50/50 p-5 rounded-lg border border-red-100">
+                    <h3 className="font-bold text-red-800 mb-4 border-b border-red-200 pb-2">Data Mersi</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
+                      <div>
+                        <label className="text-[10px] font-bold text-red-800 mb-1.5 block uppercase tracking-wider">Total Kamar</label>
+                        <input type="number" required value={statusAsrama.kamarMersi} onChange={(e) => setStatusAsrama({...statusAsrama, kamarMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-red-500" />
+                      </div> 
+                      <div>
+                        <label className="text-[10px] font-bold text-red-800 mb-1.5 block uppercase tracking-wider">Penghuni Aktif</label>
+                        <input type="number" required value={statusAsrama.penghuniMersi} onChange={(e) => setStatusAsrama({...statusAsrama, penghuniMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-red-500" />
+                      </div> 
+                      <div>
+                        <label className="text-[10px] font-bold text-red-800 mb-1.5 block uppercase tracking-wider">Status Kuota</label>
+                        <select value={statusAsrama.ketersediaanMersi} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaanMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white font-bold text-sm outline-none focus:ring-1 focus:ring-red-500">
+                          <option value="Tersedia">🟢 Masih Tersedia</option>
+                          <option value="Penuh">🔴 Kuota Penuh</option>
+                        </select>
+                      </div> 
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* --- PERBAIKAN LAYOUT STATUS KAPASITAS BK --- */}
-                <div className="bg-amber-50/50 p-5 rounded-lg border border-amber-100">
-                  <h3 className="font-bold text-amber-700 mb-4 border-b border-amber-200 pb-2">Data Bundo Kanduang</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
-                    <div>
-                      <label className="text-[10px] font-bold text-amber-800 mb-1.5 block uppercase tracking-wider">Total Kamar</label>
-                      <input type="number" required value={statusAsrama.kamarBk} onChange={(e) => setStatusAsrama({...statusAsrama, kamarBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-amber-500" />
-                    </div> 
-                    <div>
-                      <label className="text-[10px] font-bold text-amber-800 mb-1.5 block uppercase tracking-wider">Penghuni Aktif</label>
-                      <input type="number" required value={statusAsrama.penghuniBk} onChange={(e) => setStatusAsrama({...statusAsrama, penghuniBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-amber-500" />
-                    </div> 
-                    <div>
-                      <label className="text-[10px] font-bold text-amber-800 mb-1.5 block uppercase tracking-wider">Status Kuota</label>
-                      <select value={statusAsrama.ketersediaanBk} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaanBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white font-bold text-sm outline-none focus:ring-1 focus:ring-amber-500">
-                        <option value="Tersedia">🟢 Masih Tersedia</option>
-                        <option value="Penuh">🔴 Kuota Penuh</option>
-                      </select>
-                    </div> 
+                {adminDorm === "bk" && (
+                  <div className="bg-amber-50/50 p-5 rounded-lg border border-amber-100">
+                    <h3 className="font-bold text-amber-700 mb-4 border-b border-amber-200 pb-2">Data Bundo Kanduang</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
+                      <div>
+                        <label className="text-[10px] font-bold text-amber-800 mb-1.5 block uppercase tracking-wider">Total Kamar</label>
+                        <input type="number" required value={statusAsrama.kamarBk} onChange={(e) => setStatusAsrama({...statusAsrama, kamarBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-amber-500" />
+                      </div> 
+                      <div>
+                        <label className="text-[10px] font-bold text-amber-800 mb-1.5 block uppercase tracking-wider">Penghuni Aktif</label>
+                        <input type="number" required value={statusAsrama.penghuniBk} onChange={(e) => setStatusAsrama({...statusAsrama, penghuniBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-amber-500" />
+                      </div> 
+                      <div>
+                        <label className="text-[10px] font-bold text-amber-800 mb-1.5 block uppercase tracking-wider">Status Kuota</label>
+                        <select value={statusAsrama.ketersediaanBk} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaanBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white font-bold text-sm outline-none focus:ring-1 focus:ring-amber-500">
+                          <option value="Tersedia">🟢 Masih Tersedia</option>
+                          <option value="Penuh">🔴 Kuota Penuh</option>
+                        </select>
+                      </div> 
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-md font-bold transition-colors">Simpan Status Kapasitas</button> 
               </form> 
@@ -1482,16 +1520,20 @@ export default function AdminDashboard() {
               <h2 className="text-lg font-bold mb-4 border-b pb-2">Manajemen Brosur Pendaftaran</h2> 
               <form onSubmit={handleSaveBrosur} className="space-y-6"> 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-slate-50 p-4 border rounded-lg"> 
-                    <label className="text-sm font-bold text-red-800 mb-2 block">Upload Brosur Mersi (Bisa pilih banyak)</label> 
-                    <input type="file" multiple accept="image/*" onChange={(e) => setFilesBrosurMersi(Array.from(e.target.files))} className="w-full text-sm bg-white border p-2 rounded cursor-pointer" /> 
-                    {brosurUrls.mersi.length > 0 && <p className="text-xs mt-2 text-green-700 font-bold">✔️ {brosurUrls.mersi.length} foto brosur tersimpan saat ini.</p>}
-                  </div> 
-                  <div className="bg-slate-50 p-4 border rounded-lg"> 
-                    <label className="text-sm font-bold text-amber-600 mb-2 block">Upload Brosur B. Kanduang (Bisa pilih banyak)</label> 
-                    <input type="file" multiple accept="image/*" onChange={(e) => setFilesBrosurBk(Array.from(e.target.files))} className="w-full text-sm bg-white border p-2 rounded cursor-pointer" /> 
-                    {brosurUrls.bk.length > 0 && <p className="text-xs mt-2 text-green-700 font-bold">✔️ {brosurUrls.bk.length} foto brosur tersimpan saat ini.</p>}
-                  </div> 
+                  {adminDorm === "mersi" && (
+                    <div className="bg-slate-50 p-4 border rounded-lg"> 
+                      <label className="text-sm font-bold text-red-800 mb-2 block">Upload Brosur Mersi (Bisa pilih banyak)</label> 
+                      <input type="file" multiple accept="image/*" onChange={(e) => setFilesBrosurMersi(Array.from(e.target.files))} className="w-full text-sm bg-white border p-2 rounded cursor-pointer" /> 
+                      {brosurUrls.mersi.length > 0 && <p className="text-xs mt-2 text-green-700 font-bold">✔️ {brosurUrls.mersi.length} foto brosur tersimpan saat ini.</p>}
+                    </div> 
+                  )}
+                  {adminDorm === "bk" && (
+                    <div className="bg-slate-50 p-4 border rounded-lg"> 
+                      <label className="text-sm font-bold text-amber-600 mb-2 block">Upload Brosur B. Kanduang (Bisa pilih banyak)</label> 
+                      <input type="file" multiple accept="image/*" onChange={(e) => setFilesBrosurBk(Array.from(e.target.files))} className="w-full text-sm bg-white border p-2 rounded cursor-pointer" /> 
+                      {brosurUrls.bk.length > 0 && <p className="text-xs mt-2 text-green-700 font-bold">✔️ {brosurUrls.bk.length} foto brosur tersimpan saat ini.</p>}
+                    </div> 
+                  )}
                 </div>
                 <div> 
                   <label className="text-sm font-bold mb-1 block">Link Opsional Formulir Pendaftaran Tambahan (G-Form / Drive)</label> 
@@ -1510,109 +1552,112 @@ export default function AdminDashboard() {
               <h2 className="text-lg font-bold text-slate-900 mb-6 border-b border-slate-200 pb-2">1. Pengurus Inti Asrama</h2> 
               <form onSubmit={handleSavePengurusInti} className="space-y-8"> 
                 
-                {/* --- PERBAIKAN BLOK INTI MERSI DENGAN PREVIEW FOTO --- */}
-                <div className="bg-red-50/20 p-4 md:p-6 border border-red-100 rounded-xl">
-                  <h3 className="font-bold text-red-800 mb-6 text-center tracking-[0.2em] uppercase text-sm">Inti Mersi</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
-                    {/* Ketua Mersi */}
-                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
-                      <label className="text-sm font-bold block mb-4 text-red-800 border-b pb-2">Ketua Mersi</label> 
-                      <input type="text" required value={pengurusInti.ketuaMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaMersiNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-red-500" /> 
-                      {(fileInti.ketuaMersi || pengurusInti.ketuaMersiFoto) && (
-                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
-                          <img src={fileInti.ketuaMersi ? URL.createObjectURL(fileInti.ketuaMersi) : pengurusInti.ketuaMersiFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                {/* --- HANYA TAMPILKAN INTI ASRAMANYA SENDIRI --- */}
+                {adminDorm === "mersi" && (
+                  <div className="bg-red-50/20 p-4 md:p-6 border border-red-100 rounded-xl">
+                    <h3 className="font-bold text-red-800 mb-6 text-center tracking-[0.2em] uppercase text-sm">Inti Mersi</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
+                      {/* Ketua Mersi */}
+                      <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                        <label className="text-sm font-bold block mb-4 text-red-800 border-b pb-2">Ketua Mersi</label> 
+                        <input type="text" required value={pengurusInti.ketuaMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaMersiNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-red-500" /> 
+                        {(fileInti.ketuaMersi || pengurusInti.ketuaMersiFoto) && (
+                          <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                            <img src={fileInti.ketuaMersi ? URL.createObjectURL(fileInti.ketuaMersi) : pengurusInti.ketuaMersiFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                          </div>
+                        )}
+                        <div className="mt-auto">
+                          <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                          <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketuaMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
                         </div>
-                      )}
-                      <div className="mt-auto">
-                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketuaMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
-                      </div>
-                    </div> 
+                      </div> 
 
-                    {/* Sekre Mersi */}
-                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
-                      <label className="text-sm font-bold block mb-4 text-red-800 border-b pb-2">Sekretaris Mersi</label> 
-                      <input type="text" required value={pengurusInti.sekreMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreMersiNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-red-500" /> 
-                      {(fileInti.sekreMersi || pengurusInti.sekreMersiFoto) && (
-                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
-                          <img src={fileInti.sekreMersi ? URL.createObjectURL(fileInti.sekreMersi) : pengurusInti.sekreMersiFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                      {/* Sekre Mersi */}
+                      <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                        <label className="text-sm font-bold block mb-4 text-red-800 border-b pb-2">Sekretaris Mersi</label> 
+                        <input type="text" required value={pengurusInti.sekreMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreMersiNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-red-500" /> 
+                        {(fileInti.sekreMersi || pengurusInti.sekreMersiFoto) && (
+                          <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                            <img src={fileInti.sekreMersi ? URL.createObjectURL(fileInti.sekreMersi) : pengurusInti.sekreMersiFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                          </div>
+                        )}
+                        <div className="mt-auto">
+                          <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                          <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekreMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
                         </div>
-                      )}
-                      <div className="mt-auto">
-                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekreMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
-                      </div>
-                    </div> 
+                      </div> 
 
-                    {/* Bendahara Mersi */}
-                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
-                      <label className="text-sm font-bold block mb-4 text-red-800 border-b pb-2">Bendahara Mersi</label> 
-                      <input type="text" required value={pengurusInti.bendaharaMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaMersiNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-red-500" /> 
-                      {(fileInti.bendaharaMersi || pengurusInti.bendaharaMersiFoto) && (
-                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
-                          <img src={fileInti.bendaharaMersi ? URL.createObjectURL(fileInti.bendaharaMersi) : pengurusInti.bendaharaMersiFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                      {/* Bendahara Mersi */}
+                      <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                        <label className="text-sm font-bold block mb-4 text-red-800 border-b pb-2">Bendahara Mersi</label> 
+                        <input type="text" required value={pengurusInti.bendaharaMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaMersiNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-red-500" /> 
+                        {(fileInti.bendaharaMersi || pengurusInti.bendaharaMersiFoto) && (
+                          <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                            <img src={fileInti.bendaharaMersi ? URL.createObjectURL(fileInti.bendaharaMersi) : pengurusInti.bendaharaMersiFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                          </div>
+                        )}
+                        <div className="mt-auto">
+                          <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                          <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendaharaMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
                         </div>
-                      )}
-                      <div className="mt-auto">
-                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendaharaMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
-                      </div>
-                    </div> 
+                      </div> 
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* --- PERBAIKAN BLOK INTI BK DENGAN PREVIEW FOTO --- */}
-                <div className="bg-amber-50/20 p-4 md:p-6 border border-amber-200 rounded-xl">
-                  <h3 className="font-bold text-amber-700 mb-6 text-center tracking-[0.2em] uppercase text-sm">Inti Bundo Kanduang</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
-                    {/* Ketua BK */}
-                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
-                      <label className="text-sm font-bold block mb-4 text-amber-700 border-b pb-2">Ketua BK</label> 
-                      <input type="text" required value={pengurusInti.ketuaBkNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaBkNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-amber-500" /> 
-                      {(fileInti.ketuaBk || pengurusInti.ketuaBkFoto) && (
-                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
-                          <img src={fileInti.ketuaBk ? URL.createObjectURL(fileInti.ketuaBk) : pengurusInti.ketuaBkFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                {adminDorm === "bk" && (
+                  <div className="bg-amber-50/20 p-4 md:p-6 border border-amber-200 rounded-xl">
+                    <h3 className="font-bold text-amber-700 mb-6 text-center tracking-[0.2em] uppercase text-sm">Inti Bundo Kanduang</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
+                      {/* Ketua BK */}
+                      <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                        <label className="text-sm font-bold block mb-4 text-amber-700 border-b pb-2">Ketua BK</label> 
+                        <input type="text" required value={pengurusInti.ketuaBkNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaBkNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-amber-500" /> 
+                        {(fileInti.ketuaBk || pengurusInti.ketuaBkFoto) && (
+                          <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                            <img src={fileInti.ketuaBk ? URL.createObjectURL(fileInti.ketuaBk) : pengurusInti.ketuaBkFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                          </div>
+                        )}
+                        <div className="mt-auto">
+                          <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                          <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketuaBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
                         </div>
-                      )}
-                      <div className="mt-auto">
-                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketuaBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
-                      </div>
-                    </div> 
-                    
-                    {/* Sekre BK */}
-                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
-                      <label className="text-sm font-bold block mb-4 text-amber-700 border-b pb-2">Sekretaris BK</label> 
-                      <input type="text" required value={pengurusInti.sekreBkNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreBkNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-amber-500" /> 
-                      {(fileInti.sekreBk || pengurusInti.sekreBkFoto) && (
-                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
-                          <img src={fileInti.sekreBk ? URL.createObjectURL(fileInti.sekreBk) : pengurusInti.sekreBkFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                      </div> 
+                      
+                      {/* Sekre BK */}
+                      <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                        <label className="text-sm font-bold block mb-4 text-amber-700 border-b pb-2">Sekretaris BK</label> 
+                        <input type="text" required value={pengurusInti.sekreBkNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreBkNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-amber-500" /> 
+                        {(fileInti.sekreBk || pengurusInti.sekreBkFoto) && (
+                          <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                            <img src={fileInti.sekreBk ? URL.createObjectURL(fileInti.sekreBk) : pengurusInti.sekreBkFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                          </div>
+                        )}
+                        <div className="mt-auto">
+                          <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                          <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekreBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
                         </div>
-                      )}
-                      <div className="mt-auto">
-                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekreBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
-                      </div>
-                    </div> 
+                      </div> 
 
-                    {/* Bendahara BK */}
-                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
-                      <label className="text-sm font-bold block mb-4 text-amber-700 border-b pb-2">Bendahara BK</label> 
-                      <input type="text" required value={pengurusInti.bendaharaBkNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaBkNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-amber-500" /> 
-                      {(fileInti.bendaharaBk || pengurusInti.bendaharaBkFoto) && (
-                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
-                          <img src={fileInti.bendaharaBk ? URL.createObjectURL(fileInti.bendaharaBk) : pengurusInti.bendaharaBkFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                      {/* Bendahara BK */}
+                      <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                        <label className="text-sm font-bold block mb-4 text-amber-700 border-b pb-2">Bendahara BK</label> 
+                        <input type="text" required value={pengurusInti.bendaharaBkNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaBkNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-amber-500" /> 
+                        {(fileInti.bendaharaBk || pengurusInti.bendaharaBkFoto) && (
+                          <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                            <img src={fileInti.bendaharaBk ? URL.createObjectURL(fileInti.bendaharaBk) : pengurusInti.bendaharaBkFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                          </div>
+                        )}
+                        <div className="mt-auto">
+                          <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                          <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendaharaBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
                         </div>
-                      )}
-                      <div className="mt-auto">
-                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendaharaBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
-                      </div>
-                    </div> 
+                      </div> 
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-md font-bold transition-colors">Simpan Semua Pengurus Inti</button> 
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-md font-bold w-full">Simpan Semua Pengurus Inti</button> 
               </form> 
             </div> 
 
@@ -1623,7 +1668,7 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-bold text-slate-600 mb-1 block uppercase">Untuk Asrama</label>
-                      <select value={asramaDivisi} onChange={(e) => setAsramaDivisi(e.target.value)} className="w-full px-3 py-2 border rounded-md font-bold text-sm bg-slate-50">
+                      <select value={asramaDivisi} disabled className="w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-200 text-slate-500 text-sm font-bold cursor-not-allowed">
                         <option value="mersi">Mersi</option>
                         <option value="bk">Bundo Kanduang</option>
                       </select>
@@ -1644,7 +1689,7 @@ export default function AdminDashboard() {
                     <label className="text-xs font-bold text-slate-600 mb-1 block uppercase">Pilih Divisi & Asrama</label> 
                     <select required value={formAnggota.divisiId} onChange={(e) => setFormAnggota({...formAnggota, divisiId: e.target.value})} className="w-full px-3 py-2 border rounded-md bg-white text-sm font-bold"> 
                       <option value="">-- Pilih Divisi --</option> 
-                      {dataDivisi.map(div => <option key={div.id} value={div.id}>[{div.asrama === 'bk' ? 'BK' : 'MERSI'}] {div.namaDivisi}</option>)} 
+                      {filteredDivisi.map(div => <option key={div.id} value={div.id}>[{div.asrama === 'bk' ? 'BK' : 'MERSI'}] {div.namaDivisi}</option>)} 
                     </select> 
                   </div> 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> 
@@ -1674,7 +1719,7 @@ export default function AdminDashboard() {
 
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
               <h2 className="text-lg font-bold mb-4 border-b pb-2">Daftar Divisi & Anggota</h2> 
-              {dataDivisi.map(div => ( 
+              {filteredDivisi.map(div => ( 
                 <div key={div.id} className="bg-slate-50 border border-slate-200 p-4 rounded-lg mb-6 shadow-sm"> 
                   <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-3"> 
                     <div className="flex items-center gap-2">
@@ -1789,7 +1834,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4">
                   <div>
                     <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Pilih Asrama</label>
-                    <select value={asramaFasilitas} onChange={(e) => setAsramaFasilitas(e.target.value)} className="w-full px-3 py-2 border rounded bg-white text-sm font-bold">
+                    <select value={asramaFasilitas} disabled className="w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-200 text-slate-500 text-sm font-bold cursor-not-allowed">
                       <option value="mersi">Mersi</option>
                       <option value="bk">Bundo Kanduang</option>
                     </select>
@@ -1811,7 +1856,7 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-xl shadow-md p-6"> 
               <h3 className="font-bold mb-4 border-b pb-2">Daftar Fasilitas Asrama</h3> 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
-                {dataFasilitas.slice((pageFasilitas-1)*itemsPerPage, pageFasilitas*itemsPerPage).map(item => ( 
+                {filteredFasilitas.slice((pageFasilitas-1)*itemsPerPage, pageFasilitas*itemsPerPage).map(item => ( 
                   <div key={item.id} className="bg-slate-50 border border-slate-200 shadow-sm rounded-lg flex flex-col overflow-hidden relative">
                     <div className="absolute top-2 left-2 z-10">
                       <span className={`text-[10px] font-bold px-2 py-1 rounded text-white shadow ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>{item.asrama === 'bk' ? 'BK' : 'MERSI'}</span>
@@ -1830,7 +1875,7 @@ export default function AdminDashboard() {
                   </div> 
                 ))} 
               </div> 
-              <Pagination totalItems={dataFasilitas.length} itemsPerPage={itemsPerPage} currentPage={pageFasilitas} setCurrentPage={setPageFasilitas}/> 
+              <Pagination totalItems={filteredFasilitas.length} itemsPerPage={itemsPerPage} currentPage={pageFasilitas} setCurrentPage={setPageFasilitas}/> 
             </div> 
           </div> 
         )}
@@ -1844,7 +1889,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-[150px_1fr_1fr] gap-4"> 
                   <div>
                     <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Pilih Asrama</label>
-                    <select value={asramaSewa} onChange={(e) => setAsramaSewa(e.target.value)} className="w-full px-3 py-2 border rounded bg-white font-bold text-sm">
+                    <select value={asramaSewa} disabled className="w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-200 text-slate-500 text-sm font-bold cursor-not-allowed">
                       <option value="mersi">Mersi</option>
                       <option value="bk">B. Kanduang</option>
                     </select>
@@ -1883,7 +1928,7 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-xl shadow-md p-6"> 
               <h3 className="font-bold mb-4 border-b pb-2">Daftar Layanan Tersedia</h3> 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
-                {dataPenyewaan.slice((pageSewa-1)*itemsPerPage, pageSewa*itemsPerPage).map(item => ( 
+                {filteredPenyewaan.slice((pageSewa-1)*itemsPerPage, pageSewa*itemsPerPage).map(item => ( 
                   <div key={item.id} className="bg-slate-50 border rounded-lg flex overflow-hidden relative shadow-sm">
                     <div className="absolute top-2 left-2 z-10">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded text-white shadow ${item.asrama === 'bk' ? 'bg-amber-500' : 'bg-red-800'}`}>{item.asrama === 'bk' ? 'BK' : 'MERSI'}</span>
@@ -1904,7 +1949,7 @@ export default function AdminDashboard() {
                   </div> 
                 ))} 
               </div> 
-              <Pagination totalItems={dataPenyewaan.length} itemsPerPage={itemsPerPage} currentPage={pageSewa} setCurrentPage={setPageSewa}/> 
+              <Pagination totalItems={filteredPenyewaan.length} itemsPerPage={itemsPerPage} currentPage={pageSewa} setCurrentPage={setPageSewa}/> 
             </div> 
           </div> 
         )}
@@ -2073,8 +2118,8 @@ export default function AdminDashboard() {
                     <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Pilih Asal Asrama</label>
                     <select
                       value={formAlumni.asrama}
-                      onChange={(e) => setFormAlumni({ ...formAlumni, asrama: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm font-bold"
+                      disabled
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-200 text-slate-500 text-sm font-bold cursor-not-allowed"
                     >
                       <option value="mersi">Asrama Mahasiswa Merapi Singgalang</option>
                       <option value="bk">Asrama Putri Bundo Kanduang</option>
@@ -2151,7 +2196,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex gap-2">
                   <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-bold">{editPesanId ? "Simpan Perubahan Data" : "Tambahkan ke Database"}</button>
-                  {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "", asrama: "mersi", statusWarga: "Alumni" }); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
+                  {editPesanId && <button type="button" onClick={() => { setEditPesanId(null); setFormAlumni({ nama: "", asal: "", kuliah: "", jurusan: "", angkatanAsrama: "", pekerjaan: "", skripsi: "", prestasi: "", pesan: "", asrama: adminDorm, statusWarga: "Alumni" }); setFileFotoAlumni(null); }} className="w-full bg-stone-500 text-white px-4 py-2 rounded-md">Batal</button>}
                 </div>
               </form>
             </div>
@@ -2159,10 +2204,10 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-stone-800">
               <div className="flex justify-between items-center mb-4 border-b pb-2">
                   <h3 className="font-bold text-lg text-slate-900">Database Alumni & Warga Asrama</h3>
-                  <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataPesanAlumni.length}</span>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {filteredPesanAlumni.length}</span>
               </div>
 
-              {dataPesanAlumni.length === 0 ? (
+              {filteredPesanAlumni.length === 0 ? (
                 <p className="text-sm text-stone-500 italic text-center py-8">Belum ada data alumni atau warga yang ditambahkan.</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -2178,7 +2223,7 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {dataPesanAlumni.slice((pagePesanAlumni - 1) * itemsPerPage, pagePesanAlumni * itemsPerPage).map(item => (
+                      {filteredPesanAlumni.slice((pagePesanAlumni - 1) * itemsPerPage, pagePesanAlumni * itemsPerPage).map(item => (
                         <tr key={item.id} className="hover:bg-slate-50">
                           <td className="p-3 flex items-center gap-3">
                             <img src={item.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama)}&background=991b1b&color=fff`} className="w-10 h-10 object-cover rounded-full border border-slate-200" alt="Profil" />
@@ -2221,7 +2266,7 @@ export default function AdminDashboard() {
                   </table>
                 </div>
               )}
-              <Pagination totalItems={dataPesanAlumni.length} itemsPerPage={itemsPerPage} currentPage={pagePesanAlumni} setCurrentPage={setPagePesanAlumni} />
+              <Pagination totalItems={filteredPesanAlumni.length} itemsPerPage={itemsPerPage} currentPage={pagePesanAlumni} setCurrentPage={setPagePesanAlumni} />
             </div>
           </div>
         )}
@@ -2234,7 +2279,7 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-l-green-600"> 
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
                   <h2 className="text-lg font-bold text-slate-900">Data Pendaftar Warga Asrama Baru</h2>
-                  <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {dataPendaftarAsrama.length}</span>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Total: {filteredPendaftarAsrama.length}</span>
                 </div> 
                 <div className="overflow-x-auto"> 
                   <table className="w-full text-left text-sm"> 
@@ -2247,8 +2292,8 @@ export default function AdminDashboard() {
                       </tr>
                     </thead> 
                     <tbody className="divide-y"> 
-                      {dataPendaftarAsrama.length === 0 ? <tr><td colSpan="4" className="p-8 text-center text-slate-500">Belum ada calon warga.</td></tr> : ( 
-                        dataPendaftarAsrama.slice((pageDaftarAsrama-1)*itemsPerPage, pageDaftarAsrama*itemsPerPage).map(item => ( 
+                      {filteredPendaftarAsrama.length === 0 ? <tr><td colSpan="4" className="p-8 text-center text-slate-500">Belum ada calon warga.</td></tr> : ( 
+                        filteredPendaftarAsrama.slice((pageDaftarAsrama-1)*itemsPerPage, pageDaftarAsrama*itemsPerPage).map(item => ( 
                           <tr key={item.id} className="hover:bg-slate-50">
                             <td className="p-3 text-xs">{item.waktuDaftar ? new Date(item.waktuDaftar.toDate()).toLocaleString('id-ID') : '-'}</td>
                             <td className="p-3">
@@ -2269,7 +2314,7 @@ export default function AdminDashboard() {
                     </tbody> 
                   </table> 
                 </div> 
-                <Pagination totalItems={dataPendaftarAsrama.length} itemsPerPage={itemsPerPage} currentPage={pageDaftarAsrama} setCurrentPage={setPageDaftarAsrama}/>
+                <Pagination totalItems={filteredPendaftarAsrama.length} itemsPerPage={itemsPerPage} currentPage={pageDaftarAsrama} setCurrentPage={setPageDaftarAsrama}/>
               </div> 
             )}
 
@@ -2477,8 +2522,8 @@ export default function AdminDashboard() {
                     <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Pilih Asal Asrama</label>
                     <select
                       value={formAlumni.asrama}
-                      onChange={(e) => setFormAlumni({ ...formAlumni, asrama: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-sm font-bold"
+                      disabled
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-200 text-slate-500 text-sm font-bold cursor-not-allowed"
                     >
                       <option value="mersi">Asrama Mahasiswa Merapi Singgalang</option>
                       <option value="bk">Asrama Putri Bundo Kanduang</option>
