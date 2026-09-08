@@ -229,7 +229,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     import("firebase/auth").then(({ onAuthStateChanged }) => {
       onAuthStateChanged(auth, async (user) => {
-        // PERBAIKAN: Menggunakan router.replace agar tidak menyimpan jejak history
         if (!user) { router.replace("/admin/login"); return; }
         
         const email = user.email || "";
@@ -292,13 +291,13 @@ export default function AdminDashboard() {
             } else {
               alert("Akses Ditolak! Email Anda belum terdaftar di pangkalan data asrama. Silakan isi form pendataan terlebih dahulu sebelum login.");
               signOut(auth);
-              router.replace("/beranda"); // PERBAIKAN: Gunakan replace ke beranda
+              router.replace("/beranda");
               return;
             }
           } catch (err) {
             console.error("Gagal memeriksa hak akses warga:", err);
             signOut(auth);
-            router.replace("/beranda"); // PERBAIKAN: Gunakan replace ke beranda
+            router.replace("/beranda");
             return;
           }
         }
@@ -1210,44 +1209,55 @@ export default function AdminDashboard() {
                   <form onSubmit={handleSaveProfilText} className="space-y-6"> 
                     <div className="space-y-4"> 
                       <h3 className="font-semibold text-red-800 border-l-2 pl-2">Kontak Asrama (Footer & Pendaftaran)</h3> 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> 
-                        <div className="bg-red-50/50 p-3 rounded border border-red-100">
-                          <label className="text-sm block mb-1 font-bold text-red-800">Nama Ketua Mersi</label>
-                          <input required type="text" value={kontak.namaKetuaMersi || ""} onChange={(e) => setKontak({...kontak, namaKetuaMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded" />
-                        </div> 
-                        <div className="bg-red-50/50 p-3 rounded border border-red-100">
-                          <label className="text-sm block mb-1 font-bold text-red-800">No WA Ketua Mersi</label>
-                          <input required type="text" value={kontak.noTelponMersi || ""} onChange={(e) => setKontak({...kontak, noTelponMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0812..." />
-                        </div> 
-                        <div className="bg-stone-50 p-3 rounded border border-stone-200 row-span-2">
+                      
+                      {/* --- PERBAIKAN: LAYOUT DIPISAH MERSI DAN BK SESUAI GAMBAR --- */}
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {/* Kolom Kiri & Tengah (Grid 2 Kolom) */}
+                        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                          
+                          {/* Row 1: Ketua Mersi */}
+                          <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 shadow-sm">
+                            <label className="text-sm block mb-1 font-bold text-red-800">Nama Ketua Mersi</label>
+                            <input required type="text" value={kontak.namaKetuaMersi || ""} onChange={(e) => setKontak({...kontak, namaKetuaMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-red-500 outline-none" />
+                          </div>
+                          <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 shadow-sm">
+                            <label className="text-sm block mb-1 font-bold text-red-800">No WA Ketua Mersi</label>
+                            <input required type="text" value={kontak.noTelponMersi || ""} onChange={(e) => setKontak({...kontak, noTelponMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-red-500 outline-none" placeholder="Cth: 0812..." />
+                          </div>
+
+                          {/* Row 2: Ketua BK */}
+                          <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 shadow-sm mt-2">
+                            <label className="text-sm block mb-1 font-bold text-amber-700">Nama Ketua BK</label>
+                            <input required type="text" value={kontak.namaKetuaBk || ""} onChange={(e) => setKontak({...kontak, namaKetuaBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 outline-none" />
+                          </div>
+                          <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 shadow-sm mt-2">
+                            <label className="text-sm block mb-1 font-bold text-amber-700">No WA Ketua BK</label>
+                            <input required type="text" value={kontak.noTelponBk || ""} onChange={(e) => setKontak({...kontak, noTelponBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 outline-none" placeholder="Cth: 0852..." />
+                          </div>
+
+                          {/* Row 3: Humas */}
+                          <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 shadow-sm mt-2">
+                            <label className="text-sm block mb-1 font-bold text-red-800">No WA Humas Mersi</label>
+                            <input required type="text" value={kontak.noHumasMersi || ""} onChange={(e) => setKontak({...kontak, noHumasMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-red-500 outline-none" placeholder="Cth: 0852..." />
+                          </div>
+                          <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 shadow-sm mt-2">
+                            <label className="text-sm block mb-1 font-bold text-amber-700">No WA Humas BK</label>
+                            <input required type="text" value={kontak.noHumasBk || ""} onChange={(e) => setKontak({...kontak, noHumasBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 outline-none" placeholder="Cth: 0852..." />
+                          </div>
+                        </div>
+
+                        {/* Kolom Kanan (Email & Admin Skripsi) */}
+                        <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 shadow-sm flex flex-col justify-start">
                           <label className="text-sm block mb-1 font-bold text-stone-700">Email Utama Mersi</label>
-                          <input required type="email" value={kontak.emailMersi || ""} onChange={(e) => setKontak({...kontak, emailMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="sekremersi@gmail.com" />
+                          <input required type="email" value={kontak.emailMersi || ""} onChange={(e) => setKontak({...kontak, emailMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded mb-4 focus:ring-1 focus:ring-stone-500 outline-none" placeholder="sekremersi@gmail.com" />
                           
                           <label className="text-sm block mb-1 font-bold text-stone-700">Email Utama BK</label>
-                          <input required type="email" value={kontak.emailBk || ""} onChange={(e) => setKontak({...kontak, emailBk: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="sekrebk@gmail.com" />
+                          <input required type="email" value={kontak.emailBk || ""} onChange={(e) => setKontak({...kontak, emailBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded mb-4 focus:ring-1 focus:ring-stone-500 outline-none" placeholder="sekrebk@gmail.com" />
 
                           <label className="text-sm block mb-1 font-bold text-stone-700">No WA Admin Skripsi (Bersama)</label>
-                          <input required type="text" value={kontak.noSkripsi || ""} onChange={(e) => setKontak({...kontak, noSkripsi: e.target.value})} className="w-full px-3 py-1.5 border rounded mb-3" placeholder="Cth: 0823..." />
-                        </div> 
-                        
-                        <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
-                          <label className="text-sm block mb-1 font-bold text-amber-700">Nama Ketua BK</label>
-                          <input required type="text" value={kontak.namaKetuaBk || ""} onChange={(e) => setKontak({...kontak, namaKetuaBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" />
-                        </div> 
-                        <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
-                          <label className="text-sm block mb-1 font-bold text-amber-700">No WA Ketua BK</label>
-                          <input required type="text" value={kontak.noTelponBk || ""} onChange={(e) => setKontak({...kontak, noTelponBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0852..." />
-                        </div> 
-
-                        <div className="bg-red-50/50 p-3 rounded border border-red-100">
-                          <label className="text-sm block mb-1 font-bold text-red-800">No WA Humas Mersi</label>
-                          <input required type="text" value={kontak.noHumasMersi || ""} onChange={(e) => setKontak({...kontak, noHumasMersi: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0852..." />
+                          <input required type="text" value={kontak.noSkripsi || ""} onChange={(e) => setKontak({...kontak, noSkripsi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-stone-500 outline-none" placeholder="Cth: 0823..." />
                         </div>
-                        <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
-                          <label className="text-sm block mb-1 font-bold text-amber-700">No WA Humas BK</label>
-                          <input required type="text" value={kontak.noHumasBk || ""} onChange={(e) => setKontak({...kontak, noHumasBk: e.target.value})} className="w-full px-3 py-1.5 border rounded" placeholder="Cth: 0852..." />
-                        </div>
-                      </div> 
+                      </div>
                       
                       <h3 className="font-semibold text-blue-800 border-l-2 border-blue-500 pl-2 mt-6">Sosial Media Asrama</h3> 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 border rounded-lg"> 
@@ -1270,7 +1280,6 @@ export default function AdminDashboard() {
                         </div> 
                       </div> 
 
-                      {/* --- TAMBAHAN BLOK MAPS / LOKASI --- */}
                       <h3 className="font-semibold text-emerald-800 border-l-2 border-emerald-500 pl-2 mt-6">Lokasi & Google Maps</h3> 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
                         {/* Maps Mersi */}
@@ -1336,7 +1345,7 @@ export default function AdminDashboard() {
                         <textarea required rows="2" value={profilText.jejakAlumni} onChange={(e) => setProfilText({...profilText, jejakAlumni: e.target.value})} className="w-full px-4 py-2 border rounded-md"></textarea>
                       </div> 
                     </div> 
-                    <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-3 rounded-md font-bold w-full md:w-auto">Simpan Teks Utama</button> 
+                    <button type="submit" disabled={loading} className="bg-slate-900 text-white px-6 py-3 rounded-md font-bold w-full md:w-auto hover:bg-slate-800 transition-colors">Simpan Teks Utama</button> 
                   </form> 
                 </div> 
 
@@ -1419,21 +1428,23 @@ export default function AdminDashboard() {
           <div className="space-y-6"> 
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
               <h2 className="text-lg font-bold mb-4 border-b pb-2">Status Kapasitas Asrama</h2> 
-              <form onSubmit={handleSaveStatusAsrama} className="space-y-8"> 
-                <div className="bg-red-50 p-5 rounded-lg border border-red-100">
-                  <h3 className="font-bold text-red-800 mb-3 border-b border-red-200 pb-2">Data Mersi</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
+              <form onSubmit={handleSaveStatusAsrama} className="space-y-6"> 
+                
+                {/* --- PERBAIKAN LAYOUT STATUS KAPASITAS MERSI --- */}
+                <div className="bg-red-50/50 p-5 rounded-lg border border-red-100">
+                  <h3 className="font-bold text-red-800 mb-4 border-b border-red-200 pb-2">Data Mersi</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
                     <div>
-                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Total Kamar</label>
-                      <input type="number" required value={statusAsrama.kamarMersi} onChange={(e) => setStatusAsrama({...statusAsrama, kamarMersi: e.target.value})} className="w-full px-3 py-2 border rounded bg-white" />
+                      <label className="text-[10px] font-bold text-red-800 mb-1.5 block uppercase tracking-wider">Total Kamar</label>
+                      <input type="number" required value={statusAsrama.kamarMersi} onChange={(e) => setStatusAsrama({...statusAsrama, kamarMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-red-500" />
                     </div> 
                     <div>
-                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Penghuni Aktif</label>
-                      <input type="number" required value={statusAsrama.penghuniMersi} onChange={(e) => setStatusAsrama({...statusAsrama, penghuniMersi: e.target.value})} className="w-full px-3 py-2 border rounded bg-white" />
+                      <label className="text-[10px] font-bold text-red-800 mb-1.5 block uppercase tracking-wider">Penghuni Aktif</label>
+                      <input type="number" required value={statusAsrama.penghuniMersi} onChange={(e) => setStatusAsrama({...statusAsrama, penghuniMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-red-500" />
                     </div> 
                     <div>
-                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Status Kuota</label>
-                      <select value={statusAsrama.ketersediaanMersi} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaanMersi: e.target.value})} className="w-full px-3 py-2 border rounded bg-white font-bold text-sm">
+                      <label className="text-[10px] font-bold text-red-800 mb-1.5 block uppercase tracking-wider">Status Kuota</label>
+                      <select value={statusAsrama.ketersediaanMersi} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaanMersi: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white font-bold text-sm outline-none focus:ring-1 focus:ring-red-500">
                         <option value="Tersedia">🟢 Masih Tersedia</option>
                         <option value="Penuh">🔴 Kuota Penuh</option>
                       </select>
@@ -1441,20 +1452,21 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="bg-amber-50 p-5 rounded-lg border border-amber-200">
-                  <h3 className="font-bold text-amber-700 mb-3 border-b border-amber-200 pb-2">Data Bundo Kanduang</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
+                {/* --- PERBAIKAN LAYOUT STATUS KAPASITAS BK --- */}
+                <div className="bg-amber-50/50 p-5 rounded-lg border border-amber-100">
+                  <h3 className="font-bold text-amber-700 mb-4 border-b border-amber-200 pb-2">Data Bundo Kanduang</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
                     <div>
-                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Total Kamar</label>
-                      <input type="number" required value={statusAsrama.kamarBk} onChange={(e) => setStatusAsrama({...statusAsrama, kamarBk: e.target.value})} className="w-full px-3 py-2 border rounded bg-white" />
+                      <label className="text-[10px] font-bold text-amber-800 mb-1.5 block uppercase tracking-wider">Total Kamar</label>
+                      <input type="number" required value={statusAsrama.kamarBk} onChange={(e) => setStatusAsrama({...statusAsrama, kamarBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-amber-500" />
                     </div> 
                     <div>
-                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Penghuni Aktif</label>
-                      <input type="number" required value={statusAsrama.penghuniBk} onChange={(e) => setStatusAsrama({...statusAsrama, penghuniBk: e.target.value})} className="w-full px-3 py-2 border rounded bg-white" />
+                      <label className="text-[10px] font-bold text-amber-800 mb-1.5 block uppercase tracking-wider">Penghuni Aktif</label>
+                      <input type="number" required value={statusAsrama.penghuniBk} onChange={(e) => setStatusAsrama({...statusAsrama, penghuniBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-amber-500" />
                     </div> 
                     <div>
-                      <label className="text-xs font-bold text-slate-700 mb-1 block uppercase">Status Kuota</label>
-                      <select value={statusAsrama.ketersediaanBk} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaanBk: e.target.value})} className="w-full px-3 py-2 border rounded bg-white font-bold text-sm">
+                      <label className="text-[10px] font-bold text-amber-800 mb-1.5 block uppercase tracking-wider">Status Kuota</label>
+                      <select value={statusAsrama.ketersediaanBk} onChange={(e) => setStatusAsrama({...statusAsrama, ketersediaanBk: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded bg-white font-bold text-sm outline-none focus:ring-1 focus:ring-amber-500">
                         <option value="Tersedia">🟢 Masih Tersedia</option>
                         <option value="Penuh">🔴 Kuota Penuh</option>
                       </select>
@@ -1495,60 +1507,112 @@ export default function AdminDashboard() {
         {activeTab === "kepengurusan" && allowedTabs.includes("kepengurusan") && ( 
           <div className="space-y-6"> 
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6"> 
-              <h2 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-2">1. Pengurus Inti Asrama</h2> 
+              <h2 className="text-lg font-bold text-slate-900 mb-6 border-b border-slate-200 pb-2">1. Pengurus Inti Asrama</h2> 
               <form onSubmit={handleSavePengurusInti} className="space-y-8"> 
                 
-                {/* Blok Mersi */}
-                <div className="bg-red-50/30 p-4 md:p-6 border border-red-100 rounded-xl">
-                  <h3 className="font-bold text-red-800 mb-4 text-center tracking-widest uppercase">Inti Mersi</h3>
+                {/* --- PERBAIKAN BLOK INTI MERSI DENGAN PREVIEW FOTO --- */}
+                <div className="bg-red-50/20 p-4 md:p-6 border border-red-100 rounded-xl">
+                  <h3 className="font-bold text-red-800 mb-6 text-center tracking-[0.2em] uppercase text-sm">Inti Mersi</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
-                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
-                      <label className="text-sm font-bold block mb-2 text-red-800">Ketua Mersi</label> 
-                      <input type="text" required value={pengurusInti.ketuaMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaMersiNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
-                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketuaMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                    {/* Ketua Mersi */}
+                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                      <label className="text-sm font-bold block mb-4 text-red-800 border-b pb-2">Ketua Mersi</label> 
+                      <input type="text" required value={pengurusInti.ketuaMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaMersiNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-red-500" /> 
+                      {(fileInti.ketuaMersi || pengurusInti.ketuaMersiFoto) && (
+                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                          <img src={fileInti.ketuaMersi ? URL.createObjectURL(fileInti.ketuaMersi) : pengurusInti.ketuaMersiFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                        </div>
+                      )}
+                      <div className="mt-auto">
+                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketuaMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                      </div>
                     </div> 
-                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
-                      <label className="text-sm font-bold block mb-2 text-red-800">Sekretaris Mersi</label> 
-                      <input type="text" required value={pengurusInti.sekreMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreMersiNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
-                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekreMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+
+                    {/* Sekre Mersi */}
+                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                      <label className="text-sm font-bold block mb-4 text-red-800 border-b pb-2">Sekretaris Mersi</label> 
+                      <input type="text" required value={pengurusInti.sekreMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreMersiNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-red-500" /> 
+                      {(fileInti.sekreMersi || pengurusInti.sekreMersiFoto) && (
+                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                          <img src={fileInti.sekreMersi ? URL.createObjectURL(fileInti.sekreMersi) : pengurusInti.sekreMersiFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                        </div>
+                      )}
+                      <div className="mt-auto">
+                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekreMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                      </div>
                     </div> 
-                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
-                      <label className="text-sm font-bold block mb-2 text-red-800">Bendahara Mersi</label> 
-                      <input type="text" required value={pengurusInti.bendaharaMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaMersiNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
-                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendaharaMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+
+                    {/* Bendahara Mersi */}
+                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                      <label className="text-sm font-bold block mb-4 text-red-800 border-b pb-2">Bendahara Mersi</label> 
+                      <input type="text" required value={pengurusInti.bendaharaMersiNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaMersiNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-red-500" /> 
+                      {(fileInti.bendaharaMersi || pengurusInti.bendaharaMersiFoto) && (
+                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                          <img src={fileInti.bendaharaMersi ? URL.createObjectURL(fileInti.bendaharaMersi) : pengurusInti.bendaharaMersiFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                        </div>
+                      )}
+                      <div className="mt-auto">
+                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendaharaMersi: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                      </div>
                     </div> 
                   </div>
                 </div>
 
-                {/* Blok BK */}
-                <div className="bg-amber-50/40 p-4 md:p-6 border border-amber-200 rounded-xl">
-                  <h3 className="font-bold text-amber-700 mb-4 text-center tracking-widest uppercase">Inti Bundo Kanduang</h3>
+                {/* --- PERBAIKAN BLOK INTI BK DENGAN PREVIEW FOTO --- */}
+                <div className="bg-amber-50/20 p-4 md:p-6 border border-amber-200 rounded-xl">
+                  <h3 className="font-bold text-amber-700 mb-6 text-center tracking-[0.2em] uppercase text-sm">Inti Bundo Kanduang</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> 
-                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
-                      <label className="text-sm font-bold block mb-2 text-amber-700">Ketua BK</label> 
-                      <input type="text" required value={pengurusInti.ketuaBkNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaBkNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
-                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketuaBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                    {/* Ketua BK */}
+                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                      <label className="text-sm font-bold block mb-4 text-amber-700 border-b pb-2">Ketua BK</label> 
+                      <input type="text" required value={pengurusInti.ketuaBkNama} onChange={(e) => setPengurusInti({...pengurusInti, ketuaBkNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-amber-500" /> 
+                      {(fileInti.ketuaBk || pengurusInti.ketuaBkFoto) && (
+                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                          <img src={fileInti.ketuaBk ? URL.createObjectURL(fileInti.ketuaBk) : pengurusInti.ketuaBkFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                        </div>
+                      )}
+                      <div className="mt-auto">
+                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, ketuaBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                      </div>
                     </div> 
-                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
-                      <label className="text-sm font-bold block mb-2 text-amber-700">Sekretaris BK</label> 
-                      <input type="text" required value={pengurusInti.sekreBkNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreBkNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
-                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekreBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                    
+                    {/* Sekre BK */}
+                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                      <label className="text-sm font-bold block mb-4 text-amber-700 border-b pb-2">Sekretaris BK</label> 
+                      <input type="text" required value={pengurusInti.sekreBkNama} onChange={(e) => setPengurusInti({...pengurusInti, sekreBkNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-amber-500" /> 
+                      {(fileInti.sekreBk || pengurusInti.sekreBkFoto) && (
+                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                          <img src={fileInti.sekreBk ? URL.createObjectURL(fileInti.sekreBk) : pengurusInti.sekreBkFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                        </div>
+                      )}
+                      <div className="mt-auto">
+                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, sekreBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                      </div>
                     </div> 
-                    <div className="bg-white p-4 border border-slate-200 rounded-lg shadow-sm"> 
-                      <label className="text-sm font-bold block mb-2 text-amber-700">Bendahara BK</label> 
-                      <input type="text" required value={pengurusInti.bendaharaBkNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaBkNama: e.target.value})} className="w-full px-3 py-2 border rounded-md mb-3 text-sm" /> 
-                      <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
-                      <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendaharaBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+
+                    {/* Bendahara BK */}
+                    <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-sm flex flex-col"> 
+                      <label className="text-sm font-bold block mb-4 text-amber-700 border-b pb-2">Bendahara BK</label> 
+                      <input type="text" required value={pengurusInti.bendaharaBkNama} onChange={(e) => setPengurusInti({...pengurusInti, bendaharaBkNama: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 text-sm outline-none focus:ring-1 focus:ring-amber-500" /> 
+                      {(fileInti.bendaharaBk || pengurusInti.bendaharaBkFoto) && (
+                        <div className="mb-3 flex justify-center bg-slate-50 border border-slate-100 py-2 rounded">
+                          <img src={fileInti.bendaharaBk ? URL.createObjectURL(fileInti.bendaharaBk) : pengurusInti.bendaharaBkFoto} alt="Preview" className="w-16 h-16 object-cover rounded shadow-sm border border-slate-300" />
+                        </div>
+                      )}
+                      <div className="mt-auto">
+                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Foto (Update)</label> 
+                        <input type="file" accept="image/*" onChange={(e) => setFileInti({...fileInti, bendaharaBk: e.target.files[0]})} className="w-full text-[10px] bg-stone-50 p-1 border rounded" /> 
+                      </div>
                     </div> 
                   </div>
                 </div>
 
-                <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-md font-bold w-full">Simpan Semua Pengurus Inti</button> 
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-md font-bold transition-colors">Simpan Semua Pengurus Inti</button> 
               </form> 
             </div> 
 
