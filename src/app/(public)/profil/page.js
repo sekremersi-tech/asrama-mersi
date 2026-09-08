@@ -371,26 +371,48 @@ export default function ProfilAsrama() {
 
         {loading ? <p className="text-center text-stone-500">Memuat struktur organisasi...</p> : (
           <>
-            {/* PENGURUS INTI (Sementara pakai data sama jika admin blm dipisah) */}
-            {pengurusInti && pengurusAsrama === "mersi" && (
+            {/* PENGURUS INTI SESUAI ASRAMA YANG DIPILIH */}
+            {pengurusInti && (
               <div className="mb-20">
                 <h3 className="text-center text-xl font-bold text-stone-400 uppercase tracking-widest font-sans mb-10 pb-4 border-b border-stone-200 max-w-xs mx-auto">Pengurus Inti</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 justify-items-center items-start max-w-5xl mx-auto pt-8">
-                  {pengurusInti.sekreNama && (
-                    <div className="w-full max-w-[260px] md:mt-16 relative z-10 hover:z-20 transition-all duration-300">
-                      <ProfileCard name={pengurusInti.sekreNama} status="Sekretaris" avatarUrl={pengurusInti.sekreFoto} enableMobileTilt={true} behindGlowColor="rgba(245, 158, 11, 0.15)" innerGradient="linear-gradient(145deg, rgba(23,20,18,0.9) 0%, rgba(23,20,18,0.7) 100%)" />
-                    </div>
-                  )}
-                  {pengurusInti.ketuaNama && (
-                    <div className="w-full max-w-[260px] md:-mt-8 relative z-10 hover:z-20 transition-all duration-300">
-                      <ProfileCard name={pengurusInti.ketuaNama} status="Ketua Asrama" avatarUrl={pengurusInti.ketuaFoto} enableMobileTilt={true} behindGlowColor="rgba(220, 38, 38, 0.25)" innerGradient="linear-gradient(145deg, rgba(23,20,18,0.95) 0%, rgba(23,20,18,0.7) 100%)" />
-                    </div>
-                  )}
-                  {pengurusInti.bendaharaNama && (
-                    <div className="w-full max-w-[260px] md:mt-16 relative z-10 hover:z-20 transition-all duration-300">
-                      <ProfileCard name={pengurusInti.bendaharaNama} status="Bendahara" avatarUrl={pengurusInti.bendaharaFoto} enableMobileTilt={true} behindGlowColor="rgba(245, 158, 11, 0.15)" innerGradient="linear-gradient(145deg, rgba(23,20,18,0.9) 0%, rgba(23,20,18,0.7) 100%)" />
-                    </div>
+                  {pengurusAsrama === "mersi" ? (
+                    <>
+                      {pengurusInti.sekreMersiNama && (
+                        <div className="w-full max-w-[260px] md:mt-16 relative z-10 hover:z-20 transition-all duration-300">
+                          <ProfileCard name={pengurusInti.sekreMersiNama} status="Sekretaris" avatarUrl={pengurusInti.sekreMersiFoto} enableMobileTilt={true} behindGlowColor="rgba(245, 158, 11, 0.15)" innerGradient="linear-gradient(145deg, rgba(23,20,18,0.9) 0%, rgba(23,20,18,0.7) 100%)" />
+                        </div>
+                      )}
+                      {pengurusInti.ketuaMersiNama && (
+                        <div className="w-full max-w-[260px] md:-mt-8 relative z-10 hover:z-20 transition-all duration-300">
+                          <ProfileCard name={pengurusInti.ketuaMersiNama} status="Ketua Asrama" avatarUrl={pengurusInti.ketuaMersiFoto} enableMobileTilt={true} behindGlowColor="rgba(220, 38, 38, 0.25)" innerGradient="linear-gradient(145deg, rgba(23,20,18,0.95) 0%, rgba(23,20,18,0.7) 100%)" />
+                        </div>
+                      )}
+                      {pengurusInti.bendaharaMersiNama && (
+                        <div className="w-full max-w-[260px] md:mt-16 relative z-10 hover:z-20 transition-all duration-300">
+                          <ProfileCard name={pengurusInti.bendaharaMersiNama} status="Bendahara" avatarUrl={pengurusInti.bendaharaMersiFoto} enableMobileTilt={true} behindGlowColor="rgba(245, 158, 11, 0.15)" innerGradient="linear-gradient(145deg, rgba(23,20,18,0.9) 0%, rgba(23,20,18,0.7) 100%)" />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {pengurusInti.sekreBkNama && (
+                        <div className="w-full max-w-[260px] md:mt-16 relative z-10 hover:z-20 transition-all duration-300">
+                          <ProfileCard name={pengurusInti.sekreBkNama} status="Sekretaris" avatarUrl={pengurusInti.sekreBkFoto} enableMobileTilt={true} behindGlowColor="rgba(245, 158, 11, 0.15)" innerGradient="linear-gradient(145deg, rgba(23,20,18,0.9) 0%, rgba(23,20,18,0.7) 100%)" />
+                        </div>
+                      )}
+                      {pengurusInti.ketuaBkNama && (
+                        <div className="w-full max-w-[260px] md:-mt-8 relative z-10 hover:z-20 transition-all duration-300">
+                          <ProfileCard name={pengurusInti.ketuaBkNama} status="Ketua Asrama" avatarUrl={pengurusInti.ketuaBkFoto} enableMobileTilt={true} behindGlowColor="rgba(220, 38, 38, 0.25)" innerGradient="linear-gradient(145deg, rgba(23,20,18,0.95) 0%, rgba(23,20,18,0.7) 100%)" />
+                        </div>
+                      )}
+                      {pengurusInti.bendaharaBkNama && (
+                        <div className="w-full max-w-[260px] md:mt-16 relative z-10 hover:z-20 transition-all duration-300">
+                          <ProfileCard name={pengurusInti.bendaharaBkNama} status="Bendahara" avatarUrl={pengurusInti.bendaharaBkFoto} enableMobileTilt={true} behindGlowColor="rgba(245, 158, 11, 0.15)" innerGradient="linear-gradient(145deg, rgba(23,20,18,0.9) 0%, rgba(23,20,18,0.7) 100%)" />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
