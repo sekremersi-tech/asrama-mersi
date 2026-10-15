@@ -6,6 +6,6 @@ export default function robots() {
       disallow: ['/admin/', '/admin/dashboard/'], // Mencegah Google melacak halaman Admin
     },
     // GANTI DENGAN DOMAIN ANDA
-    sitemap: 'https://asramamersi.netlify.app', 
+    sitemap: 'https://asramamersibk.netlify.app', 
   }
 }
