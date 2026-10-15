@@ -46,7 +46,7 @@ const HeroSlider = ({ images, titleLine1, titleLine2, subtitle }) => {
 
         {/* LABEL ASRAMA PEMERINTAH SUMBAR */}
         <span className="inline-block py-1.5 px-4 md:px-6 rounded-full bg-red-800/90 text-amber-400 text-xs md:text-sm font-bold tracking-widest mb-5 md:mb-6 border border-red-700/50 backdrop-blur-sm uppercase shadow-lg">
-          Asrama Pemerintah Sumatera Barat
+          Asrama Mahasiswa Sumatera Barat
         </span>
 
         <h1 className="text-4xl md:text-6xl font-bold text-white mb-5 md:mb-6 font-playfair leading-tight drop-shadow-md">
