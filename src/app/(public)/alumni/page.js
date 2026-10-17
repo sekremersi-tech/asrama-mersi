@@ -338,11 +338,31 @@ export default function JejakPrestasi() {
                     <span className="text-sm font-medium italic text-stone-700">"{selectedAlumni.skripsi}"</span>
                   </div>
                 )}
-                {/* PRESTASI / JURNAL DITAMPILKAN DI SINI JIKA ADA */}
-                {selectedAlumni.prestasi && (
-                  <div className="flex gap-4 items-start border-b border-stone-100 pb-3">
-                    <span className="w-1/3 text-xs font-bold text-amber-600 uppercase tracking-wider shrink-0 mt-0.5">Prestasi / Karya</span>
-                    <span className="text-sm font-medium text-stone-800 whitespace-pre-line">{selectedAlumni.prestasi}</span>
+                
+                {/* PRESTASI / JURNAL DITAMPILKAN DENGAN GAYA OPSI 3: JEJAK LENCANA BERLIAN */}
+                {selectedAlumni.prestasi && selectedAlumni.prestasi.trim() !== "" && selectedAlumni.prestasi.trim() !== "-" && (
+                  <div className="flex gap-4 items-start border-b border-stone-100 pb-4">
+                    <span className="w-1/3 text-xs font-bold text-amber-600 uppercase tracking-wider shrink-0 mt-1">
+                      Prestasi / Karya
+                    </span>
+                    <div className="flex-grow relative border-l-2 border-amber-500/30 ml-2 pl-4 space-y-2.5 py-0.5">
+                      {selectedAlumni.prestasi
+                        .split(",")
+                        .map((item) => item.trim())
+                        .filter(Boolean)
+                        .map((item, idx) => (
+                          <div key={idx} className="relative group">
+                            {/* Titik Berlian (Diamond) di Garis */}
+                            <div className="absolute -left-[21px] top-2 w-2.5 h-2.5 bg-amber-500 rotate-45 border-2 border-white shadow-sm group-hover:bg-red-800 group-hover:scale-125 transition-all"></div>
+                            
+                            <div className="bg-stone-50 group-hover:bg-amber-50/50 border border-stone-200/80 group-hover:border-amber-300 px-3 py-2 rounded-r-lg rounded-bl-lg transition-all">
+                              <p className="text-xs sm:text-sm text-stone-800 font-lora font-medium leading-snug">
+                                {item}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 )}
               </div>
