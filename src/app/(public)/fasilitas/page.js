@@ -24,10 +24,14 @@ const HeroSlider = ({ images, title, subtitle }) => {
 };
 
 const AutoSliderCard = ({ images, className, onClick }) => {
-  const imgArray = Array.isArray(images) ? images : (images ? [images] : []);
+  const imgArray = Array.isArray(images) ? images.filter(Boolean) : (images ? [images] : []);
   const [idx, setIdx] = useState(0);
   useEffect(() => { if (imgArray.length <= 1) return; const timer = setInterval(() => setIdx(p => (p + 1) % imgArray.length), 3500); return () => clearInterval(timer); }, [imgArray.length]);
-  if (imgArray.length === 0) return <div className={`bg-stone-200 ${className}`} onClick={onClick}></div>;
+  if (imgArray.length === 0) return (
+    <div className={`bg-stone-900 flex items-center justify-center ${className}`} onClick={onClick}>
+      <span className="text-amber-500 font-playfair font-bold tracking-widest uppercase text-sm">Coming Soon</span>
+    </div>
+  );
   return (
     <div className={`relative overflow-hidden group cursor-pointer ${className}`} onClick={onClick}>
       {imgArray.map((src, i) => (<img key={i} src={src} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 group-hover:scale-105 ease-in-out ${i === idx ? "opacity-100" : "opacity-0"}`} alt="Visual" />))}
@@ -71,8 +75,11 @@ export default function FasilitasAsrama() {
   const [dataFasilitas, setDataFasilitas] = useState([]);
   const [dataPenyewaan, setDataPenyewaan] = useState([]); 
   
-  // STATE KONTAK DAN BROSUR (Diperluas untuk Mersi & BK)
-  const [kontak, setKontak] = useState({ namaKetuaMersi: "", noTelponMersi: "-", namaKetuaBk: "", noTelponBk: "-", noHumas: "-" });
+  // STATE KONTAK DAN BROSUR (Disinkronkan dengan Admin Dashboard: Mersi & BK Dipisah)
+  const [kontak, setKontak] = useState({ 
+    namaKetuaMersi: "", noTelponMersi: "-", noHumasMersi: "-",
+    namaKetuaBk: "", noTelponBk: "-", noHumasBk: "-" 
+  });
   const [statusSemuaAsrama, setStatusSemuaAsrama] = useState({
     mersi: { kamar: "0", penghuni: "0", ketersediaan: "Penuh" },
     bk: { kamar: "0", penghuni: "0", ketersediaan: "Penuh" }
@@ -113,9 +120,10 @@ export default function FasilitasAsrama() {
           setKontak({ 
             namaKetuaMersi: kd.namaKetuaMersi || kd.namaKetua || "Ketua Mersi", 
             noTelponMersi: kd.noTelponMersi || kd.noTelpon || "-", 
+            noHumasMersi: kd.noHumasMersi || kd.noHumas || "-",
             namaKetuaBk: kd.namaKetuaBk || "Ketua Bundo Kanduang", 
             noTelponBk: kd.noTelponBk || "-", 
-            noHumas: kd.noHumas || "-" 
+            noHumasBk: kd.noHumasBk || kd.noHumas || "-" 
           });
         }
         
@@ -137,7 +145,8 @@ export default function FasilitasAsrama() {
           });
         }
 
-        const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "asc")));
+        // SINKRON DENGAN ADMIN DASHBOARD: Urutkan dari yang terbaru ("desc")
+        const fasSnap = await getDocs(query(collection(db, "daftar_fasilitas"), orderBy("createdAt", "desc")));
         setDataFasilitas(fasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         
         const sewaSnap = await getDocs(query(collection(db, "daftar_penyewaan"), orderBy("createdAt", "desc")));
@@ -170,7 +179,7 @@ export default function FasilitasAsrama() {
   };
 
   const closeModal = () => { setSelectedItem(null); setKomentarList([]); setLocalLikes({}); setFormKomen({ nama: "", isi: "" }); document.body.style.overflow = "auto"; };
-  const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar : [selectedItem.linkGambar]) : [];
+  const modalImages = selectedItem ? (Array.isArray(selectedItem.linkGambar) ? selectedItem.linkGambar.filter(Boolean) : (selectedItem.linkGambar ? [selectedItem.linkGambar] : [])) : [];
   const nextModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev + 1) % modalImages.length); };
   const prevModalImage = (e) => { e.stopPropagation(); setModalImageIdx((prev) => (prev - 1 + modalImages.length) % modalImages.length); };
 
@@ -254,15 +263,16 @@ export default function FasilitasAsrama() {
     return `https://wa.me/${bersihkanNomor}?text=${encodeURIComponent(pesan)}`;
   };
 
-  // FILTER DATA BERDASARKAN TOGGLE TAB
-  const filteredFasilitas = dataFasilitas.filter(f => (f.asrama || 'mersi') === fasilitasTab);
-  const filteredPenyewaan = dataPenyewaan.filter(s => (s.asrama || 'mersi') === sewaTab);
+  // SINKRON DENGAN ADMIN DASHBOARD: Filter ketat sesuai atribut asrama
+  const filteredFasilitas = dataFasilitas.filter(f => f.asrama === fasilitasTab);
+  const filteredPenyewaan = dataPenyewaan.filter(s => s.asrama === sewaTab);
   const currentStatus = statusSemuaAsrama[statusTab];
   const currentBrosurImages = brosurUrls[daftarTab];
 
-  // Penentuan Kontak WA Pendaftaran
+  // Penentuan Kontak WA Pendaftaran (Ketua & Humas sesuai tab asrama yang dipilih)
   const waKetuaAktif = daftarTab === "mersi" ? kontak.noTelponMersi : kontak.noTelponBk;
   const namaKetuaAktif = daftarTab === "mersi" ? kontak.namaKetuaMersi : kontak.namaKetuaBk;
+  const waHumasAktif = daftarTab === "mersi" ? kontak.noHumasMersi : kontak.noHumasBk;
 
   return (
     <div className="bg-[#f9f8f6] pb-24 min-h-screen text-left font-lora overflow-x-hidden relative">
@@ -339,9 +349,9 @@ export default function FasilitasAsrama() {
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                       Ketua Asrama: {namaKetuaAktif} ({waKetuaAktif || "-"})
                     </a>
-                    <a href={formatWhatsAppLink(kontak.noHumas)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#44403c] hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
+                    <a href={formatWhatsAppLink(waHumasAktif)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#44403c] hover:text-green-600 transition-colors w-fit font-medium bg-stone-50 px-3 py-2 rounded border border-stone-200">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                      Humas Umum Asrama ({kontak.noHumas || "-"})
+                      Humas {daftarTab === 'mersi' ? 'Mersi' : 'Bundo Kanduang'} ({waHumasAktif || "-"})
                     </a>
                   </div>
                 </div>
@@ -359,7 +369,11 @@ export default function FasilitasAsrama() {
           <div className="bg-white w-full max-w-6xl md:w-fit rounded-sm overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[95vh]" onClick={e => e.stopPropagation()}>
             <div className="relative w-full md:w-auto bg-stone-900 flex shrink-0 md:pr-[400px] lg:pr-[450px] md:min-h-[450px]">
               <div className="relative w-full flex items-center justify-center group">
-                <img src={modalImages[modalImageIdx]} className="w-full md:w-auto md:max-w-[55vw] max-h-[50vh] md:max-h-[95vh] object-contain block" alt="Preview" />
+                {modalImages.length > 0 ? (
+                  <img src={modalImages[modalImageIdx]} className="w-full md:w-auto md:max-w-[55vw] max-h-[50vh] md:max-h-[95vh] object-contain block" alt="Preview" />
+                ) : (
+                  <div className="w-full md:w-[400px] h-64 flex items-center justify-center text-amber-500 font-playfair font-bold tracking-widest uppercase">Coming Soon</div>
+                )}
                 {modalImages.length > 1 && (
                   <>
                     <button onClick={prevModalImage} className="absolute left-4 bg-black/50 hover:bg-amber-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
